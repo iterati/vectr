@@ -1,7 +1,8 @@
 class Mode {
   int       pattern;
   int[]     numColors = new int[3];
-  int[][][] thresh = new int[2][2][2];
+  int[][]   patternThresh = new int[2][2];
+  int[][]   colorThresh = new int[2][2];
   int[][]   args = new int[3][3];
   int[][]   timings = new int[3][6];
   int[][][] colors = new int[9][3][3];
@@ -14,8 +15,10 @@ class Mode {
       return pattern;
     } else if (addr < 4) {
       return numColors[addr - 1];
+    } else if (addr < 8) {
+      return patternThresh[(addr - 4) / 2][(addr - 4) % 2];
     } else if (addr < 12) {
-      return thresh[(addr - 4) / 4][((addr - 4) % 4) / 2][(addr - 4) % 2];
+      return colorThresh[(addr - 8) / 2][(addr - 8) % 2];
     } else if (addr < 21) {
       return args[(addr - 12) / 3][(addr - 12) % 3];
     } else if (addr < 39) {
@@ -31,8 +34,10 @@ class Mode {
       pattern = val;
     } else if (addr < 4) {
       numColors[addr - 1] = val;
+    } else if (addr < 8) {
+      patternThresh[(addr - 4) / 2][(addr - 4) % 2] = val;
     } else if (addr < 12) {
-      thresh[(addr - 4) / 4][((addr - 4) % 4) / 2][(addr - 4) % 2] = val;
+      colorThresh[(addr - 8) / 2][(addr - 8) % 2] = val;
     } else if (addr < 21) {
       args[(addr - 12) / 3][(addr - 12) % 3] = val;
     } else if (addr < 39) {
@@ -50,16 +55,24 @@ class Mode {
     return jarr;
   }
 
-  JSONArray j_thresh() {
+  JSONArray j_patternThresh() {
     JSONArray jarr = new JSONArray();
     for (int i = 0; i < 2; i++) {
       JSONArray jarr1 = new JSONArray();
       for (int j = 0; j < 2; j++) {
-        JSONArray jarr2 = new JSONArray();
-        for (int k = 0; k < 2; k++) {
-          jarr2.setInt(k, thresh[i][j][k]);
-        }
-        jarr1.setJSONArray(j, jarr2);
+        jarr1.setInt(j, patternThresh[i][j]);
+      }
+      jarr.setJSONArray(i, jarr1);
+    }
+    return jarr;
+  }
+
+  JSONArray j_colorThresh() {
+    JSONArray jarr = new JSONArray();
+    for (int i = 0; i < 2; i++) {
+      JSONArray jarr1 = new JSONArray();
+      for (int j = 0; j < 2; j++) {
+        jarr1.setInt(j, colorThresh[i][j]);
       }
       jarr.setJSONArray(i, jarr1);
     }
@@ -106,11 +119,12 @@ class Mode {
     return jarr;
   }
 
-  JSONObject asJson() {
+  JSONObject asJSON() {
     JSONObject j_mode = new JSONObject();
     j_mode.setInt("pattern", pattern);
     j_mode.setJSONArray("num_colors", j_numColors());
-    j_mode.setJSONArray("thresh", j_thresh());
+    j_mode.setJSONArray("pattern_thresh", j_patternThresh());
+    j_mode.setJSONArray("color_thresh", j_colorThresh());
     j_mode.setJSONArray("args", j_args());
     j_mode.setJSONArray("timings", j_timings());
     j_mode.setJSONArray("colors", j_colors());
@@ -123,14 +137,20 @@ class Mode {
     }
   }
 
-  void json_thresh(JSONArray jarr) {
+  void json_patternThresh(JSONArray jarr) {
     for (int i = 0; i < 2; i++) {
       JSONArray jarr1 = jarr.getJSONArray(i);
       for (int j = 0; j < 2; j++) {
-        JSONArray jarr2 = jarr1.getJSONArray(j);
-        for (int k = 0; k < 2; k++) {
-          thresh[i][j][k] = jarr2.getInt(k);
-        }
+        patternThresh[i][j] = jarr1.getInt(j);
+      }
+    }
+  }
+
+  void json_colorThresh(JSONArray jarr) {
+    for (int i = 0; i < 2; i++) {
+      JSONArray jarr1 = jarr.getJSONArray(i);
+      for (int j = 0; j < 2; j++) {
+        colorThresh[i][j] = jarr1.getInt(j);
       }
     }
   }
@@ -168,7 +188,8 @@ class Mode {
   void fromJSON(JSONObject json) {
     pattern = json.getInt("pattern");
     json_numColors(json.getJSONArray("num_colors"));
-    json_thresh(json.getJSONArray("thresh"));
+    json_patternThresh(json.getJSONArray("pattern_thresh"));
+    json_colorThresh(json.getJSONArray("color_thresh"));
     json_args(json.getJSONArray("args"));
     json_timings(json.getJSONArray("timings"));
     json_colors(json.getJSONArray("colors"));

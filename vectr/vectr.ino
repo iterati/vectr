@@ -5,7 +5,7 @@
 #include "LowPower.h"
 #include "elapsedMillis.h"
 
-#define EEPROM_VERSION  7
+#define EEPROM_VERSION  8
 
 #define PIN_R 9
 #define PIN_G 6
@@ -14,8 +14,11 @@
 #define PIN_LDO A3
 #define V2_ACCEL_ADDR 0x1D
 
-#define ADDR_VERSION    1022
-#define ADDR_SLEEPING   1023
+#define ADDR_CONJURE_MODE 1019
+#define ADDR_LOCKED       1020
+#define ADDR_CONJURE      1021
+#define ADDR_VERSION      1022
+#define ADDR_SLEEPING     1023
 
 #define PRESS_DELAY     100
 #define SHORT_HOLD      1000
@@ -25,9 +28,15 @@
 #define S_PLAY_OFF          0
 #define S_PLAY_PRESSED      1
 #define S_PLAY_SLEEP_WAIT   2
+#define S_PLAY_CONJURE_WAIT 3
+#define S_PLAY_LOCK_WAIT    4
+#define S_CONJURE_OFF       5
+#define S_CONJURE_PRESS     6
+#define S_CONJURE_PLAY_WAIT 7
 #define S_SLEEP_WAKE        10
 #define S_SLEEP_RESET_WAIT  11
 #define S_SLEEP_HELD        12
+#define S_SLEEP_LOCK        15
 #define S_RESET_START       20
 #define S_RESET_WAIT        21
 #define S_RESET_HELD        22
@@ -76,7 +85,7 @@ int32_t gs[3];
 int32_t a_mag;
 uint8_t a_speed;
 
-uint8_t cur_mode;
+uint8_t cur_mode = 0;
 uint8_t r, g, b;
 uint8_t numc, arg0, arg1, arg2;
 uint8_t timing0, timing1, timing2, timing3, timing4, timing5;
@@ -88,7 +97,8 @@ uint8_t gui_set, gui_color;
 typedef struct Mode {
   uint8_t pattern;                  // 0
   uint8_t num_colors[3];            // 1 - 3
-  uint8_t thresh[2][2][2];          // 4 - 11, color/pattern, first/second, start/end
+  uint8_t pattern_thresh[2][2];     // 4 - 7, first/second, start/end
+  uint8_t color_thresh[2][2];       // 8 - 11, first/second, start/end
   uint8_t args[3][3];               // 12 - 20
   uint8_t timings[3][6];            // 21 - 38, timing sets
   uint8_t colors[NUM_COLORS][3][3]; // 39 - 119
@@ -100,14 +110,13 @@ typedef union PackedMode {
   uint8_t d[MODE_SIZE];
 } PackedMode;
 
-/* PackedMode pms[NUM_MODES]; */
 Mode* mode;
 PackedMode pm;
 PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
   // Crosshairs
   {P_EDGE, 2, 2, 2,
-    0, 16, 16, 32,
     32, 32, 32, 32,
+    0, 16, 16, 32,
     0, 0, 0,
     0, 0, 0,
     0, 0, 0,
@@ -124,8 +133,8 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
   },
   // Dashdops
   {P_RUNNER, 7, 7, 7,
-    32, 32, 32, 32,
     0, 20, 20, 32,
+    32, 32, 32, 32,
     0, 0, 0,
     0, 0, 0,
     0, 0, 0,
@@ -144,8 +153,8 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
   },
   // Darkside of the moon
   {P_STROBE, 6, 6, 6,
-    0, 16, 16, 32,
     0, 8, 8, 32,
+    0, 16, 16, 32,
     0, 0, 0,
     0, 0, 0,
     0, 0, 0,
@@ -164,8 +173,8 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
   },
   // Self Healing
   {P_VEXER, 3, 3, 3,
-    1, 32, 32, 32,
     0, 24, 24, 32,
+    1, 32, 32, 32,
     1, 4, 0,
     1, 4, 0,
     1, 4, 0,
@@ -184,8 +193,8 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
   },
   // Sorcery
   {P_STROBE, 3, 3, 3,
-    0, 32, 32, 32,
     1, 6, 6, 32,
+    0, 32, 32, 32,
     0, 0, 0,
     0, 0, 0,
     0, 0, 0,
@@ -204,8 +213,8 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
   },
   // Candy Strobe
   {P_STROBE, 9, 9, 9,
-    32, 32, 32, 32,
     0, 16, 16, 32,
+    32, 32, 32, 32,
     3, 1, 32,
     3, 1, 32,
     3, 1, 32,
@@ -224,8 +233,8 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
   },
   // Quantum Core
   {P_DOUBLE, 3, 3, 3,
-    32, 32, 32, 32,
     0, 32, 32, 32,
+    32, 32, 32, 32,
     1, 1, 1,
     1, 1, 1,
     1, 1, 1,
@@ -245,8 +254,8 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
   /*
   // Electric Dops
   {P_EDGE, 4, 4, 4,
-    0, 16, 16, 32,
     0, 12, 12, 24,
+    0, 16, 16, 32,
     2, 0, 0,
     2, 0, 0,
     2, 0, 0,
@@ -265,8 +274,8 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
   },
   // Ghosts
   {P_STROBE, 9, 9, 9,
-    0, 8, 8, 32,
     0, 32, 32, 32,
+    0, 8, 8, 32,
     3, 3, 1,
     3, 3, 1,
     3, 3, 1,
@@ -305,8 +314,8 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
   },
   // Star Tripping
   {P_VEXER, 3, 3, 3,
-    16, 32, 32, 32,
     0, 16, 16, 32,
+    16, 32, 32, 32,
     1, 5, 0,
     1, 5, 0,
     1, 5, 0,
@@ -349,21 +358,29 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
 
 
 void setup() {
+  Serial.begin(115200);
   pinMode(PIN_BUTTON, INPUT);
 
   attachInterrupt(0, pushInterrupt, FALLING);
   if (EEPROM.read(ADDR_SLEEPING)) {
     EEPROM.write(ADDR_SLEEPING, 0);
     LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
-    state = new_state = S_SLEEP_WAKE;
+    if (EEPROM.read(ADDR_LOCKED)) {
+      state = new_state = S_SLEEP_LOCK;
+    } else {
+      state = new_state = S_SLEEP_WAKE;
+    }
   } else {
-    state = new_state = S_PLAY_OFF;
+    if (EEPROM.read(ADDR_CONJURE)) {
+      cur_mode = EEPROM.read(ADDR_CONJURE_MODE);
+      state = new_state = S_CONJURE_OFF;
+    } else {
+      state = new_state = S_PLAY_OFF;
+    }
   }
   detachInterrupt(0);
 
   Wire.begin();
-  Serial.begin(115200);
-
   pinMode(PIN_R, OUTPUT);
   pinMode(PIN_G, OUTPUT);
   pinMode(PIN_B, OUTPUT);
@@ -373,7 +390,7 @@ void setup() {
   if (EEPROM_VERSION != EEPROM.read(ADDR_VERSION)) memoryReset();
 
   accelInit();
-  changeMode(0);
+  changeMode(cur_mode);
   Serial.write(250); Serial.write(SER_VERSION); Serial.write(SER_VERSION);
 
   noInterrupts();
@@ -393,7 +410,7 @@ void loop() {
 }
 
 void render() {
-  if (state == S_PLAY_OFF) {
+  if (state == S_PLAY_OFF || state == S_CONJURE_OFF) {
     renderMode();
   } else if (state == S_VIEW_MODE) {
     renderMode();
@@ -439,8 +456,8 @@ void memoryReset() {
 
 void loadMode(uint8_t i) {
   for (uint8_t j = 0; j < MODE_SIZE; j++) {
-    pm.d[j] = pgm_read_byte(&factory_modes[i][j]);
-    /* pm.d[j] = EEPROM.read((i * 128) + j); */
+    /* pm.d[j] = pgm_read_byte(&factory_modes[i][j]); */
+    pm.d[j] = EEPROM.read((i * 128) + j);
   }
 }
 
@@ -459,11 +476,12 @@ void pushInterrupt() {}
 
 void handlePress(bool pressed) {
   if (state == S_PLAY_OFF) {
-    if (pressed && since_trans >= PRESS_DELAY) new_state = S_PLAY_PRESSED;
+    if (pressed && since_trans >= PRESS_DELAY) {
+      new_state = S_PLAY_PRESSED;
+    }
   } else if (state == S_PLAY_PRESSED) {
     if (!pressed) {
       changeMode(101);
-      Serial.write(250); Serial.write(SER_VERSION); Serial.write(SER_VERSION);
       new_state = S_PLAY_OFF;
     } else if (since_trans >= SHORT_HOLD) {
       new_state = S_PLAY_SLEEP_WAIT;
@@ -472,10 +490,50 @@ void handlePress(bool pressed) {
     if (!pressed) {
       enterSleep();
     } else if (since_trans >= LONG_HOLD) {
+      new_state = S_PLAY_CONJURE_WAIT;
+    }
+  } else if (state == S_PLAY_CONJURE_WAIT) {
+    if (since_trans == 0) flash(0, 0, 128, 5);
+    if (!pressed) {
+      EEPROM.update(ADDR_CONJURE, 1);
+      new_state = S_CONJURE_OFF;
+    } else if (since_trans >= LONG_HOLD) {
+      new_state = S_PLAY_LOCK_WAIT;
+    }
+  } else if (state == S_PLAY_LOCK_WAIT) {
+    if (since_trans == 0) flash(128, 0, 0, 5);
+    if (!pressed) {
+      EEPROM.update(ADDR_LOCKED, 1);
+      enterSleep();
+    } else if (since_trans >= LONG_HOLD) {
+      flash(48, 48, 48, 5);
+      new_state = S_PLAY_SLEEP_WAIT;
+    }
+  } else if (state == S_CONJURE_OFF) {
+    if (pressed && since_trans >= PRESS_DELAY) {
+      new_state = S_CONJURE_PRESS;
+    }
+  } else if (state == S_CONJURE_PRESS) {
+    if (!pressed) {
+      EEPROM.update(ADDR_CONJURE_MODE, cur_mode);
+      enterSleep();
+    } else if (since_trans >= LONG_HOLD) {
+      new_state = S_CONJURE_PLAY_WAIT;
+    }
+  } else if (state == S_CONJURE_PLAY_WAIT) {
+    if (since_trans == 0) flash(0, 0, 128, 5);
+    if (!pressed) {
+      EEPROM.update(ADDR_CONJURE, 0);
+      new_state = S_PLAY_OFF;
     }
   } else if (state == S_SLEEP_WAKE) {
     if (!pressed) {
-      new_state = S_PLAY_OFF;
+      if (EEPROM.read(ADDR_CONJURE)) {
+        changeMode(EEPROM.read(ADDR_CONJURE_MODE));
+        new_state = S_CONJURE_OFF;
+      } else {
+        new_state = S_PLAY_OFF;
+      }
     } else if (since_trans >= VERY_LONG_HOLD) {
       new_state = S_SLEEP_RESET_WAIT;
     }
@@ -489,6 +547,22 @@ void handlePress(bool pressed) {
   } else if (state == S_SLEEP_HELD) {
     if (!pressed) {
       enterSleep();
+    }
+  } else if (state == S_SLEEP_LOCK) {
+    if (since_trans == VERY_LONG_HOLD) flash(0, 128, 0, 5);
+    if (!pressed) {
+      if (since_trans > VERY_LONG_HOLD) {
+        EEPROM.update(ADDR_LOCKED, 0);
+        if (EEPROM.read(ADDR_CONJURE)) {
+          changeMode(EEPROM.read(ADDR_CONJURE_MODE));
+          new_state = S_CONJURE_OFF;
+        } else {
+          new_state = S_PLAY_OFF;
+        }
+      } else {
+        flash(128, 0, 0, 5);
+        enterSleep();
+      }
     }
   } else if (state == S_RESET_START) {
     if (pressed) {
@@ -616,51 +690,59 @@ inline uint8_t interp(uint8_t m, uint8_t n, uint8_t d, uint8_t D) {
 
 inline void recalcArgs() {
   uint8_t as, d;
-  if (a_speed <= mode->thresh[1][0][0]) {
+  if (a_speed <= mode->color_thresh[0][0]) {
+    numc = mode->num_colors[0];
+  } else if (a_speed < mode->color_thresh[0][1]) {
+    numc = min(mode->num_colors[0], mode->num_colors[1]);
+  } else if (a_speed <= mode->color_thresh[1][0]) {
+    numc = mode->num_colors[1];
+  } else if (a_speed < mode->color_thresh[1][1]) {
+    numc = min(mode->num_colors[1], mode->num_colors[2]);
+  } else {
+    numc = mode->num_colors[2];
+  }
+
+  if (a_speed <= mode->pattern_thresh[0][0]) {
     timing0 = mode->timings[0][0];
     timing1 = mode->timings[0][1];
     timing2 = mode->timings[0][2];
     timing3 = mode->timings[0][3];
     timing4 = mode->timings[0][4];
     timing5 = mode->timings[0][5];
-    numc = mode->num_colors[0];
     arg0 = mode->args[0][0];
     arg1 = mode->args[0][1];
     arg2 = mode->args[0][2];
-  } else if (a_speed < mode->thresh[1][0][1]) {
-    as = a_speed - mode->thresh[1][0][0];
-    d = mode->thresh[1][0][1] - mode->thresh[1][0][0];
+  } else if (a_speed < mode->pattern_thresh[0][1]) {
+    as = a_speed - mode->pattern_thresh[0][0];
+    d = mode->pattern_thresh[0][1] - mode->pattern_thresh[0][0];
     timing0 = interp(mode->timings[0][0], mode->timings[1][0], as, d);
     timing1 = interp(mode->timings[0][1], mode->timings[1][1], as, d);
     timing2 = interp(mode->timings[0][2], mode->timings[1][2], as, d);
     timing3 = interp(mode->timings[0][3], mode->timings[1][3], as, d);
     timing4 = interp(mode->timings[0][4], mode->timings[1][4], as, d);
     timing5 = interp(mode->timings[0][5], mode->timings[1][5], as, d);
-    numc = mode->num_colors[0];
     arg0 = mode->args[0][0];
     arg1 = mode->args[0][1];
     arg2 = mode->args[0][2];
-  } else if (a_speed <= mode->thresh[1][1][0]) {
+  } else if (a_speed <= mode->pattern_thresh[1][0]) {
     timing0 = mode->timings[1][0];
     timing1 = mode->timings[1][1];
     timing2 = mode->timings[1][2];
     timing3 = mode->timings[1][3];
     timing4 = mode->timings[1][4];
     timing5 = mode->timings[1][5];
-    numc = mode->num_colors[1];
     arg0 = mode->args[1][0];
     arg1 = mode->args[1][1];
     arg2 = mode->args[1][2];
-  } else if (a_speed < mode->thresh[1][1][1]) {
-    as = a_speed - mode->thresh[1][1][0];
-    d = mode->thresh[1][1][1] - mode->thresh[1][1][0];
+  } else if (a_speed < mode->pattern_thresh[1][1]) {
+    as = a_speed - mode->pattern_thresh[1][0];
+    d = mode->pattern_thresh[1][1] - mode->pattern_thresh[1][0];
     timing0 = interp(mode->timings[1][0], mode->timings[2][0], as, d);
     timing1 = interp(mode->timings[1][1], mode->timings[2][1], as, d);
     timing2 = interp(mode->timings[1][2], mode->timings[2][2], as, d);
     timing3 = interp(mode->timings[1][3], mode->timings[2][3], as, d);
     timing4 = interp(mode->timings[1][4], mode->timings[2][4], as, d);
     timing5 = interp(mode->timings[1][5], mode->timings[2][5], as, d);
-    numc = mode->num_colors[1];
     arg0 = mode->args[1][0];
     arg1 = mode->args[1][1];
     arg2 = mode->args[1][2];
@@ -671,38 +753,31 @@ inline void recalcArgs() {
     timing3 = mode->timings[2][3];
     timing4 = mode->timings[2][4];
     timing5 = mode->timings[2][5];
-    numc = mode->num_colors[2];
     arg0 = mode->args[2][0];
     arg1 = mode->args[2][1];
     arg2 = mode->args[2][2];
   }
 }
 
-inline void colorStatic(int8_t color) {
-  r = mode->colors[color][0][0];
-  g = mode->colors[color][0][1];
-  b = mode->colors[color][0][2];
-}
-
 inline void colorFlux(int8_t color) {
   uint8_t as, d;
-  if (a_speed <= mode->thresh[0][0][0]) {
+  if (a_speed <= mode->color_thresh[0][0]) {
     r = mode->colors[color][0][0];
     g = mode->colors[color][0][1];
     b = mode->colors[color][0][2];
-  } else if (a_speed < mode->thresh[0][0][1]) {
-    as = a_speed - mode->thresh[0][0][0];
-    d = mode->thresh[0][0][1] - mode->thresh[0][0][0];
+  } else if (a_speed < mode->color_thresh[0][1]) {
+    as = a_speed - mode->color_thresh[0][0];
+    d = mode->color_thresh[0][1] - mode->color_thresh[0][0];
     r = interp(mode->colors[color][0][0], mode->colors[color][1][0], as, d);
     g = interp(mode->colors[color][0][1], mode->colors[color][1][1], as, d);
     b = interp(mode->colors[color][0][2], mode->colors[color][1][2], as, d);
-  } else if (a_speed <= mode->thresh[0][1][0]) {
+  } else if (a_speed <= mode->color_thresh[1][0]) {
     r = mode->colors[color][1][0];
     g = mode->colors[color][1][1];
     b = mode->colors[color][1][2];
-  } else if (a_speed < mode->thresh[0][1][1]) {
-    as = a_speed - mode->thresh[0][1][0];
-    d = mode->thresh[0][1][1] - mode->thresh[0][1][0];
+  } else if (a_speed < mode->color_thresh[1][1]) {
+    as = a_speed - mode->color_thresh[1][0];
+    d = mode->color_thresh[1][1] - mode->color_thresh[1][0];
     r = interp(mode->colors[color][1][0], mode->colors[color][2][0], as, d);
     g = interp(mode->colors[color][1][1], mode->colors[color][2][1], as, d);
     b = interp(mode->colors[color][1][2], mode->colors[color][2][2], as, d);
@@ -1016,6 +1091,7 @@ void handleSerial() {
         modeDump(in0);
       } else if (cmd == SER_SAVE) {
         modeSave();
+        flash(128, 128, 128, 5);
       } else if (cmd == SER_READ) {
         modeRead(in0, in1);
       } else if (cmd == SER_WRITE) {
