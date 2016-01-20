@@ -3,7 +3,7 @@ class Mode {
   int[]     numColors = new int[3];
   int[][]   patternThresh = new int[2][2];
   int[][]   colorThresh = new int[2][2];
-  int[][]   args = new int[3][3];
+  int[]     args = new int[3];
   int[][]   timings = new int[3][6];
   int[][][] colors = new int[9][3][3];
 
@@ -16,15 +16,15 @@ class Mode {
     } else if (addr < 4) {
       return numColors[addr - 1];
     } else if (addr < 8) {
-      return patternThresh[(addr - 4) / 2][(addr - 4) % 2];
+      return patternThresh[(addr - 5) / 2][(addr - 4) % 2];
     } else if (addr < 12) {
       return colorThresh[(addr - 8) / 2][(addr - 8) % 2];
-    } else if (addr < 21) {
-      return args[(addr - 12) / 3][(addr - 12) % 3];
-    } else if (addr < 39) {
-      return timings[(addr - 21) / 6][(addr - 21) % 6];
-    } else if (addr < 120) {
-      return colors[(addr - 39) / 9][((addr - 39) % 9) / 3][(addr - 39) % 3];
+    } else if (addr < 15) {
+      return args[addr - 12];
+    } else if (addr < 33) {
+      return timings[(addr - 15) / 6][(addr - 21) % 6];
+    } else if (addr < 114) {
+      return colors[(addr - 33) / 9][((addr - 33) % 9) / 3][(addr - 33) % 3];
     }
     return -1;
   }
@@ -38,12 +38,12 @@ class Mode {
       patternThresh[(addr - 4) / 2][(addr - 4) % 2] = val;
     } else if (addr < 12) {
       colorThresh[(addr - 8) / 2][(addr - 8) % 2] = val;
-    } else if (addr < 21) {
-      args[(addr - 12) / 3][(addr - 12) % 3] = val;
-    } else if (addr < 39) {
-      timings[(addr - 21) / 6][(addr - 21) % 6] = val;
-    } else if (addr < 120) {
-      colors[(addr - 39) / 9][((addr - 39) % 9) / 3][(addr - 39) % 3] = val;
+    } else if (addr < 15) {
+      args[addr - 12] = val;
+    } else if (addr < 33) {
+      timings[(addr - 15) / 6][(addr - 15) % 6] = val;
+    } else if (addr < 114) {
+      colors[(addr - 33) / 9][((addr - 33) % 9) / 3][(addr - 33) % 3] = val;
     }
   }
 
@@ -82,11 +82,7 @@ class Mode {
   JSONArray j_args() {
     JSONArray jarr = new JSONArray();
     for (int i = 0; i < 3; i++) {
-      JSONArray jarr1 = new JSONArray();
-      for (int j = 0; j < 3; j++) {
-        jarr1.setInt(j, args[i][j]);
-      }
-      jarr.setJSONArray(i, jarr1);
+      jarr.setInt(i, args[i]);
     }
     return jarr;
   }
@@ -157,10 +153,7 @@ class Mode {
 
   void json_args(JSONArray jarr) {
     for (int i = 0; i < 3; i++) {
-      JSONArray jarr1 = jarr.getJSONArray(i);
-      for (int j = 0; j < 3; j++) {
-        args[i][j] = jarr1.getInt(j);
-      }
+      args[i] = jarr.getInt(i);
     }
   }
 

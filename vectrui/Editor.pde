@@ -65,7 +65,7 @@ class Editor {
   ThreshRange colorThresh;
 
   Textlabel[] argLabels = new Textlabel[3];
-  Slider[][] args = new Slider[3][3];
+  Slider[] args = new Slider[3];
 
   Textlabel[] timingLabels = new Textlabel[6];
   Slider[][] timings = new Slider[3][6];
@@ -78,16 +78,14 @@ class Editor {
   int color_slot = -1;
 
   Slider[] colorValues = new Slider[3];
-  Button[] colorButtons = new Button[48];
+  Button[][] colorButtons = new Button[2][48];
 
   Button saveMode;
   Button loadMode;
-  Textfield modeFilename;
   Button writeMode;
   Button resetMode;
   Button saveLight;
   Button writeLight;
-  Textfield lightFilename;
   Button disconnectLight;
   Button viewMode;
   Button viewColor;
@@ -103,8 +101,8 @@ class Editor {
     title = cp5.addTextlabel("editorTitle")
       .setGroup(group)
       .setValue("Mode 1")
-      .setFont(createFont("Arial", 32))
-      .setPosition(440, 5)
+      .setFont(createFont("Comfortaa-Regular", 32))
+      .setPosition(443, 5)
       .setColorValue(color(0));
 
     patternThresh = new ThreshRange(cp5, "editorPatternThresh")
@@ -112,7 +110,7 @@ class Editor {
       .setGroup(group)
       .setLabel("Pattern Thresholds")
       .setBroadcast(true);
-    patternThresh.setPosition((group.getWidth() - patternThresh.getWidth()) / 2, 90);
+    patternThresh.setPosition((group.getWidth() - patternThresh.getWidth()) / 2, 70);
     style("editorPatternThresh");
 
     colorThresh = new ThreshRange(cp5, "editorColorThresh")
@@ -120,7 +118,7 @@ class Editor {
       .setGroup(group)
       .setLabel("Color Set Thresholds")
       .setBroadcast(true);
-    colorThresh.setPosition((group.getWidth() - colorThresh.getWidth()) / 2, 500);
+    colorThresh.setPosition((group.getWidth() - colorThresh.getWidth()) / 2, 400);
     style("editorColorThresh");
 
     colorSelect = cp5.addButton("editorColorSelect")
@@ -132,34 +130,31 @@ class Editor {
       .hide();
 
     for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        args[i][j] = cp5.addSlider("editorArgs" + i + "." + j)
-          .setBroadcast(false)
-          .setCaptionLabel("")
-          .setGroup(group)
-          .setId(12 + (3 * j) + i)
-          .setSize(250, 20)
-          .setPosition(125 + (i * 275), 160 + (j * 30))
-          .setColorBackground(color(32))
-          .setColorActive(color(96))
-          .setRange(0, 9)
-          .setNumberOfTickMarks(10)
-          .showTickMarks(false)
-          .setDecimalPrecision(0)
-          .setValue(0)
-          .setBroadcast(true)
-          .hide();
-
-      }
+      args[i] = cp5.addSlider("editorArgs" + i)
+        .setBroadcast(false)
+        .setCaptionLabel("")
+        .setGroup(group)
+        .setId(12 + i)
+        .setSize(250, 20)
+        .setPosition(125 + (i * 275), 130)
+        .setColorBackground(color(32))
+        .setColorActive(color(96))
+        .setRange(0, 9)
+        .setNumberOfTickMarks(10)
+        .showTickMarks(false)
+        .setDecimalPrecision(0)
+        .setValue(0)
+        .setBroadcast(true)
+        .hide();
 
       for (int j = 0; j < 6; j++) {
         timings[i][j] = cp5.addSlider("editorTimings" + i + "." + j)
           .setBroadcast(false)
           .setCaptionLabel("")
           .setGroup(group)
-          .setId(21 + (6 * i) + j)
+          .setId(15 + (6 * i) + j)
           .setSize(250, 20)
-          .setPosition(125 + (i * 275), 280 + (j * 30))
+          .setPosition(125 + (i * 275), 180 + (j * 30))
           .setColorBackground(color(32))
           .setColorActive(color(96))
           .setRange(0, 250)
@@ -176,7 +171,7 @@ class Editor {
           .setId(1000)
           .setGroup(group)
           .setSize(32, 32)
-          .setPosition(284 + (40 * j), 554 + (50 * i))
+          .setPosition(284 + (40 * j), 454 + (50 * i))
           .setCaptionLabel("")
           .setColorBackground(color(0));
       }
@@ -184,7 +179,7 @@ class Editor {
       colorLabels[i] = cp5.addTextlabel("editorColorLabels" + i)
         .setGroup(group)
         .setValue("Color Set " + (i + 1))
-        .setPosition(30, 562 + (i * 50))
+        .setPosition(30, 462 + (i * 50))
         .setColorValue(color(0));
 
       numColors[i] = cp5.addSlider("editorNumColors" + i)
@@ -193,7 +188,7 @@ class Editor {
         .setGroup(group)
         .setId(1 + i)
         .setSize(150, 20)
-        .setPosition(110, 560 + (i * 50))
+        .setPosition(110, 460 + (i * 50))
         .setColorBackground(color(32))
         .setColorActive(color(96))
         .setRange(1, 9)
@@ -208,7 +203,7 @@ class Editor {
       argLabels[i] = cp5.addTextlabel("editorArgLabels" + i)
         .setGroup(group)
         .setValue("Arg")
-        .setPosition(30, 162 + (i * 30))
+        .setPosition(125 + (i * 275), 112)
         .setColorValue(color(0))
         .hide();
     }
@@ -217,7 +212,7 @@ class Editor {
       timingLabels[i] = cp5.addTextlabel("editorTimingLabels" + i)
         .setGroup(group)
         .setValue("Timing")
-        .setPosition(30, 282 + (i * 30))
+        .setPosition(30, 182 + (i * 30))
         .setColorValue(color(0))
         .hide();
     }
@@ -228,7 +223,7 @@ class Editor {
       .setGroup(group)
       .setId(500)
       .setSize(256, 20)
-      .setPosition(660, 560)
+      .setPosition(660, 460)
       .setColorBackground(color(96, 0, 0))
       .setColorForeground(color(192, 0, 0))
       .setColorActive(color(255, 0, 0))
@@ -245,7 +240,7 @@ class Editor {
       .setGroup(group)
       .setId(501)
       .setSize(256, 20)
-      .setPosition(660, 590)
+      .setPosition(660, 490)
       .setColorBackground(color(0, 96, 0))
       .setColorForeground(color(0, 192, 0))
       .setColorActive(color(0, 255, 0))
@@ -262,7 +257,7 @@ class Editor {
       .setGroup(group)
       .setId(502)
       .setSize(256, 20)
-      .setPosition(660, 620)
+      .setPosition(660, 520)
       .setColorBackground(color(0, 0, 96))
       .setColorForeground(color(0, 0, 192))
       .setColorActive(color(0, 0, 255))
@@ -274,29 +269,40 @@ class Editor {
       .setBroadcast(true);
 
     for (int i = 0; i < 48; i++) {
-        colorButtons[i] = cp5.addButton("editorColorBank" + i)
+        colorButtons[0][i] = cp5.addButton("editorColorBankA" + i)
           .setId(2000 + i)
           .setGroup(group)
           .setSize(16, 16)
-          .setPosition(22 + (20 * i), 702)
+          .setPosition(22 + (20 * i), 607)
           .setCaptionLabel("")
           .setColorActive(translateColor(i))
           .setColorForeground(translateColor(i))
           .setColorBackground(translateColor(i));
+        /*
+        colorButtons[1][i] = cp5.addButton("editorColorBankB" + i)
+          .setId(2048 + i)
+          .setGroup(group)
+          .setSize(16, 16)
+          .setPosition(22 + (20 * i), 632)
+          .setCaptionLabel("")
+          .setColorActive(translateColor(48 + i))
+          .setColorForeground(translateColor(48 + i))
+          .setColorBackground(translateColor(48 + i));
+        */
     }
 
     base = cp5.addDropdownList("editorBase")
       .setGroup(group)
       .setLabel("Base Pattern")
-      .setPosition(450, 50)
-      .setSize(100, 120)
+      .setPosition(30, 130)
+      .setSize(80, 140)
       .setItems(PATTERNS)
       .setItemHeight(20)
       .setBarHeight(20);
     base.getCaptionLabel().toUpperCase(false);
     base.getValueLabel().toUpperCase(false);
-    base.getCaptionLabel().getStyle().setPadding(4,4,4,4);
-    base.getValueLabel().getStyle().setPadding(4,4,4,4);
+    base.getCaptionLabel().getStyle().setPadding(4, 0, 0, 4);
+    base.getValueLabel().getStyle().setPadding(4, 0, 0, 4);
     base.close();
 
     prevMode = cp5.addButton("editorPrevMode")
@@ -305,6 +311,7 @@ class Editor {
       .setSize(60, 20)
       .setPosition(340, 15);
     prevMode.getCaptionLabel().toUpperCase(false);
+    prevMode.getCaptionLabel().getStyle().setPadding(-1, 0, 0, 0);
 
     nextMode = cp5.addButton("editorNextMode")
       .setCaptionLabel("Next >>")
@@ -312,99 +319,82 @@ class Editor {
       .setSize(60, 20)
       .setPosition(600, 15);
     nextMode.getCaptionLabel().toUpperCase(false);
+    nextMode.getCaptionLabel().getStyle().setPadding(-1, 0, 0, 0);
 
     resetMode = cp5.addButton("editorResetMode")
       .setCaptionLabel("Reset Mode")
       .setGroup(group)
       .setSize(100, 20)
-      .setPosition(30, 730);
+      .setPosition(30, 670);
     resetMode.getCaptionLabel().toUpperCase(false);
-
-    saveMode = cp5.addButton("editorSaveMode")
-      .setCaptionLabel("Save Mode")
-      .setGroup(group)
-      .setSize(100, 20)
-      .setPosition(150, 730);
-    saveMode.getCaptionLabel().toUpperCase(false);
-
-    loadMode = cp5.addButton("editorLoadMode")
-      .setCaptionLabel("Load Mode")
-      .setGroup(group)
-      .setSize(100, 20)
-      .setPosition(270, 730);
-    loadMode.getCaptionLabel().toUpperCase(false);
+    resetMode.getCaptionLabel().getStyle().setPadding(-1, 0, 0, 0);
 
     writeMode = cp5.addButton("editorWriteMode")
       .setCaptionLabel("Write Mode")
       .setGroup(group)
       .setSize(100, 20)
-      .setPosition(390, 730);
+      .setPosition(150, 670);
     writeMode.getCaptionLabel().toUpperCase(false);
+    writeMode.getCaptionLabel().getStyle().setPadding(-1, 0, 0, 0);
 
-    /* resetLight = cp5.addButton("editorResetLight") */
-    /*   .setCaptionLabel("Reset Light") */
-    /*   .setGroup(group) */
-    /*   .setSize(100, 20) */
-    /*   .setPosition(510, 730); */
-    /* resetLight.getCaptionLabel().toUpperCase(false); */
+    saveMode = cp5.addButton("editorSaveMode")
+      .setCaptionLabel("Save Mode")
+      .setGroup(group)
+      .setSize(100, 20)
+      .setPosition(270, 670);
+    saveMode.getCaptionLabel().toUpperCase(false);
+    saveMode.getCaptionLabel().getStyle().setPadding(-1, 0, 0, 0);
 
-    /* saveLight = cp5.addButton("editorSaveLight") */
-    /*   .setCaptionLabel("Save Light") */
-    /*   .setGroup(group) */
-    /*   .setSize(100, 20) */
-    /*   .setPosition(630, 730); */
-    /* saveLight.getCaptionLabel().toUpperCase(false); */
+    loadMode = cp5.addButton("editorLoadMode")
+      .setCaptionLabel("Load Mode")
+      .setGroup(group)
+      .setSize(100, 20)
+      .setPosition(390, 670);
+    loadMode.getCaptionLabel().toUpperCase(false);
+    loadMode.getCaptionLabel().getStyle().setPadding(-1, 0, 0, 0);
 
-    /* writeLight = cp5.addButton("editorWriteLight") */
-    /*   .setCaptionLabel("Write Light") */
-    /*   .setGroup(group) */
-    /*   .setSize(100, 20) */
-    /*   .setPosition(750, 730); */
-    /* writeLight.getCaptionLabel().toUpperCase(false); */
+    saveLight = cp5.addButton("editorSaveLight")
+      .setCaptionLabel("Save Light")
+      .setGroup(group)
+      .setSize(100, 20)
+      .setPosition(630, 670);
+    saveLight.getCaptionLabel().toUpperCase(false);
+    saveLight.getCaptionLabel().getStyle().setPadding(-1, 0, 0, 0);
+
+    writeLight = cp5.addButton("editorWriteLight")
+      .setCaptionLabel("Write Light")
+      .setGroup(group)
+      .setSize(100, 20)
+      .setPosition(750, 670);
+    writeLight.getCaptionLabel().toUpperCase(false);
+    writeLight.getCaptionLabel().getStyle().setPadding(-1, 0, 0, 0);
 
     disconnectLight = cp5.addButton("editorDisconnectLight")
       .setCaptionLabel("Disconnect")
       .setGroup(group)
       .setSize(100, 20)
-      .setPosition(870, 730);
+      .setPosition(870, 670);
     disconnectLight.getCaptionLabel().toUpperCase(false);
-
-    modeFilename = cp5.addTextfield("editorModeFilename")
-      .setGroup(group)
-      .setCaptionLabel("")
-      .setColorBackground(color(0))
-      .setPosition(150, 760)
-      .setSize(220, 20)
-      .setText("vectr.mode")
-      .setAutoClear(false);
-    modeFilename.getValueLabel().getStyle().setPadding(0, 0, 0, 4);
-
-    /* lightFilename = cp5.addTextfield("editorLightFilename") */
-    /*   .setGroup(group) */
-    /*   .setCaptionLabel("") */
-    /*   .setColorBackground(color(0)) */
-    /*   .setPosition(630, 760) */
-    /*   .setSize(220, 20) */
-    /*   .setText("vectr.light") */
-    /*   .setAutoClear(false); */
-    /* lightFilename.getValueLabel().getStyle().setPadding(0, 0, 0, 4); */
+    disconnectLight.getCaptionLabel().getStyle().setPadding(-1, 0, 0, 0);
 
     viewMode = cp5.addButton("editorViewMode")
       .setCaptionLabel("View Mode")
       .setGroup(group)
       .setColorBackground(color(0, 90, 180))
       .setSize(100, 20)
-      .setPosition(678, 660);
+      .setPosition(678, 560);
     viewMode.getCaptionLabel().toUpperCase(false);
+    viewMode.getCaptionLabel().getStyle().setPadding(-1, 0, 0, 0);
 
     viewColor = cp5.addButton("editorViewColor")
       .setCaptionLabel("View Color")
       .setGroup(group)
       .setColorBackground(color(0, 45, 90))
       .setSize(100, 20)
-      .setPosition(798, 660)
+      .setPosition(798, 560)
       .hide();
     viewColor.getCaptionLabel().toUpperCase(false);
+    viewColor.getCaptionLabel().getStyle().setPadding(-1, 0, 0, 0);
   }
 
   void curModeChanged(int m) {
@@ -413,9 +403,9 @@ class Editor {
     for (int i = 0; i < 3; i++) { seta(i + 1, modes[cur_mode].numColors[i]); }
     for (int i = 0; i < 4; i++) { seta(i + 4, modes[cur_mode].patternThresh[i / 2][i % 2]); }
     for (int i = 0; i < 4; i++) { seta(i + 8, modes[cur_mode].colorThresh[i / 2][i % 2]); }
-    for (int i = 0; i < 9; i++) { seta(i + 12, modes[cur_mode].args[i / 3][i % 3]); }
-    for (int i = 0; i < 18; i++) { seta(i + 21, modes[cur_mode].timings[i / 6][i % 6]); }
-    for (int i = 0; i < 81; i++) { seta(i + 39, modes[cur_mode].colors[i / 9][(i % 9) / 3][i % 3]); }
+    for (int i = 0; i < 3; i++) { seta(i + 12, modes[cur_mode].args[i]); }
+    for (int i = 0; i < 18; i++) { seta(i + 15, modes[cur_mode].timings[i / 6][i % 6]); }
+    for (int i = 0; i < 81; i++) { seta(i + 33, modes[cur_mode].colors[i / 9][(i % 9) / 3][i % 3]); }
 
     color_set = -1;
     color_slot = -1;
@@ -432,6 +422,11 @@ class Editor {
         colors[i][j].hide();
       }
     }
+    if (color_set == i && v >= color_slot) {
+      color_set = -1;
+      color_slot = -1;
+      colorSelect.hide();
+    }
   }
 
   void patternThreshChanged(int i, int j) {
@@ -447,37 +442,31 @@ class Editor {
     switch (p) {
       case 0: // Strobe
         argLabels[0].setValue("Group Size").show();
-        for (int i = 0; i < 3; i++) {
-          args[i][0].setBroadcast(false)
-            .setRange(0, 9)
-            .setNumberOfTickMarks(10)
-            .showTickMarks(false)
-            .setValue(0)
-            .setBroadcast(true)
-            .show();
-        }
+        args[0].setBroadcast(false)
+          .setRange(0, 9)
+          .setNumberOfTickMarks(10)
+          .showTickMarks(false)
+          .setValue(0)
+          .setBroadcast(true)
+          .show();
 
         argLabels[1].setValue("Skip After").show();
-        for (int i = 0; i < 3; i++) {
-          args[i][1].setBroadcast(false)
-            .setRange(0, 9)
-            .setNumberOfTickMarks(10)
-            .showTickMarks(false)
-            .setValue(0)
-            .setBroadcast(true)
-            .show();
-        }
+        args[1].setBroadcast(false)
+          .setRange(0, 9)
+          .setNumberOfTickMarks(10)
+          .showTickMarks(false)
+          .setValue(0)
+          .setBroadcast(true)
+          .show();
 
         argLabels[2].setValue("Repeat Group").show();
-        for (int i = 0; i < 3; i++) {
-          args[i][2].setBroadcast(false)
-            .setRange(1, 100)
-            .setNumberOfTickMarks(100)
-            .showTickMarks(false)
-            .setValue(0)
-            .setBroadcast(true)
-            .show();
-        }
+        args[2].setBroadcast(false)
+          .setRange(1, 100)
+          .setNumberOfTickMarks(100)
+          .showTickMarks(false)
+          .setValue(0)
+          .setBroadcast(true)
+          .show();
 
         timingLabels[0].setValue("Strobe").show();
         for (int i = 0; i < 3; i++) { timings[i][0].show(); }
@@ -500,29 +489,25 @@ class Editor {
 
       case 1: // Vexer
         argLabels[0].setValue("Repeat Strobe").show();
-        for (int i = 0; i < 3; i++) {
-          args[i][0].setBroadcast(false)
-            .setRange(1, 100)
-            .setNumberOfTickMarks(100)
-            .showTickMarks(false)
-            .setValue(0)
-            .setBroadcast(true)
-            .show();
-        }
+        args[0].setBroadcast(false)
+          .setRange(1, 100)
+          .setNumberOfTickMarks(100)
+          .showTickMarks(false)
+          .setValue(0)
+          .setBroadcast(true)
+          .show();
 
         argLabels[1].setValue("Repeat Tracer").show();
-        for (int i = 0; i < 3; i++) {
-          args[i][1].setBroadcast(false)
-            .setRange(1, 100)
-            .setNumberOfTickMarks(100)
-            .showTickMarks(false)
-            .setValue(0)
-            .setBroadcast(true)
-            .show();
-        }
+        args[1].setBroadcast(false)
+          .setRange(1, 100)
+          .setNumberOfTickMarks(100)
+          .showTickMarks(false)
+          .setValue(0)
+          .setBroadcast(true)
+          .show();
 
         argLabels[2].setValue("").hide();
-        for (int i = 0; i < 3; i++) { args[i][2].hide(); }
+        args[2].hide();
 
         timingLabels[0].setValue("Strobe").show();
         for (int i = 0; i < 3; i++) { timings[i][0].show(); }
@@ -545,21 +530,19 @@ class Editor {
 
       case 2: // Edge
         argLabels[0].setValue("Group Size").show();
-        for (int i = 0; i < 3; i++) {
-          args[i][0].setBroadcast(false)
-            .setRange(0, 9)
-            .setNumberOfTickMarks(10)
-            .showTickMarks(false)
-            .setValue(0)
-            .setBroadcast(true)
-            .show();
-        }
+        args[0].setBroadcast(false)
+          .setRange(0, 9)
+          .setNumberOfTickMarks(10)
+          .showTickMarks(false)
+          .setValue(0)
+          .setBroadcast(true)
+          .show();
 
         argLabels[1].setValue("").hide();
-        for (int i = 0; i < 3; i++) { args[i][1].hide(); }
+        args[1].hide();
 
         argLabels[2].setValue("").hide();
-        for (int i = 0; i < 3; i++) { args[i][2].hide(); }
+        args[2].hide();
 
         timingLabels[0].setValue("Strobe").show();
         for (int i = 0; i < 3; i++) { timings[i][0].show(); }
@@ -582,29 +565,31 @@ class Editor {
 
       case 3: // Double
         argLabels[0].setValue("Repeat First").show();
-        for (int i = 0; i < 3; i++) {
-          args[i][0].setBroadcast(false)
-            .setRange(1, 100)
-            .setNumberOfTickMarks(100)
-            .showTickMarks(false)
-            .setValue(0)
-            .setBroadcast(true)
-            .show();
-        }
+        args[0].setBroadcast(false)
+          .setRange(1, 100)
+          .setNumberOfTickMarks(100)
+          .showTickMarks(false)
+          .setValue(0)
+          .setBroadcast(true)
+          .show();
 
         argLabels[1].setValue("Repeat Second").show();
-        for (int i = 0; i < 3; i++) {
-          args[i][1].setBroadcast(false)
-            .setRange(1, 100)
-            .setNumberOfTickMarks(100)
-            .showTickMarks(false)
-            .setValue(0)
-            .setBroadcast(true)
-            .show();
-        }
+        args[1].setBroadcast(false)
+          .setRange(1, 100)
+          .setNumberOfTickMarks(100)
+          .showTickMarks(false)
+          .setValue(0)
+          .setBroadcast(true)
+          .show();
 
-        argLabels[2].setValue("").hide();
-        for (int i = 0; i < 3; i++) { args[i][2].hide(); }
+        argLabels[2].setValue("Skip Colors").show();
+        args[2].setBroadcast(false)
+          .setRange(0, 8)
+          .setNumberOfTickMarks(9)
+          .showTickMarks(false)
+          .setValue(0)
+          .setBroadcast(true)
+          .show();
 
         timingLabels[0].setValue("First Strobe").show();
         for (int i = 0; i < 3; i++) { timings[i][0].show(); }
@@ -618,8 +603,8 @@ class Editor {
         timingLabels[3].setValue("Second Blank").show();
         for (int i = 0; i < 3; i++) { timings[i][3].show(); }
 
-        timingLabels[4].setValue("").hide();
-        for (int i = 0; i < 3; i++) { timings[i][4].hide(); }
+        timingLabels[4].setValue("Split Blank").show();
+        for (int i = 0; i < 3; i++) { timings[i][4].show(); }
 
         timingLabels[5].setValue("").hide();
         for (int i = 0; i < 3; i++) { timings[i][5].hide(); }
@@ -627,37 +612,31 @@ class Editor {
 
       case 4: // Runner
         argLabels[0].setValue("Group Size").show();
-        for (int i = 0; i < 3; i++) {
-          args[i][0].setBroadcast(false)
-            .setRange(0, 9)
-            .setNumberOfTickMarks(10)
-            .showTickMarks(false)
-            .setValue(0)
-            .setBroadcast(true)
-            .show();
-        }
+        args[0].setBroadcast(false)
+          .setRange(0, 9)
+          .setNumberOfTickMarks(10)
+          .showTickMarks(false)
+          .setValue(0)
+          .setBroadcast(true)
+          .show();
 
         argLabels[1].setValue("Skip Between").show();
-        for (int i = 0; i < 3; i++) {
-          args[i][1].setBroadcast(false)
-            .setRange(0, 9)
-            .setNumberOfTickMarks(10)
-            .showTickMarks(false)
-            .setValue(0)
-            .setBroadcast(true)
-            .show();
-        }
+        args[1].setBroadcast(false)
+          .setRange(0, 9)
+          .setNumberOfTickMarks(10)
+          .showTickMarks(false)
+          .setValue(0)
+          .setBroadcast(true)
+          .show();
 
         argLabels[2].setValue("Repeat Runner").show();
-        for (int i = 0; i < 3; i++) {
-          args[i][2].setBroadcast(false)
-            .setRange(1, 100)
-            .setNumberOfTickMarks(100)
-            .showTickMarks(false)
-            .setValue(0)
-            .setBroadcast(true)
-            .show();
-        }
+        args[2].setBroadcast(false)
+          .setRange(1, 100)
+          .setNumberOfTickMarks(100)
+          .showTickMarks(false)
+          .setValue(0)
+          .setBroadcast(true)
+          .show();
 
         timingLabels[0].setValue("Strobe").show();
         for (int i = 0; i < 3; i++) { timings[i][0].show(); }
@@ -681,55 +660,57 @@ class Editor {
   }
 
   void seta(int addr, int val) {
-    if (addr == 0) {
-      base.setBroadcast(false).setValue(val).setBroadcast(true);
-      base.setCaptionLabel(base.getItem(val).get("text").toString());
-      patternChanged(val);
-    } else if (addr < 4) {
-      numColors[addr - 1].setBroadcast(false).setValue(val).setBroadcast(true);
-      numColorsChanged(addr - 1, val);
-    } else if (addr < 8) {
-      patternThresh.setBroadcast(false).setArrayValue(addr - 4, val).setBroadcast(true);
-    } else if (addr < 12) {
-      colorThresh.setBroadcast(false).setArrayValue(addr - 8, val).setBroadcast(true);
-    } else if (addr < 21) {
-      args[(addr - 12) / 3][(addr - 12) % 3].setBroadcast(false).setValue(val).setBroadcast(true);
-    } else if (addr < 39) {
-      timings[(addr - 21) / 6][(addr - 21) % 6].setBroadcast(false).setValue(val).setBroadcast(true);
-    } else if (addr < 120) {
-      int chan = (addr - 39) % 3;
-      int slot = (addr - 39) / 9;
-      int set = ((addr - 39) % 9) / 3;
-      int x, y;
+    try {
+      if (addr == 0) {
+        base.setBroadcast(false).setValue(val).setBroadcast(true);
+        base.setCaptionLabel(base.getItem(val).get("text").toString());
+        patternChanged(val);
+      } else if (addr < 4) {
+        numColors[addr - 1].setBroadcast(false).setValue(val).setBroadcast(true);
+        numColorsChanged(addr - 1, val);
+      } else if (addr < 8) {
+        patternThresh.setBroadcast(false).setArrayValue(addr - 4, val).setBroadcast(true);
+      } else if (addr < 12) {
+        colorThresh.setBroadcast(false).setArrayValue(addr - 8, val).setBroadcast(true);
+      } else if (addr < 15) {
+        args[addr - 12].setBroadcast(false).setValue(val).setBroadcast(true);
+      } else if (addr < 33) {
+        timings[(addr - 15) / 6][(addr - 15) % 6].setBroadcast(false).setValue(val).setBroadcast(true);
+      } else if (addr < 114) {
+        int chan = (addr - 33) % 3;
+        int slot = (addr - 33) / 9;
+        int set = ((addr - 33) % 9) / 3;
+        int r = 0;
+        int g = 0;
+        int b = 0;
 
-      if (chan == 0) {
-        x = modes[cur_mode].colors[slot][set][1];
-        y = modes[cur_mode].colors[slot][set][2];
-        x = (x == 0) ? 0 : (x / 2) + 128;
-        y = (y == 0) ? 0 : (y / 2) + 128;
-        val = (val == 0) ? 0 : (val / 2) + 128;
-        colors[set][slot].setColorBackground(color(val, x, y));
-        colors[set][slot].setColorForeground(color(val, x, y));
-        colors[set][slot].setColorActive(color(val, x, y));
-      } else if (chan == 1) {
-        x = modes[cur_mode].colors[slot][set][0];
-        y = modes[cur_mode].colors[slot][set][2];
-        x = (x == 0) ? 0 : (x / 2) + 128;
-        y = (y == 0) ? 0 : (y / 2) + 128;
-        val = (val == 0) ? 0 : (val / 2) + 128;
-        colors[set][slot].setColorBackground(color(x, val, y));
-        colors[set][slot].setColorForeground(color(x, val, y));
-        colors[set][slot].setColorActive(color(x, val, y));
-      } else if (chan == 2) {
-        x = modes[cur_mode].colors[slot][set][0];
-        y = modes[cur_mode].colors[slot][set][1];
-        x = (x == 0) ? 0 : (x / 2) + 128;
-        y = (y == 0) ? 0 : (y / 2) + 128;
-        val = (val == 0) ? 0 : (val / 2) + 128;
-        colors[set][slot].setColorBackground(color(x, y, val));
-        colors[set][slot].setColorForeground(color(x, y, val));
-        colors[set][slot].setColorActive(color(x, y, val));
+        if (chan == 0) {
+          r = (val == 0) ? 0 : (val / 2) + 128;
+          modes[cur_mode].colors[slot][set][0] = val;
+          g = modes[cur_mode].colors[slot][set][1];
+          b = modes[cur_mode].colors[slot][set][2];
+          g = (g == 0) ? 0 : (g / 2) + 128;
+          b = (b == 0) ? 0 : (b / 2) + 128;
+        } else if (chan == 1) {
+          g = (val == 0) ? 0 : (val / 2) + 128;
+          modes[cur_mode].colors[slot][set][1] = val;
+          r = modes[cur_mode].colors[slot][set][0];
+          b = modes[cur_mode].colors[slot][set][2];
+          r = (r == 0) ? 0 : (r / 2) + 128;
+          b = (b == 0) ? 0 : (b / 2) + 128;
+        } else if (chan == 2) {
+          b = (val == 0) ? 0 : (val / 2) + 128;
+          modes[cur_mode].colors[slot][set][2] = val;
+          r = modes[cur_mode].colors[slot][set][0];
+          g = modes[cur_mode].colors[slot][set][1];
+          r = (r == 0) ? 0 : (r / 2) + 128;
+          g = (g == 0) ? 0 : (g / 2) + 128;
+        }
+        colors[set][slot].setColorBackground(color(r, g, b));
+        colors[set][slot].setColorForeground(color(r, g, b));
+        colors[set][slot].setColorActive(color(r, g, b));
       }
+    } catch (Exception ex) {
     }
   }
 
@@ -760,8 +741,8 @@ class Editor {
 void style(String theControllerName) {
   Controller c = cp5.getController(theControllerName);
   c.getCaptionLabel().toUpperCase(false);
-  c.getCaptionLabel().getStyle().setPadding(4,4,4,4);
-  c.getCaptionLabel().getStyle().setMargin(-4,0,0,0);
+  c.getCaptionLabel().getStyle().setPadding(4, 4, 4, 4);
+  c.getCaptionLabel().getStyle().setMargin(-4, 0, 0, 0);
 }
 
 int translateColor(int i) {

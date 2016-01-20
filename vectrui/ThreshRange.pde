@@ -11,12 +11,15 @@ import controlP5.*;
 public class ThreshRange extends Controller<ThreshRange> {
   protected static final String MANY_SPACES = "                    ";
   protected static final int MODE_OFF = -1;
-  protected static final int MODE_MINA = 0;
-  protected static final int MODE_MIDA = 1;
-  protected static final int MODE_MAXA = 2;
-  protected static final int MODE_MINB = 3;
-  protected static final int MODE_MIDB = 4;
-  protected static final int MODE_MAXB = 5;
+  protected static final int MODE_01S = 0;
+  protected static final int MODE_01 = 1;
+  protected static final int MODE_01E = 2;
+  protected static final int MODE_12S = 3;
+  protected static final int MODE_12 = 4;
+  protected static final int MODE_12E = 5;
+  protected static final int MODE_0 = 6;
+  protected static final int MODE_1 = 7;
+  protected static final int MODE_2 = 8;
 
   protected static final int HORIZONTAL = 0;
   protected static final int VERTICAL = 1;
@@ -169,17 +172,23 @@ public class ThreshRange extends Controller<ThreshRange> {
     int x3 = (int)(posX + maxBHandle);
 
     if (mX >= x0 - handleSize2 && mX < x0 + handleSize2) {
-      return MODE_MINA;
+      return MODE_01S;
     } else if (mX >= x0 + handleSize2 && mX < x1 - handleSize2) {
-      return MODE_MIDA;
+      return MODE_01;
     } else if (mX >= x1 - handleSize2 && mX < x1 + handleSize2) {
-      return MODE_MAXA;
+      return MODE_01E;
     } else if (mX >= x2 - handleSize2 && mX < x2 + handleSize2) {
-      return MODE_MINB;
+      return MODE_12S;
     } else if (mX >= x2 + handleSize2 && mX < x3 - handleSize2) {
-      return MODE_MIDB;
+      return MODE_12;
     } else if (mX >= x3 - handleSize2 && mX < x3 + handleSize2) {
-      return MODE_MAXB;
+      return MODE_12E;
+    } else if (mX >= posX && mX < x0 - handleSize2) {
+      return MODE_0;
+    } else if (mX >= x1 + handleSize2 && mX < x2 - handleSize2) {
+      return MODE_1;
+    } else if (mX >= x3 + handleSize2 && mX < posX + getWidth()) {
+      return MODE_2;
     }
     return MODE_OFF;
   }
@@ -196,31 +205,39 @@ public class ThreshRange extends Controller<ThreshRange> {
       }
       if (isMousePressed && !cp5.isAltDown()) {
         switch (mode) {
-          case MODE_MINA:
+          case MODE_01S:
             // 0 - (MaxA
             minAHandle = PApplet.max(3, PApplet.min(maxAHandle - 6, minAHandle + c));
             break;
-          case MODE_MAXA:
+          case MODE_01E:
             // MinA) - (MinB
             maxAHandle = PApplet.max(minAHandle + 6, PApplet.min(minBHandle - 6, maxAHandle + c));
             break;
-          case MODE_MINB:
+          case MODE_12S:
             // MaxA) - (MaxB
             minBHandle = PApplet.max(maxAHandle + 6, PApplet.min(maxBHandle - 6, minBHandle + c));
             break;
-          case MODE_MAXB:
+          case MODE_12E:
             // MinB) - width
             maxBHandle = PApplet.max(minBHandle + 6, PApplet.min(getWidth() - 3, maxBHandle + c));
             break;
 
-          case MODE_MIDA:
+          case MODE_01:
             minAHandle = PApplet.max(3, PApplet.min(minBHandle - dA - 6, minAHandle + c));
             maxAHandle = PApplet.max(minAHandle + 6, PApplet.min(minBHandle - 6, minAHandle + dA));
             break;
-          case MODE_MIDB:
+          case MODE_12:
             minBHandle = PApplet.max(maxAHandle + 6, PApplet.min(getWidth() - dB - 3, minBHandle + c));
             maxBHandle = PApplet.max(minBHandle + 6, PApplet.min(getWidth() - 3, minBHandle + dB));
             break;
+
+          case MODE_0:
+            break;
+          case MODE_1:
+            break;
+          case MODE_2:
+            break;
+
         }
         update();
         dA = maxAHandle - minAHandle;
@@ -369,23 +386,23 @@ public class ThreshRange extends Controller<ThreshRange> {
     isDragging = false;
     // Align
     switch (mode) {
-      case MODE_MINA:
+      case MODE_01S:
         minAHandle = (int)(_myArrayValue[0] * 24) + 3;
         break;
-      case MODE_MAXA:
+      case MODE_01E:
         maxAHandle = (int)(_myArrayValue[1] * 24) + 9;
         break;
-      case MODE_MINB:
+      case MODE_12S:
         minBHandle = (int)(_myArrayValue[2] * 24) + 15;
         break;
-      case MODE_MAXB:
+      case MODE_12E:
         maxBHandle = (int)(_myArrayValue[3] * 24) + 21;
         break;
-      case MODE_MIDA:
+      case MODE_01:
         minAHandle = (int)(_myArrayValue[0] * 24) + 3;
         maxAHandle = (int)(_myArrayValue[1] * 24) + 9;
         break;
-      case MODE_MIDB:
+      case MODE_12:
         minBHandle = (int)(_myArrayValue[2] * 24) + 15;
         maxBHandle = (int)(_myArrayValue[3] * 24) + 21;
         break;
@@ -445,24 +462,64 @@ public class ThreshRange extends Controller<ThreshRange> {
 
       // Pattern Zones
       theGraphics.fill(0);
+      theGraphics.stroke(0);
       theGraphics.rect(0, 0, getWidth(), getHeight());
 
+      // 0 - MinA = Red
+      // MinA - MaxA = yellow
+      // MaxA - MinB = Green
+      // MinB - MaxB = Cyan
+      // MaxB - width = Blue
       theGraphics.fill(color(255, 0, 0));
       theGraphics.rect(0, 0, minAHandle, getHeight());
-      theGraphics.fill(color(255, 255, 0));
+      /* if (high == 1) { */
+      /*   theGraphics.fill(color(128, 128, 32)); */
+      /* } else { */
+        theGraphics.fill(color(255, 255, 0));
+      /* } */
       theGraphics.rect(minAHandle, 0, maxAHandle - minAHandle, getHeight());
       theGraphics.fill(color(0, 255, 0));
       theGraphics.rect(maxAHandle, 0, minBHandle - maxAHandle, getHeight());
-      theGraphics.fill(color(0, 255, 255));
+      /* if (high == 4) { */
+      /*   theGraphics.fill(color(32, 128, 128)); */
+      /* } else { */
+        theGraphics.fill(color(0, 255, 255));
+      /* } */
       theGraphics.rect(minBHandle, 0, maxBHandle - minBHandle, getHeight());
       theGraphics.fill(color(0, 0, 255));
       theGraphics.rect(maxBHandle, 0, getWidth() - maxBHandle, getHeight());
 
-      theGraphics.fill(255);
-      theGraphics.stroke(0);
+      if (high == 0) {
+        theGraphics.fill(128);
+        theGraphics.stroke(255);
+      } else {
+        theGraphics.fill(255);
+        theGraphics.stroke(0);
+      }
       theGraphics.rect(minAHandle - handleSize2, 0, handleSize, getHeight());
+      if (high == 2) {
+        theGraphics.fill(128);
+        theGraphics.stroke(255);
+      } else {
+        theGraphics.fill(255);
+        theGraphics.stroke(0);
+      }
       theGraphics.rect(maxAHandle - handleSize2, 0, handleSize, getHeight());
+      if (high == 3) {
+        theGraphics.fill(128);
+        theGraphics.stroke(255);
+      } else {
+        theGraphics.fill(255);
+        theGraphics.stroke(0);
+      }
       theGraphics.rect(minBHandle - handleSize2, 0, handleSize, getHeight());
+      if (high == 5) {
+        theGraphics.fill(128);
+        theGraphics.stroke(255);
+      } else {
+        theGraphics.fill(255);
+        theGraphics.stroke(0);
+      }
       theGraphics.rect(maxBHandle - handleSize2, 0, handleSize, getHeight());
 
       if (isLabelVisible) {
