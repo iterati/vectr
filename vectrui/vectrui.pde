@@ -15,7 +15,9 @@ static final int SER_VIEW_COLOR = 101;
 static final int SER_HANDSHAKE  = 250;
 static final int SER_DISCONNECT = 251;
 
-Serial port;
+Serial ports[] = new Serial[10];
+int num_ports = 0;
+Serial port = null;
 ControlP5 cp5;
 
 int gui_state = 0;
@@ -57,7 +59,10 @@ void setup() {
 void connectLight() {
   for (String p: Serial.list()) {
     try {
-      port = new Serial(this, p, 115200);
+      if (num_ports < 10) {
+        ports[num_ports] = new Serial(this, p, 115200);
+        num_ports++;
+      }
     } catch (Exception e) {
     }
   }
@@ -69,8 +74,18 @@ void draw() {
     connectLight();
   }
 
-  while (port.available() >= 3) {
-    readCommand();
+  if (port == null) {
+    for (int i = 0; i < num_ports; i++) {
+      if (ports[i].available() >= 3) {
+        /* println("Narrowed it down from " + num_ports); */
+        port = ports[i];
+        readCommand();
+      }
+    }
+  } else {
+    while (port.available() >= 3) {
+      readCommand();
+    }
   }
 
   if (!initialized || reading || flashing) {
