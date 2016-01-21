@@ -40,7 +40,7 @@ void printColor(int c) {
 }
 
 void setup() {
-  surface.setTitle("VectrUI 01-20-16");
+  surface.setTitle("VectrUI 01-21-16");
   size(1000, 700);
   cp5 = new ControlP5(this);
   /* cp5.setFont(createFont("Arial-Black", 11)); */
@@ -431,8 +431,51 @@ void sendPatternChange(int v) {
     sendCommand(SER_WRITE, 100, 30, 25);
     sendCommand(SER_WRITE, 100, 31, 25);
     sendCommand(SER_WRITE, 100, 32, 0);
+  } else if (v == 5) { // Stepper
+    sendCommand(SER_WRITE, 100, 15, 25);
+    sendCommand(SER_WRITE, 100, 16, 5);
+    sendCommand(SER_WRITE, 100, 17, 10);
+    sendCommand(SER_WRITE, 100, 18, 15);
+    sendCommand(SER_WRITE, 100, 19, 20);
+    sendCommand(SER_WRITE, 100, 20, 25);
+
+    sendCommand(SER_WRITE, 100, 21, 25);
+    sendCommand(SER_WRITE, 100, 22, 5);
+    sendCommand(SER_WRITE, 100, 23, 10);
+    sendCommand(SER_WRITE, 100, 24, 15);
+    sendCommand(SER_WRITE, 100, 25, 20);
+    sendCommand(SER_WRITE, 100, 26, 25);
+
+    sendCommand(SER_WRITE, 100, 27, 25);
+    sendCommand(SER_WRITE, 100, 28, 5);
+    sendCommand(SER_WRITE, 100, 29, 10);
+    sendCommand(SER_WRITE, 100, 30, 15);
+    sendCommand(SER_WRITE, 100, 31, 20);
+    sendCommand(SER_WRITE, 100, 32, 25);
+  } else if (v == 6) { // Random
+    sendCommand(SER_WRITE, 100, 15, 1);
+    sendCommand(SER_WRITE, 100, 16, 5);
+    sendCommand(SER_WRITE, 100, 17, 10);
+    sendCommand(SER_WRITE, 100, 18, 20);
+    sendCommand(SER_WRITE, 100, 19, 0);
+    sendCommand(SER_WRITE, 100, 20, 0);
+
+    sendCommand(SER_WRITE, 100, 21, 1);
+    sendCommand(SER_WRITE, 100, 22, 5);
+    sendCommand(SER_WRITE, 100, 23, 10);
+    sendCommand(SER_WRITE, 100, 24, 20);
+    sendCommand(SER_WRITE, 100, 25, 0);
+    sendCommand(SER_WRITE, 100, 26, 0);
+
+    sendCommand(SER_WRITE, 100, 27, 1);
+    sendCommand(SER_WRITE, 100, 28, 5);
+    sendCommand(SER_WRITE, 100, 29, 10);
+    sendCommand(SER_WRITE, 100, 30, 20);
+    sendCommand(SER_WRITE, 100, 31, 0);
+    sendCommand(SER_WRITE, 100, 32, 0);
   }
 }
+
 
 void openLightFile() {
   selectInput("Select light file to flash to light", "_openLightFile");

@@ -77,6 +77,8 @@
 #define P_EDGE              2
 #define P_DOUBLE            3
 #define P_RUNNER            4
+#define P_STEPPER           5
+#define P_RANDOM            6
 
 elapsedMicros limiter = 0;
 uint8_t state, new_state;
@@ -339,6 +341,7 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
 
 
 void setup() {
+  randomSeed(analogRead(0));
   Serial.begin(115200);
   pinMode(PIN_BUTTON, INPUT);
 
@@ -1020,6 +1023,72 @@ int8_t patternRunner(uint8_t numc, uint8_t pick, uint8_t skip, uint8_t repeat,
   return rtn;
 }
 
+int8_t patternStepper(uint8_t numc, uint8_t steps,
+    uint8_t bt, uint8_t ct0, uint8_t ct1, uint8_t ct2, uint8_t ct3, uint8_t ct4) {
+
+  int8_t rtn = -1;
+  if (bt == 0 && ct0 == 0 && ct1 == 0 && ct2 == 0 && ct3 == 0 && ct4 == 0) return -1;
+  numc = constrain(numc, 1, NUM_COLORS);
+  steps = constrain(steps, 1, 5);
+
+  if (tick >= trip) {
+    recalcArgs();
+    tick = trip = 0;
+    while (trip == 0) {
+      segm++;
+      if (segm >= (2 * steps)) {
+        segm = 0;
+        cidx = (cidx + steps) % numc;
+      }
+
+      if (segm % 2 == 0)  trip = bt;
+      else if (segm == 1) trip = ct0;
+      else if (segm == 3) trip = ct1;
+      else if (segm == 5) trip = ct2;
+      else if (segm == 7) trip = ct3;
+      else if (segm == 9) trip = ct4;
+    }
+  }
+
+  if (segm % 2 == 0)  rtn = -1;
+  else if (segm == 1) rtn = cidx;
+  else if (segm == 3) rtn = cidx + 1;
+  else if (segm == 5) rtn = cidx + 2;
+  else if (segm == 7) rtn = cidx + 3;
+  else if (segm == 9) rtn = cidx + 4;
+
+  return rtn % numc;
+}
+
+int8_t patternRandom(uint8_t numc, uint8_t rand_colors, uint8_t multiplier,
+    uint8_t ct0, uint8_t ct1, uint8_t bt0, uint8_t bt1) {
+
+  int8_t rtn = -1;
+  if (ct0 == 0 && ct1 == 0 && bt0 == 0 && bt1 == 0) return -1;
+  numc = constrain(numc, 1, NUM_COLORS);
+  multiplier = constrain(multiplier, 1, 10);
+
+  if (tick >= trip) {
+    recalcArgs();
+    tick = trip = 0;
+    while (trip == 0) {
+      segm++;
+      if (segm >= 2) {
+        segm = 0;
+        if (rand_colors) cidx = random(0, numc);
+        else             cidx = (cidx + 1) % numc;
+      }
+
+      if (segm == 0)      trip = random(bt0, bt1 + 1) * multiplier;
+      else if (segm == 1) trip = random(ct0, ct1 + 1) * multiplier;
+    }
+  }
+
+  if (segm == 0) rtn = -1;
+  else           rtn = cidx;
+  return rtn;
+}
+
 void renderMode() {
   uint8_t color = -1;
   if (mode->pattern == P_STROBE)
@@ -1032,6 +1101,10 @@ void renderMode() {
     color = patternDouble(numc, arg0, arg1, arg2, timing0, timing1, timing2, timing3, timing4);
   else if (mode->pattern == P_RUNNER)
     color = patternRunner(numc, arg0, arg1, arg2, timing0, timing1, timing2, timing3, timing4);
+  else if (mode->pattern == P_STEPPER)
+    color = patternStepper(numc, arg0, timing0, timing1, timing2, timing3, timing4, timing5);
+  else if (mode->pattern == P_RANDOM)
+    color = patternRandom(numc, arg0, arg1, timing0, timing1, timing2, timing3);
 
   if (color < 0) r = g = b = 0;
   else           colorFlux(color);

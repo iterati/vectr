@@ -1,7 +1,16 @@
 import java.util.ArrayList;
 import java.util.Map;
 
-final static String[] PATTERNS = {"Strobe", "Vexer", "Edge", "Double", "Runner"};
+final static String[] PATTERNS = {
+  "Strobe",
+  "Vexer",
+  "Edge",
+  "Double",
+  "Runner",
+  "Stepper",
+  "Random",
+};
+
 final static int color_bank[][] = {
   {0, 0, 0},
   {56, 64, 72},
@@ -295,7 +304,7 @@ class Editor {
       .setGroup(group)
       .setLabel("Base Pattern")
       .setPosition(30, 130)
-      .setSize(80, 140)
+      .setSize(80, 160)
       .setItems(PATTERNS)
       .setItemHeight(20)
       .setBarHeight(20);
@@ -652,6 +661,82 @@ class Editor {
 
         timingLabels[4].setValue("Split Blank").show();
         for (int i = 0; i < 3; i++) { timings[i][4].show(); }
+
+        timingLabels[5].setValue("").hide();
+        for (int i = 0; i < 3; i++) { timings[i][5].hide(); }
+        break;
+
+      case 5: // Stepper
+        argLabels[0].setValue("Use Steps").show();
+        args[0].setBroadcast(false)
+          .setRange(1, 5)
+          .setNumberOfTickMarks(5)
+          .showTickMarks(false)
+          .setValue(0)
+          .setBroadcast(true)
+          .show();
+
+        argLabels[1].setValue("").hide();
+        args[1].hide();
+
+        argLabels[2].setValue("").hide();
+        args[2].hide();
+
+        timingLabels[0].setValue("Blank").show();
+        for (int i = 0; i < 3; i++) { timings[i][0].show(); }
+
+        timingLabels[1].setValue("Step 1").show();
+        for (int i = 0; i < 3; i++) { timings[i][1].show(); }
+
+        timingLabels[2].setValue("Step 2").show();
+        for (int i = 0; i < 3; i++) { timings[i][2].show(); }
+
+        timingLabels[3].setValue("Step 3").show();
+        for (int i = 0; i < 3; i++) { timings[i][3].show(); }
+
+        timingLabels[4].setValue("Step 4").show();
+        for (int i = 0; i < 3; i++) { timings[i][4].show(); }
+
+        timingLabels[5].setValue("Step 5").show();
+        for (int i = 0; i < 3; i++) { timings[i][5].show(); }
+        break;
+
+      case 6: // Random
+        argLabels[0].setValue("Random Color Order (0 = no, 1 = yes)").show();
+        args[0].setBroadcast(false)
+          .setRange(0, 1)
+          .setNumberOfTickMarks(2)
+          .showTickMarks(false)
+          .setValue(0)
+          .setBroadcast(true)
+          .show();
+
+        argLabels[1].setValue("Time Multiplier").show();
+        args[1].setBroadcast(false)
+          .setRange(1, 10)
+          .setNumberOfTickMarks(10)
+          .showTickMarks(false)
+          .setValue(0)
+          .setBroadcast(true)
+          .show();
+
+        argLabels[2].setValue("").hide();
+        args[2].hide();
+
+        timingLabels[0].setValue("Strobe Low").show();
+        for (int i = 0; i < 3; i++) { timings[i][0].show(); }
+
+        timingLabels[1].setValue("Strobe High").show();
+        for (int i = 0; i < 3; i++) { timings[i][1].show(); }
+
+        timingLabels[2].setValue("Blank Low").show();
+        for (int i = 0; i < 3; i++) { timings[i][2].show(); }
+
+        timingLabels[3].setValue("Blank High").show();
+        for (int i = 0; i < 3; i++) { timings[i][3].show(); }
+
+        timingLabels[4].setValue("").hide();
+        for (int i = 0; i < 3; i++) { timings[i][4].hide(); }
 
         timingLabels[5].setValue("").hide();
         for (int i = 0; i < 3; i++) { timings[i][5].hide(); }
