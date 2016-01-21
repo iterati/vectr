@@ -465,26 +465,13 @@ public class ThreshRange extends Controller<ThreshRange> {
       theGraphics.stroke(0);
       theGraphics.rect(0, 0, getWidth(), getHeight());
 
-      // 0 - MinA = Red
-      // MinA - MaxA = yellow
-      // MaxA - MinB = Green
-      // MinB - MaxB = Cyan
-      // MaxB - width = Blue
       theGraphics.fill(color(255, 0, 0));
       theGraphics.rect(0, 0, minAHandle, getHeight());
-      /* if (high == 1) { */
-      /*   theGraphics.fill(color(128, 128, 32)); */
-      /* } else { */
-        theGraphics.fill(color(255, 255, 0));
-      /* } */
+      theGraphics.fill(color(255, 255, 0));
       theGraphics.rect(minAHandle, 0, maxAHandle - minAHandle, getHeight());
       theGraphics.fill(color(0, 255, 0));
       theGraphics.rect(maxAHandle, 0, minBHandle - maxAHandle, getHeight());
-      /* if (high == 4) { */
-      /*   theGraphics.fill(color(32, 128, 128)); */
-      /* } else { */
-        theGraphics.fill(color(0, 255, 255));
-      /* } */
+      theGraphics.fill(color(0, 255, 255));
       theGraphics.rect(minBHandle, 0, maxBHandle - minBHandle, getHeight());
       theGraphics.fill(color(0, 0, 255));
       theGraphics.rect(maxBHandle, 0, getWidth() - maxBHandle, getHeight());

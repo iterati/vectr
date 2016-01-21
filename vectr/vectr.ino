@@ -1067,6 +1067,13 @@ int8_t patternRandom(uint8_t numc, uint8_t rand_colors, uint8_t multiplier,
   if (ct0 == 0 && ct1 == 0 && bt0 == 0 && bt1 == 0) return -1;
   numc = constrain(numc, 1, NUM_COLORS);
   multiplier = constrain(multiplier, 1, 10);
+  uint8_t mini;
+  uint8_t maxi;
+
+  mini = min(ct0, ct1); maxi = = max(ct0, ct1);
+  ct0 = mini; ct1 = maxi;
+  mini = min(bt0, bt1); maxi = = max(bt0, bt1);
+  bt0 = mini; bt1 = maxi;
 
   if (tick >= trip) {
     recalcArgs();

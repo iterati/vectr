@@ -119,7 +119,7 @@ class Editor {
       .setGroup(group)
       .setLabel("Pattern Thresholds")
       .setBroadcast(true);
-    patternThresh.setPosition((group.getWidth() - patternThresh.getWidth()) / 2, 70);
+    patternThresh.setPosition((group.getWidth() - patternThresh.getWidth()) / 2, 130);
     style("editorPatternThresh");
 
     colorThresh = new ThreshRange(cp5, "editorColorThresh")
@@ -145,7 +145,7 @@ class Editor {
         .setGroup(group)
         .setId(12 + i)
         .setSize(250, 20)
-        .setPosition(125 + (i * 275), 130)
+        .setPosition(125 + (i * 275), 70)
         .setColorBackground(color(32))
         .setColorActive(color(96))
         .setRange(0, 9)
@@ -212,7 +212,7 @@ class Editor {
       argLabels[i] = cp5.addTextlabel("editorArgLabels" + i)
         .setGroup(group)
         .setValue("Arg")
-        .setPosition(125 + (i * 275), 112)
+        .setPosition(125 + (i * 275), 52)
         .setColorValue(color(0))
         .hide();
     }
@@ -303,7 +303,7 @@ class Editor {
     base = cp5.addDropdownList("editorBase")
       .setGroup(group)
       .setLabel("Base Pattern")
-      .setPosition(30, 130)
+      .setPosition(30, 70)
       .setSize(80, 160)
       .setItems(PATTERNS)
       .setItemHeight(20)
@@ -431,7 +431,7 @@ class Editor {
         colors[i][j].hide();
       }
     }
-    if (color_set == i && v >= color_slot) {
+    if (color_set == i && v <= color_slot) {
       color_set = -1;
       color_slot = -1;
       colorSelect.hide();
