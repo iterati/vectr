@@ -5,7 +5,7 @@
 #include "LowPower.h"
 #include "elapsedMillis.h"
 
-#define EEPROM_VERSION 49
+#define EEPROM_VERSION 60
 
 #define PIN_R 9
 #define PIN_G 6
@@ -1070,9 +1070,9 @@ int8_t patternRandom(uint8_t numc, uint8_t rand_colors, uint8_t multiplier,
   uint8_t mini;
   uint8_t maxi;
 
-  mini = min(ct0, ct1); maxi = = max(ct0, ct1);
+  mini = min(ct0, ct1); maxi = max(ct0, ct1);
   ct0 = mini; ct1 = maxi;
-  mini = min(bt0, bt1); maxi = = max(bt0, bt1);
+  mini = min(bt0, bt1); maxi = max(bt0, bt1);
   bt0 = mini; bt1 = maxi;
 
   if (tick >= trip) {
