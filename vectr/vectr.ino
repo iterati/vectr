@@ -5,7 +5,7 @@
 #include "LowPower.h"
 #include "elapsedMillis.h"
 
-#define EEPROM_VERSION 60
+#define EEPROM_VERSION 201
 
 #define PIN_R 9
 #define PIN_G 6
@@ -47,17 +47,20 @@
 #define S_VIEW_MODE         250
 #define S_VIEW_COLOR        251
 
-#define SER_VERSION         100
+#define SER_VERSION         101
 
 #define SER_DUMP            10
 #define SER_SAVE            20
 #define SER_READ            30
 #define SER_WRITE           40
-#define SER_MODE_SET        90
+#define SER_CHANGE_MODE     50
 #define SER_VIEW_MODE       100
-#define SER_VIEW_COLOR      101
+#define SER_VIEW_COLOR      110
+#define SER_DUMP_START      200
+#define SER_DUMP_END        210
 #define SER_HANDSHAKE       250
-#define SER_DISCONNECT      251
+#define SER_HANDSHACK       251
+#define SER_DISCONNECT      254
 
 #define ACCEL_BINS          32
 #define ACCEL_BIN_SIZE      56
@@ -70,7 +73,8 @@
 
 #define PALETTE_SIZE        48
 #define NUM_MODES           7
-#define NUM_COLORS          9
+#define NUM_COLORS0         9
+#define NUM_COLORS1         16
 
 #define P_STROBE            0
 #define P_VEXER             1
@@ -89,8 +93,10 @@ uint8_t thresh_last[ACCEL_BINS];
 uint8_t thresh_cnts[ACCEL_BINS];
 
 int32_t gs[3];
+int32_t gs2[3];
 int32_t a_mag;
 uint8_t a_speed;
+float a_pitch, a_roll;
 
 uint8_t cur_mode = 0;
 uint8_t r, g, b;
@@ -99,244 +105,151 @@ uint8_t numc, arg0, arg1, arg2;
 uint8_t timing0, timing1, timing2, timing3, timing4, timing5;
 uint32_t tick, trip, cidx, cntr, segm;
 
+uint32_t ticks[2];
+uint32_t trips[2];
+uint32_t cidxs[2];
+uint32_t cntrs[2];
+uint32_t segms[2];
+uint8_t variant = 0;
+uint8_t accel_count = 0;
+uint8_t accel_last = 0;
+
 bool comm_link = false;
 uint8_t gui_set, gui_color;
 
 typedef struct Mode {
-  uint8_t pattern;                  // 0
-  uint8_t num_colors[3];            // 1 - 3
-  uint8_t pattern_thresh[2][2];     // 4 - 7, first/second, start/end
-  uint8_t color_thresh[2][2];       // 8 - 11, first/second, start/end
-  uint8_t args[3];                  // 12 - 14
-  uint8_t timings[3][6];            // 15 - 32, timing sets
-  uint8_t colors[NUM_COLORS][3][3]; // 33 - 113
-} Mode;                             // 114 bytes per mode
+  uint8_t _type;                      // 0
+  uint8_t pattern;                    // 1
+  uint8_t args[3];                    // 2 - 4
+  uint8_t pattern_thresh[2][2];       // 5 - 8, first/second, start/end
+  uint8_t timings[3][6];              // 9 - 26, timing sets
+  uint8_t color_thresh[2][2];         // 27 - 30, first/second, start/end
+  uint8_t num_colors[3];              // 31 - 33
+  uint8_t colors[3][NUM_COLORS0][3];  // 34 - 114
+  uint8_t _pad[7];
+} Mode;                               // 115 bytes per mode
 
-#define MODE_SIZE 114
+typedef struct PrimerMode {
+  uint8_t _type;                      // 0
+  uint8_t accel_mode;                 // 1
+  uint8_t accel_trig;                 // 2
+  uint8_t accel_drop;                 // 3
+  uint8_t pattern[2];                 // 4 - 5
+  uint8_t args[2][3];                 // 6 - 11
+  uint8_t timings[2][6];              // 12 - 23
+  uint8_t num_colors[2];              // 24 - 25
+  uint8_t colors[2][NUM_COLORS1][3];  // 26 - 121
+} PrimerMode;                         // 122 bytes per mode
+
+#define MODE_SIZE 122
 typedef union PackedMode {
   Mode m;
+  PrimerMode pm;
   uint8_t d[MODE_SIZE];
 } PackedMode;
 
 Mode* mode;
+PrimerMode* pmode;
 PackedMode pm;
 PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
   // Darkside of the moon
-  {P_STROBE, 6, 6, 6,
-    8, 32, 32, 32,
+  {0, P_STROBE, 0, 0, 0,
     0, 16, 16, 32,
-    0, 0, 0,
     3, 0, 90, 0, 0, 0,
     6, 44, 0, 0, 0, 0,
     3, 0, 60, 0, 0, 0,
-    12, 0, 0,     48, 0, 0,     192, 0, 0,
-    6, 7, 0,      24, 28, 0,    96, 112, 0,
-    0, 14, 0,     0, 28, 0,     0, 224, 0,
-    0, 7, 8,      0, 14, 16,    0, 112, 128,
-    0, 0, 16,     0, 0, 32,     0, 0, 255,
-    6, 0, 8,      12, 0, 16,    96, 0, 128,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,
+
+    8, 32, 32, 32,
+    6, 6, 6,
+    12, 0, 0,     6, 7, 0,      0, 14, 0,     0, 7, 8,      0, 0, 16,     6, 0, 8,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    48, 0, 0,     24, 28, 0,    0, 56, 0,     0, 28, 32,    0, 0, 64,     24, 0, 32,    0, 0, 0,      0, 0, 0,      0, 0, 0,
+    192, 0, 0,    96, 112, 0,   0, 224, 0,    0, 112, 128,  0, 0, 255,    96, 0, 128,   0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0,
   },
   // Sorcery
-  {P_VEXER, 4, 4, 1,
+  {0, P_VEXER, 1, 1, 0,
     1, 6, 6, 32,
-    0, 32, 32, 32,
-    1, 1, 0,
     0, 5, 0, 20, 0, 0,
     5, 0, 0, 20, 0, 0,
     5, 0, 15, 35, 0, 0,
-    6, 0, 0,      6, 0, 0,     0, 0, 0,
-    18, 0, 104,   36, 0, 208,   0, 0, 0,
-    0, 21, 104,   0, 42, 208,   0, 0, 0,
-    78, 0, 24,    156, 0, 48,   0, 0, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,
+
+    0, 32, 32, 32,
+    4, 4, 0,
+    6, 0, 0,      18, 0, 104,   0, 21, 104,   78, 0, 24,    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    6, 0, 0,      36, 0, 208,   0, 42, 208,   156, 0, 48,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0,
   },
   // Candy Strobe
-  {P_STROBE, 9, 1, 1,
+  {0, P_STROBE, 3, 1, 16,
     0, 16, 16, 32,
-    32, 32, 32, 32,
-    3, 1, 16,
     9, 41, 0, 0, 0, 0,
     25, 25, 0, 0, 0, 0,
     2, 23, 0, 0, 0, 0,
-    144, 0, 0,    0, 0, 0,  0, 0, 0,
-    96, 56, 0,    0, 0, 0,  0, 0, 0,
-    48, 112, 0,   0, 0, 0,  0, 0, 0,
-    0, 168, 0,    0, 0, 0,  0, 0, 0,
-    0, 112, 64,   0, 0, 0,  0, 0, 0,
-    0, 56, 128,   0, 0, 0,  0, 0, 0,
-    0, 0, 196,    0, 0, 0,  0, 0, 0,
-    48, 0, 128,   0, 0, 0,  0, 0, 0,
-    96, 0, 64,    0, 0, 0,  0, 0, 0,
+
+    32, 32, 32, 32,
+    9, 0, 0,
+    144, 0, 0,    96, 56, 0,    48, 112, 0,   0, 168, 0,    0, 112, 64,   0, 56, 128,   0, 0, 196,    48, 0, 128,   96, 0, 64,
+    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0,
   },
   // Halos
-  {P_EDGE, 9, 9, 9,
+  {0, P_EDGE, 3, 0, 0,
     0, 16, 16, 32,
-    0, 16, 16, 32,
-    3, 0, 0,
     4, 0, 7, 45, 0, 0,
     2, 0, 4, 45, 0, 0,
     1, 0, 4, 90, 0, 0,
-    0, 28, 224,   0, 28, 224,   0, 28, 224,
-    24, 0, 0,     24, 0, 0,     24, 0, 0,
-    48, 0, 0,     48, 0, 0,     48, 0, 0,
-    0, 28, 224,   0, 28, 224,   0, 28, 224,
-    12, 14, 0,    12, 14, 0,    12, 14, 0,
-    24, 28, 0,    24, 28, 0,    24, 28, 0,
-    0, 28, 224,   0, 28, 224,   0, 28, 224,
-    0, 28, 8,     0, 28, 8,     0, 28, 0,
-    0, 56, 0,     0, 56, 0,     0, 56, 0,
+
+    32, 32, 32, 32,
+    9, 0, 0,
+    0, 28, 224,   24, 0, 0,     48, 0, 0,     0, 28, 224,   12, 14, 0,    24, 28, 0,    0, 28, 224,   0, 28, 8,     0, 56, 0,
+    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0,
   },
   // Dashdops
-  {P_RUNNER, 6, 1, 1,
+  {0, P_RUNNER, 0, 0, 0,
     0, 20, 20, 32,
-    32, 32, 32, 32,
-    0, 0, 0,
     5, 0, 3, 22, 25, 0,
     5, 0, 5, 0, 25, 0,
     3, 22, 5, 0, 25, 0,
-    12, 91, 88,   0, 0, 0,  0, 0, 0,
-    72, 112, 0,   0, 0, 0,  0, 0, 0,
-    132, 42, 0,   0, 0, 0,  0, 0, 0,
-    144, 0, 32,   0, 0, 0,  0, 0, 0,
-    120, 0, 64,   0, 0, 0,  0, 0, 0,
-    0, 28, 186,   0, 0, 0,  0, 0, 0,
-    0, 0, 0,      0, 0, 0,  0, 0, 0,
-    0, 0, 0,      0, 0, 0,  0, 0, 0,
-    0, 0, 0,      0, 0, 0,  0, 0, 0,
+
+    32, 32, 32, 32,
+    6, 0, 0,
+    12, 91, 88,   72, 112, 0,   132, 42, 0,   144, 0, 32,   120, 0, 64,   0, 28, 186,   0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0,
   },
   // Self Healing
-  {P_VEXER, 4, 4, 4,
+  {0, P_VEXER, 1, 4, 0,
     0, 24, 24, 32,
-    1, 16, 16, 32,
-    1, 4, 0,
     2, 3, 0, 25, 0, 0,
     2, 3, 25, 0, 0, 0,
     2, 3, 25, 0, 0, 0,
-    6, 0, 0,        0, 0, 8,      0, 4, 4,
-    48, 154, 16,    96, 28, 8,    144, 56, 0,
-    132, 56, 16,    162, 28, 8,   192, 0, 0,
-    90, 105, 16,    90, 105, 8,   96, 112, 0,
-    0, 0, 0,        0, 0, 0,      0, 0, 0,
-    0, 0, 0,        0, 0, 0,      0, 0, 0,
-    0, 0, 0,        0, 0, 0,      0, 0, 0,
-    0, 0, 0,        0, 0, 0,      0, 0, 0,
-    0, 0, 0,        0, 0, 0,      0, 0, 0,
+
+    1, 16, 16, 32,
+    4, 4, 4,
+    6, 0, 0,      48, 154, 16,  132, 56, 16,  90, 105, 16,  0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 0, 8,      96, 28, 8,    162, 28, 8,   90, 105, 8,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 4, 4,      144, 56, 0,   192, 0, 0,    96, 112, 0,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0,
   },
   // Quantum Core
-  {P_DOUBLE, 1, 2, 3,
+  {0, P_DOUBLE, 1, 1, 0,
     0, 32, 32, 32,
-    0, 4, 4, 16,
-    1, 1, 0,
     1, 0, 49, 0, 25, 0,
     49, 0, 1, 0, 25, 0,
     10, 0, 50, 0, 25, 0,
-    0, 42, 144,  0, 42, 144,  0, 42, 144,
-    0, 0, 0,     36, 0, 144,  36, 0, 144,
-    0, 0, 0,     0, 0, 0,     48, 70, 96,
-    0, 0, 0,     0, 0, 0,     0, 0, 0,
-    0, 0, 0,     0, 0, 0,     0, 0, 0,
-    0, 0, 0,     0, 0, 0,     0, 0, 0,
-    0, 0, 0,     0, 0, 0,     0, 0, 0,
-    0, 0, 0,     0, 0, 0,     0, 0, 0,
-    0, 0, 0,     0, 0, 0,     0, 0, 0,
+
+    0, 4, 4, 16,
+    1, 2, 3,
+    0, 42, 144,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 42, 144,   36, 0, 144,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 42, 144,   36, 0, 144,   48, 70, 96,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0,
   },
-  /*
-  // Crosshairs
-  {P_EDGE, 2, 2, 2,
-    32, 32, 32, 32,
-    0, 16, 16, 32,
-    0, 0, 0,
-    20, 10, 3, 75, 0, 0,
-    20, 10, 3, 75, 0, 0,
-    20, 10, 3, 75, 0, 0,
-    192, 0, 0,  192, 0, 0,  192, 0, 0,
-    0, 0, 32,   0, 14, 16,  0, 28, 0,
-    0, 0, 0,  0, 0, 0,  0, 0, 0,
-    0, 0, 0,  0, 0, 0,  0, 0, 0,
-    0, 0, 0,  0, 0, 0,  0, 0, 0,
-    0, 0, 0,  0, 0, 0,  0, 0, 0,
-    0, 0, 0,  0, 0, 0,  0, 0, 0,
-  },
-  // Ghosts
-  {P_STROBE, 9, 9, 9,
-    0, 32, 32, 32,
-    0, 8, 8, 32,
-    3, 3, 1,
-    5, 0, 135, 0, 0, 0,
-    3, 0, 60, 0, 0, 0,
-    2, 0, 85, 0, 0, 0,
-    174, 4, 16,     174, 4, 16,     174, 4, 16,
-    0, 0, 4,        0, 0, 16,       0, 0, 64,
-    0, 0, 0,        0, 0, 4,        0, 0, 16,
-    174, 4, 16,     174, 4, 16,     174, 4, 16,
-    0, 2, 2,        0, 7, 8,        0, 28, 32,
-    0, 0, 0,        0, 2, 2,        0, 7, 8,
-    174, 4, 16,     174, 4, 16,     174, 4, 16,
-    0, 4, 0,        0, 16, 0,       0, 64, 0,
-    0, 0, 0,        0, 4, 0,        0, 16, 0,
-  },
-  // Electric Dops
-  {P_EDGE, 4, 4, 4,
-    0, 12, 12, 24,
-    0, 16, 16, 32,
-    2, 0, 0,
-    1, 0, 3, 95, 0, 0,
-    1, 0, 2, 46, 0, 0,
-    1, 0, 1, 22, 0, 0,
-    36, 14, 192,    36, 14, 192,    26, 14, 192,
-    18, 0, 24,      48, 0, 32,      120, 0, 32,
-    36, 168, 16,    36, 168, 16,    36, 168, 16,
-    18, 21, 0,      48, 28, 0,      120, 28, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-  },
-  // PacMan
-  {P_VEXER, 5, 5, 5,
-    0, 16, 16, 32,
-    0, 16, 16, 32,
-    3, 3, 0,
-    2, 0, 1, 19, 0, 0,
-    2, 0, 20, 0, 0, 0,
-    5, 5, 10, 0, 0, 0,
-    0, 0, 0,      0, 0, 4,      0, 0, 16,
-    144, 42, 48,  144, 42, 48,  144, 42, 48,
-    192, 0, 0,    192, 0, 0,    192, 0, 0,
-    96, 112, 0,   96, 112, 0,   96, 112, 0,
-    0, 112, 128,  0, 112, 128,  0, 112, 128,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,
-  },
-  // Star Tripping
-  {P_VEXER, 3, 3, 3,
-    0, 16, 16, 32,
-    16, 32, 32, 32,
-    1, 5, 0,
-    2, 10, 1, 0, 0, 0,
-    15, 10, 5, 0, 0, 0,
-    15, 0, 1, 14, 0, 0,
-    60, 0, 24,      120, 0, 36,     0, 0, 0,
-    0, 28, 160,     0, 14, 80,      0, 0, 0,
-    36, 0, 144,     18, 0, 72,      0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-  },
-  */
 };
 
 
@@ -376,7 +289,7 @@ void setup() {
 
   accelInit();
   changeMode(cur_mode);
-  Serial.write(250); Serial.write(SER_VERSION); Serial.write(SER_VERSION);
+  Serial.write(SER_HANDSHAKE); Serial.write(SER_VERSION); Serial.write(SER_VERSION);
 
   noInterrupts();
   TCCR0B = (TCCR0B & 0b11111000) | 0b001;  // no prescaler ~64/ms
@@ -399,9 +312,16 @@ void render() {
   } else if (state == S_VIEW_MODE) {
     renderMode();
   } else if (state == S_VIEW_COLOR) {
-    r = mode->colors[gui_color][gui_set][0];
-    g = mode->colors[gui_color][gui_set][1];
-    b = mode->colors[gui_color][gui_set][2];
+    if (pm.d[0] == 0) {
+      r = pm.m.colors[gui_set][gui_color][0];
+      g = pm.m.colors[gui_set][gui_color][1];
+      b = pm.m.colors[gui_set][gui_color][2];
+    } else {
+      r = pm.pm.colors[gui_set][gui_color][0];
+      g = pm.pm.colors[gui_set][gui_color][1];
+      b = pm.pm.colors[gui_set][gui_color][2];
+    }
+
   } else if (state == S_BRIGHT_OFF) {
     r = g = b = 128;
   } else {
@@ -692,13 +612,35 @@ void handleAccel() {
       gs[2] = (gs[2] < 2048) ? gs[2] : -4096 + gs[2];
       break;
     case 9:
-      a_mag = sqrt((gs[0] * gs[0]) + (gs[1] * gs[1]) + (gs[2] * gs[2]));
+      gs2[0] = gs[0] * gs[0];
+      gs2[1] = gs[1] * gs[1];
+      gs2[2] = gs[2] * gs[2];
+      a_mag = sqrt(gs2[0] + gs2[1] + gs2[2]);
       break;
     case 10:
       accelUpdateBins();
       break;
+    case 11:
+      if (pm.d[0] == 1) {
+        accel_last++;
+        if ((variant == 0 && a_speed > pm.pm.accel_trig) ||
+            (variant == 1 && a_speed <= pm.pm.accel_drop)) {
+          accel_count++;
+          accel_last = 0;
+        }
+
+        if (accel_last >= 5) accel_count = 0;
+        if (accel_count >= 5) {
+          variant = !variant;
+          accel_last = accel_count = 0;
+        }
+      }
+      break;
 
     default:
+      /* a_pitch = sqrt(gs2[0] + gs2[2]); */
+      /* a_pitch = atan2(-gs[1], a_pitch); */
+      /* a_roll = atan2(-gs[0], gs[2]); */
       break;
   }
 
@@ -749,28 +691,28 @@ uint8_t interp(uint8_t m, uint8_t n, uint16_t d, uint16_t D) {
 }
 
 void recalcArgs() {
-  if (a_speed <= mode->color_thresh[0][0])      numc = mode->num_colors[0];
-  else if (a_speed < mode->color_thresh[0][1])  numc = min(mode->num_colors[0], mode->num_colors[1]);
-  else if (a_speed <= mode->color_thresh[1][0]) numc = mode->num_colors[1];
-  else if (a_speed < mode->color_thresh[1][1])  numc = min(mode->num_colors[1], mode->num_colors[2]);
-  else                                          numc = mode->num_colors[2];
+  if (a_speed <= pm.m.color_thresh[0][0])      numc = pm.m.num_colors[0];
+  else if (a_speed < pm.m.color_thresh[0][1])  numc = min(pm.m.num_colors[0], pm.m.num_colors[1]);
+  else if (a_speed <= pm.m.color_thresh[1][0]) numc = pm.m.num_colors[1];
+  else if (a_speed < pm.m.color_thresh[1][1])  numc = min(pm.m.num_colors[1], pm.m.num_colors[2]);
+  else                                         numc = pm.m.num_colors[2];
 
   uint8_t as, d, v;
-  if (a_speed <= mode->pattern_thresh[0][0]) {
+  if (a_speed <= pm.m.pattern_thresh[0][0]) {
     as = 0;
     d = 1;
     v = 0;
-  } else if (a_speed < mode->pattern_thresh[0][1]) {
-    as = a_speed - mode->pattern_thresh[0][0];
-    d = mode->pattern_thresh[0][1] - mode->pattern_thresh[0][0];
+  } else if (a_speed < pm.m.pattern_thresh[0][1]) {
+    as = a_speed - pm.m.pattern_thresh[0][0];
+    d = pm.m.pattern_thresh[0][1] - pm.m.pattern_thresh[0][0];
     v = 0;
-  } else if (a_speed <= mode->pattern_thresh[1][0]) {
+  } else if (a_speed <= pm.m.pattern_thresh[1][0]) {
     as = 0;
     d = 1;
     v = 1;
-  } else if (a_speed < mode->pattern_thresh[1][1]) {
-    as = a_speed - mode->pattern_thresh[1][0];
-    d = mode->pattern_thresh[1][1] - mode->pattern_thresh[1][0];
+  } else if (a_speed < pm.m.pattern_thresh[1][1]) {
+    as = a_speed - pm.m.pattern_thresh[1][0];
+    d = pm.m.pattern_thresh[1][1] - pm.m.pattern_thresh[1][0];
     v = 1;
   } else {
     as = 1;
@@ -778,57 +720,58 @@ void recalcArgs() {
     v = 1;
   }
 
-  arg0 = mode->args[0];
-  arg1 = mode->args[1];
-  arg2 = mode->args[2];
-  timing0 = interp(mode->timings[v][0], mode->timings[v + 1][0], as, d);
-  timing1 = interp(mode->timings[v][1], mode->timings[v + 1][1], as, d);
-  timing2 = interp(mode->timings[v][2], mode->timings[v + 1][2], as, d);
-  timing3 = interp(mode->timings[v][3], mode->timings[v + 1][3], as, d);
-  timing4 = interp(mode->timings[v][4], mode->timings[v + 1][4], as, d);
-  timing5 = interp(mode->timings[v][5], mode->timings[v + 1][5], as, d);
+  arg0 = pm.m.args[0];
+  arg1 = pm.m.args[1];
+  arg2 = pm.m.args[2];
+  timing0 = interp(pm.m.timings[v][0], pm.m.timings[v + 1][0], as, d);
+  timing1 = interp(pm.m.timings[v][1], pm.m.timings[v + 1][1], as, d);
+  timing2 = interp(pm.m.timings[v][2], pm.m.timings[v + 1][2], as, d);
+  timing3 = interp(pm.m.timings[v][3], pm.m.timings[v + 1][3], as, d);
+  timing4 = interp(pm.m.timings[v][4], pm.m.timings[v + 1][4], as, d);
+  timing5 = interp(pm.m.timings[v][5], pm.m.timings[v + 1][5], as, d);
 }
 
 void colorFlux(uint8_t color) {
   uint8_t as, d, v;
-  if (a_speed <= mode->color_thresh[0][0]) {
+  if (a_speed <= pm.m.color_thresh[0][0]) {
     as = 0;
     d = 1;
     v = 0;
-  } else if (a_speed < mode->color_thresh[0][1]) {
-    as = a_speed - mode->color_thresh[0][0];
-    d = mode->color_thresh[0][1] - mode->color_thresh[0][0];
+  } else if (a_speed < pm.m.color_thresh[0][1]) {
+    as = a_speed - pm.m.color_thresh[0][0];
+    d = pm.m.color_thresh[0][1] - pm.m.color_thresh[0][0];
     v = 0;
-  } else if (a_speed <= mode->color_thresh[1][0]) {
+  } else if (a_speed <= pm.m.color_thresh[1][0]) {
     as = 0;
     d = 1;
     v = 1;
-  } else if (a_speed < mode->color_thresh[1][1]) {
-    as = a_speed - mode->color_thresh[1][0];
-    d = mode->color_thresh[1][1] - mode->color_thresh[1][0];
+  } else if (a_speed < pm.m.color_thresh[1][1]) {
+    as = a_speed - pm.m.color_thresh[1][0];
+    d = pm.m.color_thresh[1][1] - pm.m.color_thresh[1][0];
     v = 1;
   } else {
     as = 1;
     d = 1;
     v = 1;
   }
-  r = interp(mode->colors[color][v][0], mode->colors[color][v + 1][0], as, d);
-  g = interp(mode->colors[color][v][1], mode->colors[color][v + 1][1], as, d);
-  b = interp(mode->colors[color][v][2], mode->colors[color][v + 1][2], as, d);
+  r = interp(pm.m.colors[v][color][0], pm.m.colors[v + 1][color][0], as, d);
+  g = interp(pm.m.colors[v][color][1], pm.m.colors[v + 1][color][1], as, d);
+  b = interp(pm.m.colors[v][color][2], pm.m.colors[v + 1][color][2], as, d);
 }
 
 int8_t patternStrobe(uint8_t numc, uint8_t pick, uint8_t skip, uint8_t repeat,
-    uint8_t st, uint8_t bt, uint8_t lt) {
+    uint8_t st, uint8_t bt, uint8_t lt,
+    uint32_t& tick, uint32_t& trip, uint32_t& cidx, uint32_t& cntr, uint32_t& segm) {
 
   int8_t rtn = -1;
   if (st == 0 && bt == 0 && lt == 0) return -1;
-  numc = constrain(numc, 1, NUM_COLORS);
+  numc = constrain(numc, 1, (pm.d[0] == 0) ? NUM_COLORS0 : NUM_COLORS1);
   pick = (pick == 0) ? numc : pick;
   skip = (skip == 0) ? pick : skip;
   repeat = max(1, repeat);
 
   if (tick >= trip) {
-    recalcArgs();
+    if (pm.d[0] == 0) recalcArgs();
     tick = trip = 0;
     while (trip == 0) {
       segm++;
@@ -856,16 +799,17 @@ int8_t patternStrobe(uint8_t numc, uint8_t pick, uint8_t skip, uint8_t repeat,
 }
 
 int8_t patternVexer(uint8_t numc, uint8_t repeat_c, uint8_t repeat_t,
-    uint8_t cst, uint8_t cbt, uint8_t tst, uint8_t tbt) {
+    uint8_t cst, uint8_t cbt, uint8_t tst, uint8_t tbt,
+    uint32_t& tick, uint32_t& trip, uint32_t& cidx, uint32_t& cntr, uint32_t& segm) {
 
   int8_t rtn = -1;
   if (cst == 0 && cbt == 0 && tst == 0 && tbt == 0) return -1;
-  numc = constrain(numc, 1, NUM_COLORS);
+  numc = constrain(numc, 1, (pm.d[0] == 0) ? NUM_COLORS0 : NUM_COLORS1);
   repeat_c = max(1, repeat_c);
   repeat_t = max(1, repeat_t);
 
   if (tick >= trip) {
-    recalcArgs();
+    if (pm.d[0] == 0) recalcArgs();
     tick = trip = 0;
     while (trip == 0) {
       segm++;
@@ -895,15 +839,16 @@ int8_t patternVexer(uint8_t numc, uint8_t repeat_c, uint8_t repeat_t,
 }
 
 int8_t patternEdge(uint8_t numc, uint8_t pick,
-    uint8_t cst, uint8_t cbt, uint8_t est, uint8_t ebt) {
+    uint8_t cst, uint8_t cbt, uint8_t est, uint8_t ebt,
+    uint32_t& tick, uint32_t& trip, uint32_t& cidx, uint32_t& cntr, uint32_t& segm) {
 
   int8_t rtn = -1;
   if (cst == 0 && cbt == 0 && est == 0 && ebt == 0) return -1;
-  numc = constrain(numc, 1, NUM_COLORS);
+  numc = constrain(numc, 1, (pm.d[0] == 0) ? NUM_COLORS0 : NUM_COLORS1);
   pick = (pick == 0) ? numc : pick;
 
   if (tick >= trip) {
-    recalcArgs();
+    if (pm.d[0] == 0) recalcArgs();
     tick = trip = 0;
     while (trip == 0) {
       segm++;
@@ -929,17 +874,18 @@ int8_t patternEdge(uint8_t numc, uint8_t pick,
 }
 
 int8_t patternDouble(uint8_t numc, uint8_t repeat_c, uint8_t repeat_d, uint8_t skip,
-    uint8_t cst, uint8_t cbt, uint8_t dst, uint8_t dbt, uint8_t sbt) {
+    uint8_t cst, uint8_t cbt, uint8_t dst, uint8_t dbt, uint8_t sbt,
+    uint32_t& tick, uint32_t& trip, uint32_t& cidx, uint32_t& cntr, uint32_t& segm) {
 
   int8_t rtn = -1;
   if (cst == 0 && cbt == 0 && dst == 0 && dbt == 0 && sbt == 0) return -1;
-  numc = constrain(numc, 1, NUM_COLORS);
+  numc = constrain(numc, 1, (pm.d[0] == 0) ? NUM_COLORS0 : NUM_COLORS1);
   repeat_c = max(1, repeat_c);
   repeat_d = max(1, repeat_d);
   skip = min(numc - 1, skip);
 
   if (tick >= trip) {
-    recalcArgs();
+    if (pm.d[0] == 0) recalcArgs();
     tick = trip = 0;
     while (trip == 0) {
       segm++;
@@ -977,17 +923,18 @@ int8_t patternDouble(uint8_t numc, uint8_t repeat_c, uint8_t repeat_d, uint8_t s
 }
 
 int8_t patternRunner(uint8_t numc, uint8_t pick, uint8_t skip, uint8_t repeat,
-    uint8_t cst, uint8_t cbt, uint8_t rst, uint8_t rbt, uint8_t sbt) {
+    uint8_t cst, uint8_t cbt, uint8_t rst, uint8_t rbt, uint8_t sbt,
+    uint32_t& tick, uint32_t& trip, uint32_t& cidx, uint32_t& cntr, uint32_t& segm) {
 
   int8_t rtn = -1;
   if (cst == 0 && cbt == 0 && rst == 0 && rbt == 0 && sbt == 0) return -1;
-  numc = constrain(numc, 1, NUM_COLORS);
+  numc = constrain(numc, 1, (pm.d[0] == 0) ? NUM_COLORS0 : NUM_COLORS1);
   pick = (pick == 0) ? numc - 1 : pick;
   skip = (skip == 0) ? pick : skip;
   repeat = (repeat == 0) ? pick : repeat;
 
   if (tick >= trip) {
-    recalcArgs();
+    if (pm.d[0] == 0) recalcArgs();
     tick = trip = 0;
     while (trip == 0) {
       segm++;
@@ -1023,49 +970,52 @@ int8_t patternRunner(uint8_t numc, uint8_t pick, uint8_t skip, uint8_t repeat,
   return rtn;
 }
 
-int8_t patternStepper(uint8_t numc, uint8_t steps,
-    uint8_t bt, uint8_t ct0, uint8_t ct1, uint8_t ct2, uint8_t ct3, uint8_t ct4) {
+int8_t patternStepper(uint8_t numc, uint8_t steps, uint8_t rand_steps, uint8_t rand_colors,
+    uint8_t bt, uint8_t ct0, uint8_t ct1, uint8_t ct2, uint8_t ct3, uint8_t ct4,
+    uint32_t& tick, uint32_t& trip, uint32_t& cidx, uint32_t& cntr, uint32_t& segm) {
 
   int8_t rtn = -1;
   if (bt == 0 && ct0 == 0 && ct1 == 0 && ct2 == 0 && ct3 == 0 && ct4 == 0) return -1;
-  numc = constrain(numc, 1, NUM_COLORS);
+  numc = constrain(numc, 1, (pm.d[0] == 0) ? NUM_COLORS0 : NUM_COLORS1);
   steps = constrain(steps, 1, 5);
 
   if (tick >= trip) {
-    recalcArgs();
+    if (pm.d[0] == 0) recalcArgs();
     tick = trip = 0;
     while (trip == 0) {
+      if (rand_colors == 0) cidx = (cidx + 1) % numc;
+      else                  cidx = random(0, numc);
+
       segm++;
-      if (segm >= (2 * steps)) {
+      if (segm >= 2) {
         segm = 0;
-        cidx = (cidx + steps) % numc;
+        if (rand_steps == 0) cntr = (cntr + 1) % steps;
+        else                 cntr = random(0, steps);
       }
 
-      if (segm % 2 == 0)  trip = bt;
-      else if (segm == 1) trip = ct0;
-      else if (segm == 3) trip = ct1;
-      else if (segm == 5) trip = ct2;
-      else if (segm == 7) trip = ct3;
-      else if (segm == 9) trip = ct4;
+      if (segm % 2 == 0) {  trip = bt; }
+      else {
+        if (cntr == 0)      trip = ct0;
+        else if (cntr == 1) trip = ct1;
+        else if (cntr == 2) trip = ct2;
+        else if (cntr == 3) trip = ct3;
+        else if (cntr == 4) trip = ct4;
+      }
     }
   }
 
-  if (segm % 2 == 0)  rtn = -1;
-  else if (segm == 1) rtn = cidx;
-  else if (segm == 3) rtn = cidx + 1;
-  else if (segm == 5) rtn = cidx + 2;
-  else if (segm == 7) rtn = cidx + 3;
-  else if (segm == 9) rtn = cidx + 4;
-
-  return rtn % numc;
+  if (segm % 2 == 0) rtn = -1;
+  else               rtn = cidx;
+  return rtn;
 }
 
 int8_t patternRandom(uint8_t numc, uint8_t rand_colors, uint8_t multiplier,
-    uint8_t ct0, uint8_t ct1, uint8_t bt0, uint8_t bt1) {
+    uint8_t ct0, uint8_t ct1, uint8_t bt0, uint8_t bt1,
+    uint32_t& tick, uint32_t& trip, uint32_t& cidx, uint32_t& cntr, uint32_t& segm) {
 
   int8_t rtn = -1;
   if (ct0 == 0 && ct1 == 0 && bt0 == 0 && bt1 == 0) return -1;
-  numc = constrain(numc, 1, NUM_COLORS);
+  numc = constrain(numc, 1, (pm.d[0] == 0) ? NUM_COLORS0 : NUM_COLORS1);
   multiplier = constrain(multiplier, 1, 10);
   uint8_t mini;
   uint8_t maxi;
@@ -1076,7 +1026,7 @@ int8_t patternRandom(uint8_t numc, uint8_t rand_colors, uint8_t multiplier,
   bt0 = mini; bt1 = maxi;
 
   if (tick >= trip) {
-    recalcArgs();
+    if (pm.d[0] == 0) recalcArgs();
     tick = trip = 0;
     while (trip == 0) {
       segm++;
@@ -1097,24 +1047,86 @@ int8_t patternRandom(uint8_t numc, uint8_t rand_colors, uint8_t multiplier,
 }
 
 void renderMode() {
-  uint8_t color = -1;
-  if (mode->pattern == P_STROBE)
-    color = patternStrobe(numc, arg0, arg1, arg2, timing0, timing1, timing2);
-  else if (mode->pattern == P_VEXER)
-    color = patternVexer(numc, arg0, arg1, timing0, timing1, timing2, timing3);
-  else if (mode->pattern == P_EDGE)
-    color = patternEdge(numc, arg0, timing0, timing1, timing2, timing3);
-  else if (mode->pattern == P_DOUBLE)
-    color = patternDouble(numc, arg0, arg1, arg2, timing0, timing1, timing2, timing3, timing4);
-  else if (mode->pattern == P_RUNNER)
-    color = patternRunner(numc, arg0, arg1, arg2, timing0, timing1, timing2, timing3, timing4);
-  else if (mode->pattern == P_STEPPER)
-    color = patternStepper(numc, arg0, timing0, timing1, timing2, timing3, timing4, timing5);
-  else if (mode->pattern == P_RANDOM)
-    color = patternRandom(numc, arg0, arg1, timing0, timing1, timing2, timing3);
+  if (pm.d[0] == 0) {
+    uint8_t color = -1;
+    if (pm.m.pattern == P_STROBE)
+      color = patternStrobe(numc, arg0, arg1, arg2,
+          timing0, timing1, timing2,
+          ticks[0], trips[0], cidxs[0], cntrs[0], segms[0]);
+    else if (pm.m.pattern == P_VEXER)
+      color = patternVexer(numc, arg0, arg1,
+          timing0, timing1, timing2, timing3,
+          ticks[0], trips[0], cidxs[0], cntrs[0], segms[0]);
+    else if (pm.m.pattern == P_EDGE)
+      color = patternEdge(numc, arg0,
+          timing0, timing1, timing2, timing3,
+          ticks[0], trips[0], cidxs[0], cntrs[0], segms[0]);
+    else if (pm.m.pattern == P_DOUBLE)
+      color = patternDouble(numc, arg0, arg1, arg2,
+          timing0, timing1, timing2, timing3, timing4,
+          ticks[0], trips[0], cidxs[0], cntrs[0], segms[0]);
+    else if (pm.m.pattern == P_RUNNER)
+      color = patternRunner(numc, arg0, arg1, arg2,
+          timing0, timing1, timing2, timing3, timing4,
+          ticks[0], trips[0], cidxs[0], cntrs[0], segms[0]);
+    else if (pm.m.pattern == P_STEPPER)
+      color = patternStepper(numc, arg0, arg1, arg2,
+          timing0, timing1, timing2, timing3, timing4, timing5,
+          ticks[0], trips[0], cidxs[0], cntrs[0], segms[0]);
+    else if (pm.m.pattern == P_RANDOM)
+      color = patternRandom(numc, arg0, arg1,
+          timing0, timing1, timing2, timing3,
+          ticks[0], trips[0], cidxs[0], cntrs[0], segms[0]);
 
-  if (color < 0) r = g = b = 0;
-  else           colorFlux(color);
+    if (color < 0) {
+      r = g = b = 0;
+    } else {
+      colorFlux(color);
+    }
+
+  } else {
+    uint8_t color[2] = {-1, -1};
+    for (uint8_t i = 0; i < 2; i++) {
+      if (pm.pm.pattern[i] == P_STROBE)
+        color[i] = patternStrobe(numc, pm.pm.args[i][0], pm.pm.args[i][1], pm.pm.args[i][2],
+            pm.pm.timings[i][0], pm.pm.timings[i][1], pm.pm.timings[i][2],
+            ticks[i], trips[i], cidxs[i], cntrs[i], segms[i]);
+      else if (pm.pm.pattern[i] == P_VEXER)
+        color[i] = patternVexer(numc, pm.pm.args[i][0], pm.pm.args[i][1],
+            pm.pm.timings[i][0], pm.pm.timings[i][1], pm.pm.timings[i][2], pm.pm.timings[i][3],
+            ticks[i], trips[i], cidxs[i], cntrs[i], segms[i]);
+      else if (pm.pm.pattern[i] == P_EDGE)
+        color[i] = patternEdge(numc, pm.pm.args[i][0],
+            pm.pm.timings[i][0], pm.pm.timings[i][1], pm.pm.timings[i][2], pm.pm.timings[i][3],
+            ticks[i], trips[i], cidxs[i], cntrs[i], segms[i]);
+      else if (pm.pm.pattern[i] == P_DOUBLE)
+        color[i] = patternDouble(numc, pm.pm.args[i][0], pm.pm.args[i][1], pm.pm.args[i][2],
+            pm.pm.timings[i][0], pm.pm.timings[i][1], pm.pm.timings[i][2], pm.pm.timings[i][3], pm.pm.timings[i][4],
+            ticks[i], trips[i], cidxs[i], cntrs[i], segms[i]);
+      else if (pm.pm.pattern[i] == P_RUNNER)
+        color[i] = patternRunner(numc, pm.pm.args[i][0], pm.pm.args[i][1], pm.pm.args[i][2],
+            pm.pm.timings[i][0], pm.pm.timings[i][1], pm.pm.timings[i][2], pm.pm.timings[i][3], pm.pm.timings[i][4],
+            ticks[i], trips[i], cidxs[i], cntrs[i], segms[i]);
+      else if (pm.pm.pattern[i] == P_STEPPER)
+        color[i] = patternStepper(numc, pm.pm.args[i][0], pm.pm.args[i][1], pm.pm.args[i][2],
+            pm.pm.timings[i][0], pm.pm.timings[i][1], pm.pm.timings[i][2], pm.pm.timings[i][3], pm.pm.timings[i][4], pm.pm.timings[i][5],
+            ticks[i], trips[i], cidxs[i], cntrs[i], segms[i]);
+      else if (pm.pm.pattern[i] == P_RANDOM)
+        color[i] = patternRandom(numc, pm.pm.args[i][0], pm.pm.args[i][1],
+            pm.pm.timings[i][0], pm.pm.timings[i][1], pm.pm.timings[i][2], pm.pm.timings[i][3],
+            ticks[i], trips[i], cidxs[i], cntrs[i], segms[i]);
+      // P_FLUX
+      // P_STRETCH
+
+      if (color[variant] < 0) {
+        r = g = b = 0;
+      } else {
+        r = pm.pm.colors[variant][color[variant]][0];
+        g = pm.pm.colors[variant][color[variant]][1];
+        b = pm.pm.colors[variant][color[variant]][2];
+      }
+    }
+  }
 
   tick++;
 }
@@ -1125,10 +1137,12 @@ void changeMode(uint8_t i) {
   else if (i == 99)  cur_mode = (cur_mode + NUM_MODES - 1) % NUM_MODES;
   else if (i == 101) cur_mode = (cur_mode + 1) % NUM_MODES;
 
-  tick = trip = cidx = cntr = segm = 0;
+  variant = 0;
+  ticks[0] = trips[0] = cidxs[0] = cntrs[0] = segms[0] = 0;
+  ticks[1] = trips[1] = cidxs[1] = cntrs[1] = segms[1] = 0;
   loadMode(cur_mode);
-  mode = &pm.m;
-  recalcArgs();
+
+  if (pm.d[0] == 0) recalcArgs();
 }
 
 
@@ -1138,56 +1152,32 @@ void modeSave() {
   }
 }
 
-void modeRead(uint8_t i, uint8_t addr) {
-  if (i < NUM_MODES) {
-    Serial.write(i);
-    Serial.write(addr);
-    Serial.write(EEPROMread((i * 128) + addr));
-  } else if (i == 100) {
-    Serial.write(100);
-    Serial.write(addr);
-    Serial.write(pm.d[addr]);
-  }
+void modeRead(uint8_t addr) {
+  Serial.write(cur_mode);
+  Serial.write(addr);
+  Serial.write(pm.d[addr]);
 }
 
-void modeWrite(uint8_t i, uint8_t addr, uint8_t val) {
-  if (i < NUM_MODES) {
-    EEPROMupdate((i * 128) + addr, val);
-  } else if (i == 100) {
-    pm.d[addr] = val;
-  }
-  modeRead(i, addr);
+void modeWrite(uint8_t addr, uint8_t val) {
+  pm.d[addr] = val;
 }
 
-void modeDump(uint8_t i) {
-  if (i == 200) {
-    Serial.write(200); Serial.write(200); Serial.write(cur_mode);
-    for (uint8_t m = 0; m < NUM_MODES; m++) {
-      for (uint8_t j = 0; j < MODE_SIZE; j++) modeRead(m, j);
-    }
-    Serial.write(210); Serial.write(200); Serial.write(cur_mode);
-  } else if (i == 100) {
-    Serial.write(200); Serial.write(100); Serial.write(cur_mode);
-    for (uint8_t j = 0; j < MODE_SIZE; j++) modeRead(100, j);
-    Serial.write(210); Serial.write(100); Serial.write(cur_mode);
-  } else if (i < NUM_MODES) {
-    Serial.write(200); Serial.write(i); Serial.write(cur_mode);
-    for (uint8_t j = 0; j < MODE_SIZE; j++) modeRead(i, j);
-    Serial.write(210); Serial.write(i); Serial.write(cur_mode);
-  }
+void modeDump() {
+  Serial.write(200); Serial.write(cur_mode); Serial.write(200);
+  for (uint8_t i = 0; i < MODE_SIZE; i++) modeRead(i);
+  Serial.write(210); Serial.write(cur_mode); Serial.write(210);
 }
 
 void handleSerial() {
-  uint8_t cmd, in0, in1, in2;
-  while (Serial.available() >= 4) {
+  uint8_t cmd, in0, in1;
+  while (Serial.available() >= 3) {
     cmd = Serial.read();
     in0 = Serial.read();
     in1 = Serial.read();
-    in2 = Serial.read();
 
     if (cmd == SER_HANDSHAKE) {
-      // Initial handshake: 200 VERSION same same
-      if (in0 == SER_VERSION && in1 == in2) {
+      // Initial handshake: 200 VERSION VERSION
+      if (in0 == in1 == SER_VERSION) {
         new_state = S_VIEW_MODE;
         comm_link = true;
         wdt_disable();
@@ -1195,17 +1185,17 @@ void handleSerial() {
       }
     } else if (comm_link) {
       if (cmd == SER_DUMP) {
-        modeDump(in0);
+        modeDump();
       } else if (cmd == SER_SAVE) {
         modeSave();
         flash(128, 128, 128, 5);
       } else if (cmd == SER_READ) {
-        modeRead(in0, in1);
+        modeRead(in0);
       } else if (cmd == SER_WRITE) {
-        modeWrite(in0, in1, in2);
-      } else if (cmd == SER_MODE_SET) {
+        modeWrite(in0, in1);
+      } else if (cmd == SER_CHANGE_MODE) {
         changeMode(in0);
-        modeDump(100);
+        modeDump();
       } else if (cmd == SER_VIEW_MODE) {
         new_state = S_VIEW_MODE;
       } else if (cmd == SER_VIEW_COLOR) {
