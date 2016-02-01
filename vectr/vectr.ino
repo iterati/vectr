@@ -5,7 +5,7 @@
 #include "LowPower.h"
 #include "elapsedMillis.h"
 
-#define EEPROM_VERSION 200
+#define EEPROM_VERSION 201
 
 #define PIN_R 9
 #define PIN_G 6
@@ -361,7 +361,7 @@ void render() {
 void writeFrame(uint8_t r, uint8_t g, uint8_t b) {
   /* if (limiter > 64000) { Serial.print(limiter); Serial.print(F("\t")); Serial.println(accel_tick); } */
   while (limiter < 64000) {}
-  limiter = 0;
+  limiter -= 64000;
 
   analogWrite(PIN_R, r >> brightness);
   analogWrite(PIN_G, g >> brightness);

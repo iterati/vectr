@@ -480,7 +480,7 @@ void _writeLightFile(File file) {
         modes[i].fromJSON(ja.getJSONObject(i));
         for (int b = 0; b < mode._MODESIZE; b++) {
           sendCommand(SER_WRITE_LIGHT, i, b, modes[i].geta(b));
-          delay(10);
+          delay(2);
         }
       }
       sendCommand(SER_CHANGE_MODE, cur_mode);
