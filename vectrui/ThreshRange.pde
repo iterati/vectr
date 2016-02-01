@@ -41,20 +41,25 @@ public class ThreshRange extends Controller<ThreshRange> {
   protected boolean isFirstClick;
 
   //protected Label _myValueLabel;  // For low value
-  protected Label _myMidValueLabel;
-  protected Label _myHighValueLabel;
+  protected Label _myZeroValueLabel;
+  protected Label _myMaxAValueLabel;
+  protected Label _myMinBValueLabel;
+  protected Label _myMaxBValueLabel;
 
   protected int minAHandle = 0;
   protected int maxAHandle = 0;
   protected int minBHandle = 0;
   protected int maxBHandle = 0;
 
+  int _myType = 0;
+
   int dA = 0;
   int dB = 0;
 
 
-  public ThreshRange(ControlP5 theControlP5, String theName) {
-    this(theControlP5, theControlP5.getDefaultTab(), theName, 0, 32, 4, 14, 18, 28, 0, 0, 792, 20);
+  public ThreshRange(ControlP5 theControlP5, String theName, int type) {
+    this(theControlP5, theControlP5.getDefaultTab(), theName,
+        0, 32, 4, 14, 18, 28, 0, 0, 792, 20, type);
     theControlP5.register(theControlP5.papplet, theName, this);
   }
 
@@ -71,7 +76,8 @@ public class ThreshRange extends Controller<ThreshRange> {
       int theX,
       int theY,
       int theWidth,
-      int theHeight) {
+      int theHeight,
+      int type) {
 
     super(theControlP5, theParent, theName, theX, theY, theWidth, theHeight);
 
@@ -80,6 +86,7 @@ public class ThreshRange extends Controller<ThreshRange> {
     _myMin = theMin;
     _myMax = theMax;
     _myValueRange = _myMax - _myMin;
+    _myType = type;
 
     minAHandle = (int)(_myArrayValue[0] * 24) + 3;
     maxAHandle = (int)(_myArrayValue[1] * 24) + 9;
@@ -89,26 +96,74 @@ public class ThreshRange extends Controller<ThreshRange> {
     dB = maxBHandle - minBHandle;
 
     _myCaptionLabel = new controlP5.Label(cp5, theName)
-      .setColor(0)
+      .setColor(240)
+      .setFont(createFont("Comfortaa-Bold", 18))
       .align(CENTER, TOP_OUTSIDE);
 
-    _myValueLabel = new controlP5.Label(cp5, theName + "LowLabel")
-      .setColor(0)
-      .set("" + (int)theDefaultMinAValue)
-      .setFont(createFont("Arial", 10))
-      .align(LEFT, BOTTOM_OUTSIDE);
+    if (_myType == 0) {
+      _myZeroValueLabel = new controlP5.Label(cp5, theName + "MinALabel")
+        .setColor(240)
+        .toUpperCase(false)
+        .set("A - 0")
+        .align(LEFT, BOTTOM_OUTSIDE)
+        .setPadding(-30, 5);
 
-    _myMidValueLabel = new controlP5.Label(cp5, theName + "MidLabel")
-      .setColor(0)
-      .set("" + (int)theDefaultMaxAValue + MANY_SPACES + (int)theDefaultMinBValue)
-      .setFont(createFont("Arial", 10))
-      .align(CENTER, BOTTOM_OUTSIDE);
+      _myValueLabel = new controlP5.Label(cp5, theName + "MinALabel")
+        .setColor(240)
+        .toUpperCase(false)
+        .set("" + (int)theDefaultMinAValue)
+        .align(LEFT, BOTTOM_OUTSIDE)
+        .setPadding(150, 5);
 
-    _myHighValueLabel = new controlP5.Label(cp5, theName + "HighLabel")
-      .setColor(0)
-      .set("" + (int)theDefaultMaxBValue)
-      .setFont(createFont("Arial", 10))
-      .align(RIGHT, BOTTOM_OUTSIDE);
+      _myMaxAValueLabel = new controlP5.Label(cp5, theName + "MaxALabel")
+        .setColor(240)
+        .toUpperCase(false)
+        .set("" + (int)theDefaultMaxAValue)
+        .align(CENTER, BOTTOM_OUTSIDE)
+        .setPadding(0, 5);
+
+      _myMinBValueLabel = new controlP5.Label(cp5, theName + "MinBLabel")
+        .setColor(240)
+        .toUpperCase(false)
+        .set("" + (int)theDefaultMinBValue)
+        .align(RIGHT, BOTTOM_OUTSIDE)
+        .setPadding(150, 5);
+
+      _myMaxBValueLabel = new controlP5.Label(cp5, theName + "MaxALabel")
+        .setColor(240)
+        .toUpperCase(false)
+        .set("" + (int)theDefaultMaxBValue)
+        .align(RIGHT, BOTTOM_OUTSIDE)
+        .setPadding(-30, 5);
+    } else {
+      _myValueLabel = new controlP5.Label(cp5, theName + "MinALabel")
+        .setColor(240)
+        .toUpperCase(false)
+        .set("" + (int)theDefaultMinAValue)
+        .align(LEFT, BOTTOM_OUTSIDE)
+        .setPadding(0, 5);
+
+      _myMaxAValueLabel = new controlP5.Label(cp5, theName + "MaxALabel")
+        .setColor(240)
+        .toUpperCase(false)
+        .set("" + (int)theDefaultMaxAValue)
+        .align(CENTER, BOTTOM_OUTSIDE)
+        .setPadding(200, 5);
+
+      _myMinBValueLabel = new controlP5.Label(cp5, theName + "MinBLabel")
+        .setColor(240)
+        .toUpperCase(false)
+        .set("" + (int)theDefaultMinBValue)
+        .align(RIGHT, BOTTOM_OUTSIDE)
+        .setPadding(200, 5);
+
+      _myMaxBValueLabel = new controlP5.Label(cp5, theName + "MaxALabel")
+        .setColor(240)
+        .toUpperCase(false)
+        .set("" + (int)theDefaultMaxBValue)
+        .align(RIGHT, BOTTOM_OUTSIDE)
+        .setPadding(0, 5);
+    }
 
     _myValue = theDefaultMinAValue;
     update();
@@ -116,8 +171,9 @@ public class ThreshRange extends Controller<ThreshRange> {
 
   @Override public ThreshRange setColorValueLabel(int theColor) {
     _myValueLabel.setColor(theColor);
-    _myMidValueLabel.setColor(theColor);
-    _myHighValueLabel.setColor(theColor);
+    _myMaxAValueLabel.setColor(theColor);
+    _myMinBValueLabel.setColor(theColor);
+    _myMaxBValueLabel.setColor(theColor);
     return this;
   }
 
@@ -126,18 +182,23 @@ public class ThreshRange extends Controller<ThreshRange> {
     return this;
   }
 
-  public ThreshRange setLowValueLabel(final String theLabel) {
+  public ThreshRange setMinAValueLabel(final String theLabel) {
     _myValueLabel.set(theLabel);
     return this;
   }
 
-  public ThreshRange setMidValueLabel(final String theLabel) {
-    _myMidValueLabel.set(theLabel);
+  public ThreshRange setMaxAValueLabel(final String theLabel) {
+    _myMaxAValueLabel.set(theLabel);
     return this;
   }
 
-  public ThreshRange setHighValueLabel(final String theLabel) {
-    _myHighValueLabel.set(theLabel);
+  public ThreshRange setMinBValueLabel(final String theLabel) {
+    _myMinBValueLabel.set(theLabel);
+    return this;
+  }
+
+  public ThreshRange setMaxBValueLabel(final String theLabel) {
+    _myMaxBValueLabel.set(theLabel);
     return this;
   }
 
@@ -247,6 +308,14 @@ public class ThreshRange extends Controller<ThreshRange> {
     return this;
   }
 
+  public ThreshRange setValue(int idx, float theValue) {
+    if (idx > 0 && idx < 4) {
+      _myArrayValue[idx] = theValue;
+      broadcast(ARRAY);
+    }
+    return this;
+  }
+
   @Override public ThreshRange setValue(float theValue) {
     _myValue = theValue;
     broadcast(ARRAY);
@@ -259,9 +328,18 @@ public class ThreshRange extends Controller<ThreshRange> {
     _myArrayValue[2] = min((minBHandle - 15) / 24, 32);
     _myArrayValue[3] = min((maxBHandle - 21) / 24, 32);
 
-    _myValueLabel.set("" + (int)_myArrayValue[0]);
-    _myMidValueLabel.set("" + (int)_myArrayValue[1] + MANY_SPACES + (int)_myArrayValue[2]);
-    _myHighValueLabel.set("" + (int)_myArrayValue[3]);
+    if (_myType == 0) {
+      _myZeroValueLabel.set("A: 0 - " + (int)_myArrayValue[0]);
+      _myValueLabel.set("A->B: " + (int)_myArrayValue[0] + " - " + (int)_myArrayValue[1]);
+      _myMaxAValueLabel.set("B: " + (int)_myArrayValue[1] + " - " + (int)_myArrayValue[2]);
+      _myMinBValueLabel.set("B->C: " + (int)_myArrayValue[2] + " - " + (int)_myArrayValue[3]);
+      _myMaxBValueLabel.set("C: " + (int)_myArrayValue[3] + " - 32");
+    } else {
+      _myValueLabel.set("V2 Falloff: " + (int)_myArrayValue[0]);
+      _myMaxAValueLabel.set("V2 Trigger: " + (int)_myArrayValue[1]);
+      _myMinBValueLabel.set("V3 Falloff: " + (int)_myArrayValue[2]);
+      _myMaxBValueLabel.set("V3 Trigger: " + (int)_myArrayValue[3]);
+    }
     return setValue(_myValue);
   }
 
@@ -511,9 +589,11 @@ public class ThreshRange extends Controller<ThreshRange> {
 
       if (isLabelVisible) {
         _myCaptionLabel.draw(theGraphics, 0, 0, theController);
+        _myZeroValueLabel.draw(theGraphics, 0, 0, theController);
         _myValueLabel.draw(theGraphics, 0, 0, theController);
-        _myMidValueLabel.draw(theGraphics, 0, 0, theController);
-        _myHighValueLabel.draw(theGraphics, 0, 0, theController);
+        _myMaxAValueLabel.draw(theGraphics, 0, 0, theController);
+        _myMinBValueLabel.draw(theGraphics, 0, 0, theController);
+        _myMaxBValueLabel.draw(theGraphics, 0, 0, theController);
       }
 
       theGraphics.popMatrix();

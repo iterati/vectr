@@ -5,7 +5,7 @@
 #include "LowPower.h"
 #include "elapsedMillis.h"
 
-#define EEPROM_VERSION 199
+#define EEPROM_VERSION 200
 
 #define PIN_R 9
 #define PIN_G 6
@@ -41,7 +41,6 @@
 #define S_SLEEP_LOCK        25
 #define S_RESET_START       30
 #define S_RESET_WAIT        31
-#define S_RESET_HELD        32
 #define S_BRIGHT_OFF        35
 #define S_BRIGHT_PRESSED    36
 #define S_VIEW_MODE         250
@@ -50,9 +49,11 @@
 #define SER_VERSION         101
 
 #define SER_DUMP            10
+#define SER_DUMP_LIGHT      11
 #define SER_SAVE            20
 #define SER_READ            30
 #define SER_WRITE           40
+#define SER_WRITE_LIGHT     41
 #define SER_CHANGE_MODE     50
 #define SER_VIEW_MODE       100
 #define SER_VIEW_COLOR      110
@@ -118,7 +119,10 @@ uint8_t accel_count = 0;
 uint8_t accel_last = 0;
 
 bool comm_link = false;
-uint8_t gui_set, gui_color;
+bool comm_reading = false;
+uint8_t comm_mode = 0;
+int8_t gui_set = -1;
+int8_t gui_color = -1;
 
 typedef struct Mode {
   uint8_t _type;                      // 0
@@ -181,7 +185,7 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
     5, 0, 15, 35, 0, 0,
 
     0, 32, 32, 32,
-    4, 4, 0,
+    4, 4, 1,
     6, 0, 0,      18, 0, 104,   0, 21, 104,   78, 0, 24,    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
     6, 0, 0,      36, 0, 208,   0, 42, 208,   156, 0, 48,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
     0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
@@ -197,7 +201,7 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
     2, 23, 0, 0, 0, 0,
 
     32, 32, 32, 32,
-    9, 0, 0,
+    9, 1, 1,
     144, 0, 0,    96, 56, 0,    48, 112, 0,   0, 168, 0,    0, 112, 64,   0, 56, 128,   0, 0, 196,    48, 0, 128,   96, 0, 64,
     0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
     0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
@@ -213,7 +217,7 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
     1, 0, 4, 90, 0, 0,
 
     32, 32, 32, 32,
-    9, 0, 0,
+    9, 1, 1,
     0, 28, 224,   24, 0, 0,     48, 0, 0,     0, 28, 224,   12, 14, 0,    24, 28, 0,    0, 28, 224,   0, 28, 8,     0, 56, 0,
     0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
     0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
@@ -229,7 +233,7 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
     3, 22, 5, 0, 25, 0,
 
     32, 32, 32, 32,
-    6, 0, 0,
+    6, 1, 1,
     12, 91, 88,   72, 112, 0,   132, 42, 0,   144, 0, 32,   120, 0, 64,   0, 28, 186,   0, 0, 0,      0, 0, 0,      0, 0, 0,
     0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
     0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
@@ -313,6 +317,8 @@ void setup() {
   TCCR1B = (TCCR1B & 0b11111000) | 0b001;  // no prescaler ~32/ms
   bitSet(TCCR1B, WGM12); // enable fast PWM                ~64/ms
   interrupts();
+  delay(6400);
+
   wdt_enable(WDTO_15MS);
 }
 
@@ -329,16 +335,21 @@ void render() {
   } else if (state == S_VIEW_MODE) {
     renderMode();
   } else if (state == S_VIEW_COLOR) {
-    if (pm.d[0] == 0) {
-      r = pm.m.colors[gui_set][gui_color][0];
-      g = pm.m.colors[gui_set][gui_color][1];
-      b = pm.m.colors[gui_set][gui_color][2];
-    } else {
-      r = pm.pm.colors[gui_set][gui_color][0];
-      g = pm.pm.colors[gui_set][gui_color][1];
-      b = pm.pm.colors[gui_set][gui_color][2];
+    if (gui_color >= 0 && gui_set >= 0) {
+      if (pm.d[0] == 0) {
+        if (gui_color < NUM_COLORS0 && gui_set < 3) {
+          r = pm.m.colors[gui_set][gui_color][0];
+          g = pm.m.colors[gui_set][gui_color][1];
+          b = pm.m.colors[gui_set][gui_color][2];
+        }
+      } else {
+        if (gui_color < NUM_COLORS1 && gui_set < 2) {
+          r = pm.pm.colors[gui_set][gui_color][0];
+          g = pm.pm.colors[gui_set][gui_color][1];
+          b = pm.pm.colors[gui_set][gui_color][2];
+        }
+      }
     }
-
   } else if (state == S_BRIGHT_OFF) {
     r = g = b = 128;
   } else {
@@ -380,7 +391,7 @@ void memoryReset() {
 
 void loadMode(uint8_t i) {
   for (uint8_t j = 0; j < MODE_SIZE; j++) {
-    pm.d[j] = EEPROMread((i * 128) + j);
+    pm.d[j] = EEPROMread((i * MODE_SIZE) + j);
   }
 }
 
@@ -533,8 +544,11 @@ void handlePress(bool pressed) {
           wdt_disable();
           memoryReset();
           wdt_enable(WDTO_15MS);
-          changeMode(0);
-          new_state = S_RESET_HELD;
+          for (int i = 0; i < 5; i++) {
+            flash(0, 0, 128, 1);
+            flash(128, 0, 0, 1);
+          }
+          enterSleep();
         } else {
           enterSleep();
         }
@@ -542,12 +556,6 @@ void handlePress(bool pressed) {
         flash(128, 0, 0, 5);
       } else if (since_trans >= VERY_LONG_HOLD * 4) {
         enterSleep();
-      }
-      break;
-
-    case S_RESET_HELD:
-      if (!pressed) {
-        new_state = S_PLAY_OFF;
       }
       break;
 
@@ -1005,14 +1013,12 @@ int8_t patternStepper(uint8_t numc, uint8_t steps, uint8_t rand_steps, uint8_t r
     if (pm.d[0] == 0) recalcArgs();
     tick = trip = 0;
     while (trip == 0) {
-      if (rand_colors == 0) cidx = (cidx + 1) % numc;
-      else                  cidx = random(0, numc);
 
       segm++;
       if (segm >= 2) {
         segm = 0;
-        if (rand_steps == 0) cntr = (cntr + 1) % steps;
-        else                 cntr = random(0, steps);
+        cidx = (rand_colors) ? random(0, numc) : (cidx + 1) % numc;
+        cntr = (rand_steps) ? random(0, steps) : (cntr + 1) % steps;
       }
 
       if (segm % 2 == 0) {  trip = bt; }
@@ -1165,6 +1171,7 @@ void changeMode(uint8_t i) {
   ticks[0] = trips[0] = cidxs[0] = cntrs[0] = segms[0] = 0;
   ticks[1] = trips[1] = cidxs[1] = cntrs[1] = segms[1] = 0;
   loadMode(cur_mode);
+  gui_set = gui_color = -1;
 
   if (pm.d[0] == 0) recalcArgs();
 }
@@ -1192,16 +1199,30 @@ void modeDump() {
   Serial.write(210); Serial.write(cur_mode); Serial.write(210);
 }
 
+void modeDumpLight() {
+  for (uint8_t m = 0; m < NUM_MODES; m++) {
+    for (uint8_t i = 0; i < MODE_SIZE; i++) {
+      Serial.write(m); Serial.write(i); Serial.write(EEPROMread((m * MODE_SIZE) + i));
+    }
+  }
+  Serial.write(SER_DUMP_LIGHT); Serial.write(0); Serial.write(0);
+}
+
+void modeWriteLight(int m, int addr, int val) {
+  EEPROMupdate((m * MODE_SIZE) + addr, val);
+}
+
 void handleSerial() {
-  uint8_t cmd, in0, in1;
-  while (Serial.available() >= 3) {
+  uint8_t cmd, in0, in1, in2;
+  while (Serial.available() >= 4) {
     cmd = Serial.read();
     in0 = Serial.read();
     in1 = Serial.read();
+    in2 = Serial.read();
 
     if (cmd == SER_HANDSHAKE) {
       // Initial handshake: 250 VERSION VERSION
-      if (in0 == in1 == SER_VERSION) {
+      if (in0 == SER_VERSION && in1 == SER_VERSION) {
         new_state = S_VIEW_MODE;
         comm_link = true;
         wdt_disable();
@@ -1210,6 +1231,8 @@ void handleSerial() {
     } else if (comm_link) {
       if (cmd == SER_DUMP) {
         modeDump();
+      } else if (cmd == SER_DUMP_LIGHT) {
+        modeDumpLight();
       } else if (cmd == SER_SAVE) {
         modeSave();
         flash(128, 128, 128, 5);
@@ -1217,6 +1240,8 @@ void handleSerial() {
         modeRead(in0);
       } else if (cmd == SER_WRITE) {
         modeWrite(in0, in1);
+      } else if (cmd == SER_WRITE_LIGHT) {
+        modeWriteLight(in0, in1, in2);
       } else if (cmd == SER_CHANGE_MODE) {
         changeMode(in0);
         modeDump();
