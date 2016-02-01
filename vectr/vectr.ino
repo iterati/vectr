@@ -5,7 +5,7 @@
 #include "LowPower.h"
 #include "elapsedMillis.h"
 
-#define EEPROM_VERSION 201
+#define EEPROM_VERSION 199
 
 #define PIN_R 9
 #define PIN_G 6
@@ -76,6 +76,9 @@
 #define NUM_COLORS0         9
 #define NUM_COLORS1         16
 
+#define M_VECTR             0
+#define M_PRIMER            1
+
 #define P_STROBE            0
 #define P_VEXER             1
 #define P_EDGE              2
@@ -126,22 +129,22 @@ typedef struct Mode {
   uint8_t color_thresh[2][2];         // 27 - 30, first/second, start/end
   uint8_t num_colors[3];              // 31 - 33
   uint8_t colors[3][NUM_COLORS0][3];  // 34 - 114
-  uint8_t _pad[7];
+  uint8_t _pad[13];
 } Mode;                               // 115 bytes per mode
 
 typedef struct PrimerMode {
   uint8_t _type;                      // 0
-  uint8_t accel_mode;                 // 1
-  uint8_t accel_trig;                 // 2
-  uint8_t accel_drop;                 // 3
-  uint8_t pattern[2];                 // 4 - 5
-  uint8_t args[2][3];                 // 6 - 11
-  uint8_t timings[2][6];              // 12 - 23
-  uint8_t num_colors[2];              // 24 - 25
-  uint8_t colors[2][NUM_COLORS1][3];  // 26 - 121
-} PrimerMode;                         // 122 bytes per mode
+  uint8_t accel_trig;                 // 1
+  uint8_t accel_drop;                 // 2
+  uint8_t pattern[2];                 // 3 - 4
+  uint8_t args[2][3];                 // 5 - 10
+  uint8_t timings[2][6];              // 11 - 22
+  uint8_t num_colors[2];              // 23 - 24
+  uint8_t colors[2][NUM_COLORS1][3];  // 25 - 120
+  uint8_t _pad[7];
+} PrimerMode;                         // 121 bytes per mode
 
-#define MODE_SIZE 122
+#define MODE_SIZE 128
 typedef union PackedMode {
   Mode m;
   PrimerMode pm;
@@ -153,21 +156,25 @@ PrimerMode* pmode;
 PackedMode pm;
 PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
   // Darkside of the moon
-  {0, P_STROBE, 0, 0, 0,
-    0, 16, 16, 32,
+  {M_VECTR,
+    P_STROBE,
+    0, 0, 0,
+    8, 32, 32, 32,
     3, 0, 90, 0, 0, 0,
     6, 44, 0, 0, 0, 0,
     3, 0, 60, 0, 0, 0,
 
-    8, 32, 32, 32,
+    0, 16, 16, 32,
     6, 6, 6,
     12, 0, 0,     6, 7, 0,      0, 14, 0,     0, 7, 8,      0, 0, 16,     6, 0, 8,      0, 0, 0,      0, 0, 0,      0, 0, 0,
     48, 0, 0,     24, 28, 0,    0, 56, 0,     0, 28, 32,    0, 0, 64,     24, 0, 32,    0, 0, 0,      0, 0, 0,      0, 0, 0,
     192, 0, 0,    96, 112, 0,   0, 224, 0,    0, 112, 128,  0, 0, 255,    96, 0, 128,   0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
   // Sorcery
-  {0, P_VEXER, 1, 1, 0,
+  {M_VECTR,
+    P_VEXER,
+    1, 1, 0,
     1, 6, 6, 32,
     0, 5, 0, 20, 0, 0,
     5, 0, 0, 20, 0, 0,
@@ -178,10 +185,12 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
     6, 0, 0,      18, 0, 104,   0, 21, 104,   78, 0, 24,    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
     6, 0, 0,      36, 0, 208,   0, 42, 208,   156, 0, 48,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
     0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
   // Candy Strobe
-  {0, P_STROBE, 3, 1, 16,
+  {M_VECTR,
+    P_STROBE,
+    3, 1, 16,
     0, 16, 16, 32,
     9, 41, 0, 0, 0, 0,
     25, 25, 0, 0, 0, 0,
@@ -192,10 +201,12 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
     144, 0, 0,    96, 56, 0,    48, 112, 0,   0, 168, 0,    0, 112, 64,   0, 56, 128,   0, 0, 196,    48, 0, 128,   96, 0, 64,
     0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
     0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
   // Halos
-  {0, P_EDGE, 3, 0, 0,
+  {M_VECTR,
+    P_EDGE,
+    3, 0, 0,
     0, 16, 16, 32,
     4, 0, 7, 45, 0, 0,
     2, 0, 4, 45, 0, 0,
@@ -206,10 +217,12 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
     0, 28, 224,   24, 0, 0,     48, 0, 0,     0, 28, 224,   12, 14, 0,    24, 28, 0,    0, 28, 224,   0, 28, 8,     0, 56, 0,
     0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
     0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
   // Dashdops
-  {0, P_RUNNER, 0, 0, 0,
+  {M_VECTR,
+    P_RUNNER,
+    0, 0, 0,
     0, 20, 20, 32,
     5, 0, 3, 22, 25, 0,
     5, 0, 5, 0, 25, 0,
@@ -220,10 +233,12 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
     12, 91, 88,   72, 112, 0,   132, 42, 0,   144, 0, 32,   120, 0, 64,   0, 28, 186,   0, 0, 0,      0, 0, 0,      0, 0, 0,
     0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
     0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
   // Self Healing
-  {0, P_VEXER, 1, 4, 0,
+  {M_VECTR,
+    P_VEXER,
+    1, 4, 0,
     0, 24, 24, 32,
     2, 3, 0, 25, 0, 0,
     2, 3, 25, 0, 0, 0,
@@ -234,10 +249,12 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
     6, 0, 0,      48, 154, 16,  132, 56, 16,  90, 105, 16,  0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
     0, 0, 8,      96, 28, 8,    162, 28, 8,   90, 105, 8,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
     0, 4, 4,      144, 56, 0,   192, 0, 0,    96, 112, 0,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
   // Quantum Core
-  {0, P_DOUBLE, 1, 1, 0,
+  {M_VECTR,
+    P_DOUBLE,
+    1, 1, 0,
     0, 32, 32, 32,
     1, 0, 49, 0, 25, 0,
     49, 0, 1, 0, 25, 0,
@@ -248,7 +265,7 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
     0, 42, 144,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
     0, 42, 144,   36, 0, 144,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
     0, 42, 144,   36, 0, 144,   48, 70, 96,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
 };
 
@@ -790,6 +807,7 @@ int8_t patternStrobe(uint8_t numc, uint8_t pick, uint8_t skip, uint8_t repeat,
       else                    trip = bt;
     }
   }
+  tick++;
 
   if (segm % 2 == 1) rtn = (segm / 2) + cidx;
   else               rtn = -1;
@@ -827,6 +845,7 @@ int8_t patternVexer(uint8_t numc, uint8_t repeat_c, uint8_t repeat_t,
       }
     }
   }
+  tick++;
 
   if (segm < (2 * repeat_c) + 1) {
     if (segm % 2 == 0) rtn = -1;
@@ -864,6 +883,7 @@ int8_t patternEdge(uint8_t numc, uint8_t pick,
       else                             trip = cst;
     }
   }
+  tick++;
 
   if (segm % 2 == 0)               rtn = -1;
   else if (segm == (2 * pick) - 1) rtn = cidx;
@@ -907,6 +927,7 @@ int8_t patternDouble(uint8_t numc, uint8_t repeat_c, uint8_t repeat_d, uint8_t s
       }
     }
   }
+  tick++;
 
   if (segm == 0) {
     rtn = -1;
@@ -955,6 +976,7 @@ int8_t patternRunner(uint8_t numc, uint8_t pick, uint8_t skip, uint8_t repeat,
       }
     }
   }
+  tick++;
 
   if (segm == 0 || segm == 2 * pick) {
     rtn = -1;
@@ -1003,6 +1025,7 @@ int8_t patternStepper(uint8_t numc, uint8_t steps, uint8_t rand_steps, uint8_t r
       }
     }
   }
+  tick++;
 
   if (segm % 2 == 0) rtn = -1;
   else               rtn = cidx;
@@ -1040,6 +1063,7 @@ int8_t patternRandom(uint8_t numc, uint8_t rand_colors, uint8_t multiplier,
       else if (segm == 1) trip = random(ct0, ct1 + 1) * multiplier;
     }
   }
+  tick++;
 
   if (segm == 0) rtn = -1;
   else           rtn = cidx;
@@ -1048,7 +1072,7 @@ int8_t patternRandom(uint8_t numc, uint8_t rand_colors, uint8_t multiplier,
 
 void renderMode() {
   if (pm.d[0] == 0) {
-    uint8_t color = -1;
+    int8_t color = -1;
     if (pm.m.pattern == P_STROBE)
       color = patternStrobe(numc, arg0, arg1, arg2,
           timing0, timing1, timing2,
@@ -1085,7 +1109,7 @@ void renderMode() {
     }
 
   } else {
-    uint8_t color[2] = {-1, -1};
+    int8_t color[2] = {-1, -1};
     for (uint8_t i = 0; i < 2; i++) {
       if (pm.pm.pattern[i] == P_STROBE)
         color[i] = patternStrobe(numc, pm.pm.args[i][0], pm.pm.args[i][1], pm.pm.args[i][2],
@@ -1176,7 +1200,7 @@ void handleSerial() {
     in1 = Serial.read();
 
     if (cmd == SER_HANDSHAKE) {
-      // Initial handshake: 200 VERSION VERSION
+      // Initial handshake: 250 VERSION VERSION
       if (in0 == in1 == SER_VERSION) {
         new_state = S_VIEW_MODE;
         comm_link = true;
