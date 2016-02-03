@@ -106,14 +106,14 @@ public class ThreshRange extends Controller<ThreshRange> {
         .toUpperCase(false)
         .set("A - 0")
         .align(LEFT, BOTTOM_OUTSIDE)
-        .setPadding(-30, 5);
+        .setPadding(0, 5);
 
       _myValueLabel = new controlP5.Label(cp5, theName + "MinALabel")
         .setColor(240)
         .toUpperCase(false)
         .set("" + (int)theDefaultMinAValue)
         .align(LEFT, BOTTOM_OUTSIDE)
-        .setPadding(150, 5);
+        .setPadding(160, 5);
 
       _myMaxAValueLabel = new controlP5.Label(cp5, theName + "MaxALabel")
         .setColor(240)
@@ -127,14 +127,14 @@ public class ThreshRange extends Controller<ThreshRange> {
         .toUpperCase(false)
         .set("" + (int)theDefaultMinBValue)
         .align(RIGHT, BOTTOM_OUTSIDE)
-        .setPadding(150, 5);
+        .setPadding(160, 5);
 
       _myMaxBValueLabel = new controlP5.Label(cp5, theName + "MaxALabel")
         .setColor(240)
         .toUpperCase(false)
         .set("" + (int)theDefaultMaxBValue)
         .align(RIGHT, BOTTOM_OUTSIDE)
-        .setPadding(-30, 5);
+        .setPadding(0, 5);
     } else {
       _myValueLabel = new controlP5.Label(cp5, theName + "MinALabel")
         .setColor(240)

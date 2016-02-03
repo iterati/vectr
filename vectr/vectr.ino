@@ -69,8 +69,8 @@
 #define ACCEL_WRAP          20
 #define ACCEL_ONEG          512
 #define ACCEL_BIN_SIZE      64
-#define ACCEL_FALLOFF       10
-#define ACCEL_TARGET        5
+#define ACCEL_FALLOFF       6
+#define ACCEL_TARGET        2
 
 #define PALETTE_SIZE        48
 #define NUM_MODES           7
@@ -164,7 +164,7 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
     P_STROBE,
     0, 0, 0,
     8, 32, 32, 32,
-    3, 0, 90, 0, 0, 0,
+    3, 0, 150, 0, 0, 0,
     6, 44, 0, 0, 0, 0,
     3, 0, 60, 0, 0, 0,
 
@@ -179,7 +179,7 @@ PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
   {M_VECTR,
     P_VEXER,
     1, 1, 0,
-    1, 6, 6, 32,
+    0, 5, 5, 32,
     0, 5, 0, 20, 0, 0,
     5, 0, 0, 20, 0, 0,
     5, 0, 15, 35, 0, 0,

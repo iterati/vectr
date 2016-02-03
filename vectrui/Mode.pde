@@ -112,20 +112,20 @@ class Mode {
         .setGroup(gType0)
         .setId(10200 + i)
         .setLabel("")
-        .setPosition(130 + (275 * i), 20);
-      style(slArgs[i], 250, 0, 10);
+        .setPosition(150 + (225 * i), 20);
+      style(slArgs[i], 201, 0, 10);
 
       tlArgLabels[i] = cp5.addTextlabel("ArgLabels" + i)
         .setGroup(gType0)
         .setValue("Arg " + (i + 1))
-        .setPosition(130 + (i * 275), 0)
-        .setSize(250, 20)
+        .setPosition(150 + (i * 225), 0)
+        .setSize(200, 20)
         .setColorValue(color(240));
     }
 
     trPatternThresh = new ThreshRange(cp5, "PatternThresh", 0)
       .setGroup(gType0)
-      .setPosition(49, 80)
+      .setPosition(4, 80)
       .setBroadcast(false)
       .setLabel("Pattern Thresholds")
       .setBroadcast(true);
@@ -137,21 +137,21 @@ class Mode {
           .setGroup(gType0)
           .setId(10100 + (6 * i) + j)
           .setLabel("")
-          .setPosition(130 + (275 * i), 150 + (30 * j));
-        style(slTimings[i][j], 250, 0, 200);
+          .setPosition(150 + (225 * i), 150 + (30 * j));
+        style(slTimings[i][j], 201, 0, 200);
       }
 
       tlTimingLabels[j] = cp5.addTextlabel("TimingLabels" + j)
         .setGroup(gType0)
         .setValue("Timing" + (j + 1))
         .setPosition(0, 150 + (30 * j))
-        .setSize(250, 20)
+        .setSize(200, 20)
         .setColorValue(color(240));
     }
 
     trColorThresh = new ThreshRange(cp5, "ColorThresh", 0)
       .setGroup(gType0)
-      .setPosition(49, 380)
+      .setPosition(4, 380)
       .setBroadcast(false)
       .setLabel("Color Thresholds")
       .setBroadcast(true);
@@ -162,8 +162,8 @@ class Mode {
         .setGroup(gType0)
         .setId(10300 + i)
         .setLabel("")
-        .setPosition(20, 470 + (40 * i));
-      style(slNumColors[i], 160, 1, 9);
+        .setPosition(0, 470 + (40 * i));
+      style(slNumColors[i], 90, 1, 9);
 
       for (int j = 0; j < 9; j++) {
         bColors[i][j] = cp5.addButton("Colors" + i + "." + j)
@@ -171,7 +171,7 @@ class Mode {
           .setId(11000 + (i * 9) + j)
           .setLabel("")
           .setSize(32, 32)
-          .setPosition(214 + (40 * j), 464 + (40 * i));
+          .setPosition(114 + (40 * j), 464 + (40 * i));
       }
     }
 
@@ -241,7 +241,7 @@ class Mode {
 
     gColorEdit = cp5.addGroup("colorEdit")
       .setGroup(gMode)
-      .setPosition(640, 460)
+      .setPosition(544, 460)
       .hideBar()
       .hideArrow()
       .hide();

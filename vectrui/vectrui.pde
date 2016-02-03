@@ -6,7 +6,57 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 ControlP5 cp5;
 
-int COLOR_BANK[][] = new int[48][3];
+int COLOR_BANK[][] = {
+  {255, 0, 0},
+  {224, 32, 0},
+  {192, 64, 0},
+  {160, 96, 0},
+  {128, 128, 0},
+  {96, 160, 0},
+  {64, 192, 0},
+  {32, 224, 0},
+  {0, 255, 0},
+  {0, 224, 32},
+  {0, 192, 64},
+  {0, 160, 96},
+  {0, 128, 128},
+  {0, 96, 160},
+  {0, 64, 192},
+  {0, 32, 224},
+  {0, 0, 255},
+  {32, 0, 224},
+  {64, 0, 192},
+  {96, 0, 160},
+  {128, 0, 128},
+  {160, 0, 96},
+  {192, 0, 64},
+  {224, 0, 32},
+  {0, 0, 0},
+  {56, 64, 72},
+  {24, 0, 0},
+  {16, 16, 0},
+  {0, 24, 0},
+  {0, 16, 16},
+  {0, 0, 24},
+  {16, 0, 16},
+  {64, 64, 64},
+  {160, 16, 16},
+  {16, 160, 16},
+  {16, 16, 160},
+  {128, 8, 48},
+  {80, 48, 48},
+  {128, 48, 8},
+  {80, 80, 8},
+  {48, 128, 8},
+  {48, 80, 48},
+  {8, 128, 48},
+  {8, 80, 80},
+  {8, 48, 128},
+  {48, 48, 80},
+  {48, 8, 128},
+  {80, 8, 80}
+};
+
 final static String[] PATTERNS = {"Strobe", "Vexer", "Edge", "Double", "Runner", "Stepper", "Random"};
 /* final static String[] PPATTERNS = {"Strobe", "Vexer", "Edge", "Double", "Runner", "Stepper", "Random", "Flux"}; */
 /* final static String[] ACCELMODES = {"Off", "Velocity", "Tilt", "Roll", "Flip"}; */
@@ -76,9 +126,9 @@ String file_path = "";
 
 
 void setup() {
-  surface.setTitle("VectrUI 02-02-2016");
+  surface.setTitle("VectrUI 02-01-2016");
   smooth(8);
-  size(1280, 720);
+  size(1040, 720);
   loadColorBank();
 
   cp5 = new ControlP5(this);
@@ -352,7 +402,7 @@ void setupMainGroup() {
 
   gColorBank = cp5.addGroup("colorBank")
     .setGroup(gMain)
-    .setPosition(1010, 0)
+    .setPosition(810, 0)
     .hideBar()
     .hideArrow();
 
@@ -374,12 +424,15 @@ void setupMainGroup() {
 }
 
 void loadColorBank() {
-  JSONArray jarr = loadJSONArray("colorbank.json");
-  for (int i = 0; i < 48; i++) {
-    JSONArray jarr1 = jarr.getJSONArray(i);
-    for (int j = 0; j < 3; j++) {
-      COLOR_BANK[i][j] = jarr1.getInt(j);
+  try {
+    JSONArray jarr = loadJSONArray("colorbank.json");
+    for (int i = 0; i < 48; i++) {
+      JSONArray jarr1 = jarr.getJSONArray(i);
+      for (int j = 0; j < 3; j++) {
+        COLOR_BANK[i][j] = jarr1.getInt(j);
+      }
     }
+  } catch (Exception ex) {
   }
 }
 
@@ -389,21 +442,21 @@ Group makeTitle(Group g) {
     .setGroup(g)
     .setValue("Mode 1")
     .setFont(createFont("Comfortaa-Regular", 32))
-    .setPosition(100, 0)
+    .setPosition(60, 0)
     .setSize(120, 40)
     .setColorValue(color(240));
 
   bPrevMode = cp5.addButton("prevMode")
-    .setCaptionLabel("<< Prev")
+    .setCaptionLabel("<<")
     .setGroup(g)
     .setPosition(0, 10);
-  style(bPrevMode, 60);
+  style(bPrevMode, 20);
 
   bNextMode = cp5.addButton("nextMode")
-    .setCaptionLabel("Next >>")
+    .setCaptionLabel(">>")
     .setGroup(g)
-    .setPosition(260, 10);
-  style(bNextMode, 60);
+    .setPosition(220, 10);
+  style(bNextMode, 20);
 
   return g;
 }
@@ -413,44 +466,44 @@ Group makeControls(Group g) {
   bResetMode = cp5.addButton("resetMode")
     .setCaptionLabel("Reset Mode")
     .setGroup(g)
-    .setPosition(0, 0);
-  style(bResetMode, 100);
+    .setPosition(10, 0);
+  style(bResetMode, 80);
 
   bWriteMode = cp5.addButton("writeMode")
     .setCaptionLabel("Write Mode")
     .setGroup(g)
-    .setPosition(120, 0);
-  style(bWriteMode, 100);
+    .setPosition(110, 0);
+  style(bWriteMode, 80);
 
   bSaveMode = cp5.addButton("saveMode")
     .setCaptionLabel("Save Mode")
     .setGroup(g)
-    .setPosition(240, 0);
-  style(bSaveMode, 100);
+    .setPosition(210, 0);
+  style(bSaveMode, 80);
 
   bLoadMode = cp5.addButton("loadMode")
     .setCaptionLabel("Load Mode")
     .setGroup(g)
-    .setPosition(360, 0);
-  style(bLoadMode, 100);
+    .setPosition(310, 0);
+  style(bLoadMode, 80);
 
   bSaveLight = cp5.addButton("saveLight")
     .setCaptionLabel("Save Light")
     .setGroup(g)
-    .setPosition(600, 0);
-  style(bSaveLight, 100);
+    .setPosition(510, 0);
+  style(bSaveLight, 80);
 
   bWriteLight = cp5.addButton("writeLight")
     .setCaptionLabel("Write Light")
     .setGroup(g)
-    .setPosition(720, 0);
-  style(bWriteLight, 100);
+    .setPosition(610, 0);
+  style(bWriteLight, 80);
 
   bDisconnectLight = cp5.addButton("disconnectLight")
     .setCaptionLabel("Disconnect")
     .setGroup(g)
-    .setPosition(840, 0);
-  style(bDisconnectLight, 100);
+    .setPosition(710, 0);
+  style(bDisconnectLight, 80);
 
   return g;
 }
