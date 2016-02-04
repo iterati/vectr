@@ -128,7 +128,7 @@ typedef struct Mode {
   uint8_t _type;                      // 0
   uint8_t pattern;                    // 1
   uint8_t args[3];                    // 2 - 4
-  uint8_t pattern_thresh[2][2];       // 5 - 8, first/second, start/end
+  uint8_t pattern_thresh[4];          // 5 - 8, first/second, start/end
   uint8_t timings[3][6];              // 9 - 26, timing sets
   uint8_t color_thresh[2][2];         // 27 - 30, first/second, start/end
   uint8_t num_colors[3];              // 31 - 33
@@ -361,7 +361,7 @@ void render() {
 void writeFrame(uint8_t r, uint8_t g, uint8_t b) {
   /* if (limiter > 64000) { Serial.print(limiter); Serial.print(F("\t")); Serial.println(accel_tick); } */
   while (limiter < 64000) {}
-  limiter -= 64000;
+  limiter = 0;
 
   analogWrite(PIN_R, r >> brightness);
   analogWrite(PIN_G, g >> brightness);
@@ -716,28 +716,28 @@ uint8_t interp(uint8_t m, uint8_t n, uint16_t d, uint16_t D) {
 }
 
 void recalcArgs() {
-  if (a_speed <= pm.m.color_thresh[0][0])      numc = pm.m.num_colors[0];
-  else if (a_speed < pm.m.color_thresh[0][1])  numc = min(pm.m.num_colors[0], pm.m.num_colors[1]);
-  else if (a_speed <= pm.m.color_thresh[1][0]) numc = pm.m.num_colors[1];
-  else if (a_speed < pm.m.color_thresh[1][1])  numc = min(pm.m.num_colors[1], pm.m.num_colors[2]);
-  else                                         numc = pm.m.num_colors[2];
+  if (a_speed <= pm.m.color_thresh[0])      numc = pm.m.num_colors[0];
+  else if (a_speed < pm.m.color_thresh[1])  numc = min(pm.m.num_colors[0], pm.m.num_colors[1]);
+  else if (a_speed <= pm.m.color_thresh[2]) numc = pm.m.num_colors[1];
+  else if (a_speed < pm.m.color_thresh[3])  numc = min(pm.m.num_colors[1], pm.m.num_colors[2]);
+  else                                      numc = pm.m.num_colors[2];
 
   uint8_t as, d, v;
-  if (a_speed <= pm.m.pattern_thresh[0][0]) {
+  if (a_speed <= pm.m.pattern_thresh[0]) {
     as = 0;
     d = 1;
     v = 0;
-  } else if (a_speed < pm.m.pattern_thresh[0][1]) {
-    as = a_speed - pm.m.pattern_thresh[0][0];
-    d = pm.m.pattern_thresh[0][1] - pm.m.pattern_thresh[0][0];
+  } else if (a_speed < pm.m.pattern_thresh[1]) {
+    as = a_speed - pm.m.pattern_thresh[0];
+    d = pm.m.pattern_thresh[1] - pm.m.pattern_thresh[0];
     v = 0;
-  } else if (a_speed <= pm.m.pattern_thresh[1][0]) {
+  } else if (a_speed <= pm.m.pattern_thresh[2]) {
     as = 0;
     d = 1;
     v = 1;
-  } else if (a_speed < pm.m.pattern_thresh[1][1]) {
-    as = a_speed - pm.m.pattern_thresh[1][0];
-    d = pm.m.pattern_thresh[1][1] - pm.m.pattern_thresh[1][0];
+  } else if (a_speed < pm.m.pattern_thresh[3]) {
+    as = a_speed - pm.m.pattern_thresh[2];
+    d = pm.m.pattern_thresh[3] - pm.m.pattern_thresh[2];
     v = 1;
   } else {
     as = 1;
@@ -758,21 +758,21 @@ void recalcArgs() {
 
 void colorFlux(uint8_t color) {
   uint8_t as, d, v;
-  if (a_speed <= pm.m.color_thresh[0][0]) {
+  if (a_speed <= pm.m.color_thresh[0]) {
     as = 0;
     d = 1;
     v = 0;
-  } else if (a_speed < pm.m.color_thresh[0][1]) {
-    as = a_speed - pm.m.color_thresh[0][0];
-    d = pm.m.color_thresh[0][1] - pm.m.color_thresh[0][0];
+  } else if (a_speed < pm.m.color_thresh[1]) {
+    as = a_speed - pm.m.color_thresh[0];
+    d = pm.m.color_thresh[1] - pm.m.color_thresh[0];
     v = 0;
-  } else if (a_speed <= pm.m.color_thresh[1][0]) {
+  } else if (a_speed <= pm.m.color_thresh[2]) {
     as = 0;
     d = 1;
     v = 1;
-  } else if (a_speed < pm.m.color_thresh[1][1]) {
-    as = a_speed - pm.m.color_thresh[1][0];
-    d = pm.m.color_thresh[1][1] - pm.m.color_thresh[1][0];
+  } else if (a_speed < pm.m.color_thresh[3]) {
+    as = a_speed - pm.m.color_thresh[2];
+    d = pm.m.color_thresh[3] - pm.m.color_thresh[2];
     v = 1;
   } else {
     as = 1;
