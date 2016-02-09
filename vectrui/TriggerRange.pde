@@ -201,6 +201,7 @@ public class TriggerRange extends Controller<TriggerRange> {
       }
 
       theGraphics.popMatrix();
+      theGraphics.noStroke();
     }
   }
 

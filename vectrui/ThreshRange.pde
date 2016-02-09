@@ -186,6 +186,7 @@ public class ThreshRange extends Controller<ThreshRange> {
       }
 
       theGraphics.popMatrix();
+      theGraphics.noStroke();
     }
   }
 
