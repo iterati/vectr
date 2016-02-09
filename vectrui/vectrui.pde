@@ -135,6 +135,7 @@ String file_path = "";
 void setup() {
   surface.setTitle("VectrUI 02-09-2016");
   smooth(8);
+  frameRate(60);
   size(1040, 720);
   loadColorBank();
 
