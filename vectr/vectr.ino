@@ -4,410 +4,667 @@
 #include <avr/wdt.h>
 #include "LowPower.h"
 #include "elapsedMillis.h"
+#include "vectr.h"
 
-#define EEPROM_VERSION 201
 
-#define PIN_R 9
-#define PIN_G 6
-#define PIN_B 5
-#define PIN_BUTTON 2
-#define PIN_LDO A3
-#define V2_ACCEL_ADDR 0x1D
-
-#define ADDR_BRIGHTNESS     1018
-#define ADDR_CONJURE_MODE   1019
-#define ADDR_LOCKED         1020
-#define ADDR_CONJURE        1021
-#define ADDR_VERSION        1022
-#define ADDR_SLEEPING       1023
-
-#define PRESS_DELAY         100
-#define SHORT_HOLD          500
-#define LONG_HOLD           1000
-#define VERY_LONG_HOLD      3000
-
-#define S_PLAY_OFF          0
-#define S_PLAY_PRESSED      1
-#define S_PLAY_SLEEP_WAIT   2
-#define S_PLAY_CONJURE_WAIT 3
-#define S_PLAY_LOCK_WAIT    5
-#define S_CONJURE_OFF       10
-#define S_CONJURE_PRESS     11
-#define S_CONJURE_PLAY_WAIT 12
-#define S_SLEEP_WAKE        20
-#define S_SLEEP_BRIGHT_WAIT 21
-#define S_SLEEP_RESET_WAIT  22
-#define S_SLEEP_HELD        23
-#define S_SLEEP_LOCK        25
-#define S_RESET_START       30
-#define S_RESET_WAIT        31
-#define S_BRIGHT_OFF        35
-#define S_BRIGHT_PRESSED    36
-#define S_VIEW_MODE         250
-#define S_VIEW_COLOR        251
-
-#define SER_VERSION         101
-
-#define SER_DUMP            10
-#define SER_DUMP_LIGHT      11
-#define SER_SAVE            20
-#define SER_READ            30
-#define SER_WRITE           40
-#define SER_WRITE_LIGHT     41
-#define SER_CHANGE_MODE     50
-#define SER_VIEW_MODE       100
-#define SER_VIEW_COLOR      110
-#define SER_DUMP_START      200
-#define SER_DUMP_END        210
-#define SER_HANDSHAKE       250
-#define SER_HANDSHACK       251
-#define SER_DISCONNECT      254
-
-#define ACCEL_BINS          32
-#define ACCEL_BIN_SIZE      56
-#define ACCEL_COUNTS        20
-#define ACCEL_WRAP          20
-#define ACCEL_ONEG          512
-#define ACCEL_BIN_SIZE      64
-#define ACCEL_FALLOFF       6
-#define ACCEL_TARGET        2
-
-#define PALETTE_SIZE        48
-#define NUM_MODES           7
-#define NUM_COLORS0         9
-#define NUM_COLORS1         16
-
-#define M_VECTR             0
-#define M_PRIMER            1
-
-#define P_STROBE            0
-#define P_VEXER             1
-#define P_EDGE              2
-#define P_DOUBLE            3
-#define P_RUNNER            4
-#define P_STEPPER           5
-#define P_RANDOM            6
+//********************************************************************************
+// Globals
+//********************************************************************************
+PackedMode mode;
+PatternState pattern_state;
+PatternState pattern_state2;
+AccelData adata;
+Led led = {PIN_R, PIN_G, PIN_B, 0, 0, 0};
+int8_t (*pattern_funcs[7]) (PatternState*);
 
 elapsedMicros limiter = 0;
-uint8_t state, new_state;
-uint16_t since_trans = 0;
-
-uint8_t accel_tick;
-uint8_t thresh_last[ACCEL_BINS];
-uint8_t thresh_cnts[ACCEL_BINS];
-
-int32_t gs[3];
-int32_t gs2[3];
-int32_t a_mag;
-uint8_t a_speed;
-float a_pitch, a_roll;
+uint8_t accel_tick = 0;
+uint32_t since_trans = 0;
+uint8_t op_state, new_state;
 
 uint8_t cur_mode = 0;
-uint8_t r, g, b;
-uint8_t brightness;
-uint8_t numc, arg0, arg1, arg2;
-uint8_t timing0, timing1, timing2, timing3, timing4, timing5;
-uint32_t tick, trip, cidx, cntr, segm;
-
-uint32_t ticks[2];
-uint32_t trips[2];
-uint32_t cidxs[2];
-uint32_t cntrs[2];
-uint32_t segms[2];
+uint8_t brightness = 0;
 uint8_t variant = 0;
-uint8_t accel_count = 0;
-uint8_t accel_last = 0;
 
 bool comm_link = false;
-bool comm_reading = false;
-uint8_t comm_mode = 0;
 int8_t gui_set = -1;
 int8_t gui_color = -1;
 
-typedef struct Mode {
-  uint8_t _type;                      // 0
-  uint8_t pattern;                    // 1
-  uint8_t args[3];                    // 2 - 4
-  uint8_t pattern_thresh[4];          // 5 - 8, first/second, start/end
-  uint8_t timings[3][6];              // 9 - 26, timing sets
-  uint8_t color_thresh[2][2];         // 27 - 30, first/second, start/end
-  uint8_t num_colors[3];              // 31 - 33
-  uint8_t colors[3][NUM_COLORS0][3];  // 34 - 114
-  uint8_t _pad[13];
-} Mode;                               // 115 bytes per mode
 
-typedef struct PrimerMode {
-  uint8_t _type;                      // 0
-  uint8_t accel_trig;                 // 1
-  uint8_t accel_drop;                 // 2
-  uint8_t pattern[2];                 // 3 - 4
-  uint8_t args[2][3];                 // 5 - 10
-  uint8_t timings[2][6];              // 11 - 22
-  uint8_t num_colors[2];              // 23 - 24
-  uint8_t colors[2][NUM_COLORS1][3];  // 25 - 120
-  uint8_t _pad[7];
-} PrimerMode;                         // 121 bytes per mode
+//********************************************************************************
+// Utility functions
+//********************************************************************************
+uint32_t deadbeef_seed;
+uint32_t deadbeef_beef = 0xdeadbeef;
+uint32_t deadbeef_rand() {
+  deadbeef_seed = (deadbeef_seed << 7) ^ ((deadbeef_seed >> 25) + deadbeef_beef);
+  deadbeef_beef = (deadbeef_beef << 7) ^ ((deadbeef_beef >> 25) + 0xdeadbeef);
+  return deadbeef_seed;
+}
 
-#define MODE_SIZE 128
-typedef union PackedMode {
-  Mode m;
-  PrimerMode pm;
-  uint8_t d[MODE_SIZE];
-} PackedMode;
+uint32_t rand(int _max) {
+  return rand(0, _max);
+}
 
-Mode* mode;
-PrimerMode* pmode;
-PackedMode pm;
-PROGMEM const uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
-  // Darkside of the moon
-  {M_VECTR,
-    P_STROBE,
-    0, 0, 0,
-    8, 32, 32, 32,
-    3, 0, 150, 0, 0, 0,
-    6, 44, 0, 0, 0, 0,
-    3, 0, 60, 0, 0, 0,
+uint32_t rand(int _min, int _max) {
+  return _min + (deadbeef_rand() % (_max - _min));
+}
 
-    0, 16, 16, 32,
-    6, 6, 6,
-    12, 0, 0,     6, 7, 0,      0, 14, 0,     0, 7, 8,      0, 0, 16,     6, 0, 8,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    48, 0, 0,     24, 28, 0,    0, 56, 0,     0, 28, 32,    0, 0, 64,     24, 0, 32,    0, 0, 0,      0, 0, 0,      0, 0, 0,
-    192, 0, 0,    96, 112, 0,   0, 224, 0,    0, 112, 128,  0, 0, 255,    96, 0, 128,   0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  // Sorcery
-  {M_VECTR,
-    P_VEXER,
-    1, 1, 0,
-    0, 5, 5, 32,
-    0, 5, 0, 20, 0, 0,
-    5, 0, 0, 20, 0, 0,
-    5, 0, 15, 35, 0, 0,
+// EEPROM wrappers
+void ee_update(uint16_t addr, uint8_t val) {
+  while (!eeprom_is_ready());
+  EEPROM.update(addr, val);
+}
 
-    0, 32, 32, 32,
-    4, 4, 1,
-    6, 0, 0,      18, 0, 104,   0, 21, 104,   78, 0, 24,    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    6, 0, 0,      36, 0, 208,   0, 42, 208,   156, 0, 48,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  // Candy Strobe
-  {M_VECTR,
-    P_STROBE,
-    3, 1, 16,
-    0, 16, 16, 32,
-    9, 41, 0, 0, 0, 0,
-    25, 25, 0, 0, 0, 0,
-    2, 23, 0, 0, 0, 0,
-
-    32, 32, 32, 32,
-    9, 1, 1,
-    144, 0, 0,    96, 56, 0,    48, 112, 0,   0, 168, 0,    0, 112, 64,   0, 56, 128,   0, 0, 196,    48, 0, 128,   96, 0, 64,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  // Halos
-  {M_VECTR,
-    P_EDGE,
-    3, 0, 0,
-    0, 16, 16, 32,
-    4, 0, 7, 45, 0, 0,
-    2, 0, 4, 45, 0, 0,
-    1, 0, 4, 90, 0, 0,
-
-    32, 32, 32, 32,
-    9, 1, 1,
-    0, 28, 224,   24, 0, 0,     48, 0, 0,     0, 28, 224,   12, 14, 0,    24, 28, 0,    0, 28, 224,   0, 28, 8,     0, 56, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  // Dashdops
-  {M_VECTR,
-    P_RUNNER,
-    0, 0, 0,
-    0, 20, 20, 32,
-    5, 0, 3, 22, 25, 0,
-    5, 0, 5, 0, 25, 0,
-    3, 22, 5, 0, 25, 0,
-
-    32, 32, 32, 32,
-    6, 1, 1,
-    12, 91, 88,   72, 112, 0,   132, 42, 0,   144, 0, 32,   120, 0, 64,   0, 28, 186,   0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  // Self Healing
-  {M_VECTR,
-    P_VEXER,
-    1, 4, 0,
-    0, 24, 24, 32,
-    2, 3, 0, 25, 0, 0,
-    2, 3, 25, 0, 0, 0,
-    2, 3, 25, 0, 0, 0,
-
-    1, 16, 16, 32,
-    4, 4, 4,
-    6, 0, 0,      48, 154, 16,  132, 56, 16,  90, 105, 16,  0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 8,      96, 28, 8,    162, 28, 8,   90, 105, 8,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 4, 4,      144, 56, 0,   192, 0, 0,    96, 112, 0,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  // Quantum Core
-  {M_VECTR,
-    P_DOUBLE,
-    1, 1, 0,
-    0, 32, 32, 32,
-    1, 0, 49, 0, 25, 0,
-    49, 0, 1, 0, 25, 0,
-    10, 0, 50, 0, 25, 0,
-
-    0, 4, 4, 16,
-    1, 2, 3,
-    0, 42, 144,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 42, 144,   36, 0, 144,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 42, 144,   36, 0, 144,   48, 70, 96,   0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,      0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-};
+uint8_t ee_read(uint16_t addr) {
+  while (!eeprom_is_ready());
+  return EEPROM.read(addr);
+}
 
 
-void setup() {
-  randomSeed(analogRead(0));
-  Serial.begin(115200);
-  pinMode(PIN_BUTTON, INPUT);
+// Sleep functions
+void _push_interrupt() {}
 
-  attachInterrupt(0, pushInterrupt, FALLING);
-  if (EEPROMread(ADDR_SLEEPING)) {
-    EEPROMupdate(ADDR_SLEEPING, 0);
-    LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_ON);
-    if (EEPROMread(ADDR_LOCKED)) {
-      state = new_state = S_SLEEP_LOCK;
-    } else {
-      state = new_state = S_SLEEP_WAKE;
-    }
-  } else {
-    if (EEPROMread(ADDR_CONJURE)) {
-      cur_mode = EEPROMread(ADDR_CONJURE_MODE);
-      state = new_state = S_CONJURE_OFF;
-    } else {
-      state = new_state = S_PLAY_OFF;
-    }
-  }
-  detachInterrupt(0);
-
-  Wire.begin();
-  pinMode(PIN_R, OUTPUT);
-  pinMode(PIN_G, OUTPUT);
-  pinMode(PIN_B, OUTPUT);
-  pinMode(PIN_LDO, OUTPUT);
-  digitalWrite(PIN_LDO, HIGH);
-
-  if (EEPROM_VERSION != EEPROMread(ADDR_VERSION)) memoryReset();
-  brightness = EEPROMread(ADDR_BRIGHTNESS);
-
-  accelInit();
-  changeMode(cur_mode);
-  Serial.write(SER_HANDSHAKE); Serial.write(SER_VERSION); Serial.write(SER_VERSION);
-
-  noInterrupts();
-  TCCR0B = (TCCR0B & 0b11111000) | 0b001;  // no prescaler ~64/ms
-  TCCR1B = (TCCR1B & 0b11111000) | 0b001;  // no prescaler ~32/ms
-  bitSet(TCCR1B, WGM12); // enable fast PWM                ~64/ms
-  interrupts();
-  delay(6400);
-
+void enter_sleep() {
   wdt_enable(WDTO_15MS);
-}
-
-void loop() {
-  handleSerial();
-  handlePress(digitalRead(PIN_BUTTON) == LOW);
-  handleAccel();
-  render();
-}
-
-void render() {
-  if (state == S_PLAY_OFF || state == S_CONJURE_OFF) {
-    renderMode();
-  } else if (state == S_VIEW_MODE) {
-    renderMode();
-  } else if (state == S_VIEW_COLOR) {
-    if (gui_color >= 0 && gui_set >= 0) {
-      if (pm.d[0] == 0) {
-        if (gui_color < NUM_COLORS0 && gui_set < 3) {
-          r = pm.m.colors[gui_set][gui_color][0];
-          g = pm.m.colors[gui_set][gui_color][1];
-          b = pm.m.colors[gui_set][gui_color][2];
-        }
-      } else {
-        if (gui_color < NUM_COLORS1 && gui_set < 2) {
-          r = pm.pm.colors[gui_set][gui_color][0];
-          g = pm.pm.colors[gui_set][gui_color][1];
-          b = pm.pm.colors[gui_set][gui_color][2];
-        }
-      }
-    }
-  } else if (state == S_BRIGHT_OFF) {
-    r = g = b = 128;
-  } else {
-    r = g = b = 0;
-  }
-  writeFrame(r, g, b);
-}
-
-void writeFrame(uint8_t r, uint8_t g, uint8_t b) {
-  /* if (limiter > 64000) { Serial.print(limiter); Serial.print(F("\t")); Serial.println(accel_tick); } */
-  while (limiter < 64000) {}
-  limiter = 0;
-
-  analogWrite(PIN_R, r >> brightness);
-  analogWrite(PIN_G, g >> brightness);
-  analogWrite(PIN_B, b >> brightness);
-  wdt_reset();
-}
-
-void flash(uint8_t r, uint8_t g, uint8_t b, uint8_t flashes) {
-  for (uint16_t i = 0; i < flashes * 100; i++) {
-    if (i % 100 < 50) writeFrame(r, g, b);
-    else              writeFrame(0, 0, 0);
-  }
-  since_trans += flashes * 100;
-}
-
-void modeReset(uint8_t i) {
-  for (uint8_t j = 0; j < MODE_SIZE; j++) {
-    EEPROMupdate((i * 128) + j, pgm_read_byte(&factory_modes[i][j]));
-  }
-}
-
-void memoryReset() {
-  for (int i = 0; i < 1024; i++) EEPROMupdate(i, 0);
-  for (uint8_t i = 0; i < NUM_MODES; i++) modeReset(i);
-  EEPROMupdate(ADDR_VERSION, EEPROM_VERSION);
-}
-
-void loadMode(uint8_t i) {
-  for (uint8_t j = 0; j < MODE_SIZE; j++) {
-    pm.d[j] = EEPROMread((i * MODE_SIZE) + j);
-  }
-}
-
-
-void enterSleep() {
-  writeFrame(0, 0, 0);
-  EEPROMupdate(ADDR_SLEEPING, 1);
-  accelStandby();
+  write_frame(0, 0, 0);
+  ee_update(ADDR_SLEEPING, 1);
+  accel_standby();
   digitalWrite(PIN_LDO, LOW);
   delay(640000);
 }
 
-void pushInterrupt() {}
 
-void handlePress(bool pressed) {
-  switch (state) {
+// 8-bit interp
+inline uint8_t interp(uint8_t m, uint8_t n, uint8_t d, uint8_t D) {
+  int16_t o = n - m;
+  return m + ((o * d) / D);
+}
+
+
+// Accelerometer functions
+void accel_send(uint8_t addr, uint8_t data) {
+  Wire.beginTransmission(V2_ACCEL_ADDR);
+  Wire.write(addr);
+  Wire.write(data);
+  Wire.endTransmission();
+}
+
+void accel_init() {
+  accel_send(0x2A, 0x00);        // Standby to accept new settings
+  accel_send(0x0E, 0x01);        // Set +-4g range
+  accel_send(0x2B, 0b00011000);  // Low Power SLEEP
+  accel_send(0x2A, 0b00100001);  // Set 50 samples/sec (every 40 frames) and active
+}
+
+void accel_standby() {
+  accel_send(0x2A, 0x00);
+}
+
+// If write_frame isn't called every 15ms, the chip will reset
+void write_frame(uint8_t r, uint8_t g, uint8_t b) {
+  /* if (limiter > 64000) { Serial.print(limiter); Serial.print(F("\t")); Serial.println(accel_tick); } */
+  while (limiter < 64000) {}
+  limiter = 0;
+
+  analogWrite(led.pin_r, r >> brightness);
+  analogWrite(led.pin_g, g >> brightness);
+  analogWrite(led.pin_b, b >> brightness);
+}
+
+void flash(uint8_t r, uint8_t g, uint8_t b, uint8_t flashes) {
+  for (uint16_t i = 0; i < flashes * 100; i++) {
+    if (i % 100 < 50) write_frame(r, g, b);
+    else              write_frame(0, 0, 0);
+  }
+  since_trans += flashes * 100;
+}
+
+void load_mode(uint8_t m) {
+  for (uint8_t b = 0; b < MODE_SIZE; b++) {
+    mode.data[b] = ee_read((m * MODE_SIZE) + b);
+  }
+}
+
+void calc_primer_states() {
+  pattern_state.pattern = constrain(mode.pm.pattern[0], 0, 6);
+  pattern_state2.pattern = constrain(mode.pm.pattern[1], 0, 6);
+  pattern_state.numc = mode.pm.numc[0];
+  pattern_state2.numc = mode.pm.numc[1];
+  for (uint8_t i = 0; i < 8; i++) {
+    if (i < 5) {
+      pattern_state.args[i] = mode.pm.args[0][i];
+      pattern_state2.args[i] = mode.pm.args[1][i];
+    }
+    pattern_state.timings[i] = mode.pm.timings[0][i];
+    pattern_state2.timings[i] = mode.pm.timings[1][i];
+  }
+}
+
+void calc_pattern_state() {
+  pattern_state.pattern = constrain(mode.vm.pattern, 0, 6);
+
+  if (adata.velocity <= mode.vm.tr_flux[0])      pattern_state.numc = mode.vm.numc[0];
+  else if (adata.velocity < mode.vm.tr_flux[1])  pattern_state.numc = min(mode.vm.numc[0], mode.vm.numc[1]);
+  else if (adata.velocity <= mode.vm.tr_flux[2]) pattern_state.numc = mode.vm.numc[1];
+  else if (adata.velocity < mode.vm.tr_flux[3])  pattern_state.numc = min(mode.vm.numc[1], mode.vm.numc[2]);
+  else                                           pattern_state.numc = mode.vm.numc[2];
+
+  uint8_t v, d, s;
+  if (adata.velocity <= mode.vm.tr_meta[0]) {
+    v = 0; d = 1; s = 0;
+  } else if (adata.velocity < mode.vm.tr_meta[1]) {
+    v = adata.velocity - mode.vm.tr_meta[0]; d = mode.vm.tr_meta[1] - mode.vm.tr_meta[0]; s = 0;
+  } else if (adata.velocity <= mode.vm.tr_meta[2]) {
+    v = 0; d = 1; s = 1;
+  } else if (adata.velocity < mode.vm.tr_meta[3]) {
+    v = adata.velocity - mode.vm.tr_meta[2]; d = mode.vm.tr_meta[3] - mode.vm.tr_meta[2]; s = 1;
+  } else {
+    v = 1; d = 1; s = 1;
+  }
+
+  for (uint8_t i = 0; i < 8; i++) {
+    if (i < 5) pattern_state.args[i] = mode.vm.args[i];
+    pattern_state.timings[i] = interp(mode.vm.timings[s][i], mode.vm.timings[s + 1][i], v, d);
+  }
+}
+
+void calc_color(uint8_t color) {
+  uint8_t v, d, s;
+  if (adata.velocity <= mode.vm.tr_flux[0]) {
+    v = 0; d = 1; s = 0;
+  } else if (adata.velocity < mode.vm.tr_flux[1]) {
+    v = adata.velocity - mode.vm.tr_flux[0]; d = mode.vm.tr_flux[1] - mode.vm.tr_flux[0]; s = 0;
+  } else if (adata.velocity <= mode.vm.tr_flux[2]) {
+    v = 0; d = 1; s = 1;
+  } else if (adata.velocity < mode.vm.tr_flux[3]) {
+    v = adata.velocity - mode.vm.tr_flux[2]; d = mode.vm.tr_flux[3] - mode.vm.tr_flux[2]; s = 1;
+  } else {
+    v = 1; d = 1; s = 1;
+  }
+  led.r = interp(mode.vm.colors[s][color][0], mode.vm.colors[s + 1][color][0], v, d);
+  led.g = interp(mode.vm.colors[s][color][1], mode.vm.colors[s + 1][color][1], v, d);
+  led.b = interp(mode.vm.colors[s][color][2], mode.vm.colors[s + 1][color][2], v, d);
+}
+
+void change_mode(uint8_t i) {
+  if (i < NUM_MODES) cur_mode = i;
+  else if (i == 99)  cur_mode = (cur_mode + NUM_MODES - 1) % NUM_MODES;
+  else if (i == 101) cur_mode = (cur_mode + 1) % NUM_MODES;
+
+  load_mode(cur_mode);
+  reset_mode();
+}
+
+void reset_mode() {
+  gui_set = gui_color = -1;
+  variant = 0;
+  pattern_state.tick = pattern_state.trip = pattern_state.cidx = pattern_state.cntr = pattern_state.segm = 0;
+  pattern_state2.tick = pattern_state2.trip = pattern_state2.cidx = pattern_state2.cntr = pattern_state2.segm = 0;
+  if (mode.data[0] == 0) {
+    calc_pattern_state();
+  } else if (mode.data[0] == 1) {
+    calc_primer_states();
+  }
+}
+
+
+//********************************************************************************
+// Pattern functions
+//********************************************************************************
+int8_t pattern_strobe(PatternState *state) {
+  uint8_t numc = constrain(state->numc, 1, MAX_COLORS);
+
+  uint8_t pick = constrain((state->args[0] == 0) ? numc : state->args[0], 1, numc);
+  uint8_t skip = constrain((state->args[1] == 0) ? pick : state->args[1], 1, pick);
+  uint8_t repeat = constrain(state->args[2], 1, MAX_REPEATS);
+
+  uint8_t st = state->timings[0];
+  uint8_t bt = state->timings[1];
+  uint8_t tt = state->timings[2];
+
+  if (st == 0 && bt == 0 && tt == 0) tt = 1;
+
+  if (state->tick >= state->trip) {
+    if (mode.data[0] == 0) calc_pattern_state();
+    state->tick = state->trip = 0;
+    while (state->trip == 0) {
+      state->segm++;
+      if (state->segm >= ((2 * pick) + 1)) {
+        state->segm = 0;
+        state->cntr++;
+        if (state->cntr >= repeat) {
+          state->cntr = 0;
+          state->cidx += skip;
+          if (state->cidx >= numc) {
+            state->cidx = (pick == skip) ? 0 : state->cidx % numc;
+          }
+        }
+      }
+
+      if (state->segm == 2 * pick)   state->trip = tt;
+      else if (state->segm % 2 == 1) state->trip = st;
+      else                           state->trip = bt;
+    }
+  }
+
+  int8_t color = -1;
+  if (state->segm % 2 == 1) color = (state->segm / 2) + state->cidx;
+  else                      color = -1;
+
+  if (color >= numc) color = (pick == skip) ? -1 : color % numc;
+  return color;
+}
+
+int8_t pattern_vexer(PatternState *state) {
+  uint8_t numc = constrain(state->numc, 1, MAX_COLORS);
+
+  uint8_t repeat_c = constrain(state->args[0], 1, MAX_REPEATS);
+  uint8_t repeat_t = constrain(state->args[1], 1, MAX_REPEATS);
+
+  uint8_t cst = state->timings[0];
+  uint8_t cbt = state->timings[1];
+  uint8_t tst = state->timings[2];
+  uint8_t tbt = state->timings[3];
+  uint8_t sbt = state->timings[4];
+
+  if (cst == 0 && cbt == 0 && tst == 0 && tbt == 0 && sbt == 0) sbt = 1;
+
+  if (state->tick >= state->trip) {
+    if (mode.data[0] == 0) calc_pattern_state();
+    state->tick = state->trip = 0;
+    while (state->trip == 0) {
+      state->segm++;
+      if (state->segm >= 2) {
+        state->segm = 0;
+        state->cntr++;
+        if (state->cntr >= repeat_t + repeat_c) {
+          state->cntr = 0;
+          state->cidx = (state->cidx + 1) % (numc - 1);
+        }
+      }
+
+      if (state->segm == 0) {
+        if (state->cntr == 0 || state->cntr == repeat_t) state->trip = sbt;
+        else if (state->cntr < repeat_t)                 state->trip = tbt;
+        else                                             state->trip = cbt;
+      } else {
+        if (state->cntr < repeat_t)                      state->trip = tst;
+        else                                             state->trip = cst;
+      }
+    }
+  }
+
+  int8_t color = -1;
+  if (state->segm == 0) {
+    color = -1;
+  } else {
+    if (state->cntr < repeat_t) color = 0;
+    else                        color = state->cidx + 1;
+  }
+  return color;
+}
+
+int8_t pattern_edge(PatternState *state) {
+  uint8_t numc = constrain(state->numc, 1, MAX_COLORS);
+
+  uint8_t pick = constrain((state->args[0] == 0) ? numc : state->args[0], 1, numc);
+
+  uint8_t cst = state->timings[0];
+  uint8_t cbt = state->timings[1];
+  uint8_t est = state->timings[2];
+  uint8_t ebt = state->timings[3];
+
+  if (cst == 0 && cbt == 0 && est == 0 && ebt == 0) ebt = 1;
+
+  if (state->tick >= state->trip) {
+    if (mode.data[0] == 0) calc_pattern_state();
+    state->tick = state->trip = 0;
+    while (state->trip == 0) {
+      state->segm++;
+      if (state->segm > 2) {
+        state->segm = 0;
+        state->cntr++;
+        if (state->cntr >= (2 * pick) - 1) {
+          state->cntr = 0;
+          state->cidx += pick;
+          if (state->cidx >= numc) {
+            state->cidx = 0;
+          }
+        }
+      }
+
+      if (state->segm == 0) {
+        if (state->cntr == 0)          state->trip = ebt;
+        else                           state->trip = cbt;
+      } else {
+        if (state->cntr == (pick - 1)) state->trip = est;
+        else                           state->trip = cst;
+      }
+    }
+  }
+
+  int8_t color = -1;
+  if (state->segm == 0) color = -1;
+  else                  color = abs((int)(pick - 1) - state->cntr) + state->cidx;
+
+  if (color >= numc) color = -1;
+  return color;
+}
+
+int8_t pattern_triple(PatternState *state) {
+  uint8_t numc = constrain(state->numc, 1, MAX_COLORS);
+
+  uint8_t repeat_a = constrain(state->args[0], 1, MAX_REPEATS);
+  uint8_t repeat_b = constrain(state->args[1], 1, MAX_REPEATS);
+  uint8_t repeat_c = constrain(state->args[2], 1, MAX_REPEATS);
+  uint8_t skip = constrain(state->args[3], 0, numc - 1);
+  uint8_t use_c = state->args[4];
+
+  uint8_t ast = state->timings[0];
+  uint8_t abt = state->timings[1];
+  uint8_t bst = state->timings[2];
+  uint8_t bbt = state->timings[3];
+  uint8_t cst = state->timings[4];
+  uint8_t cbt = state->timings[5];
+  uint8_t sbt = state->timings[6];
+
+  uint8_t repeats = repeat_a + repeat_b;
+  if (use_c) repeats += repeat_c;
+
+  if (ast == 0 && abt == 0 && bst == 0 && bbt == 0 && cst == 0 && cbt == 0 && sbt == 0) sbt = 0;
+
+  if (state->tick >= state->trip) {
+    if (mode.data[0] == 0) calc_pattern_state();
+    state->tick = state->trip = 0;
+    while (state->trip == 0) {
+      state->segm++;
+      if (state->segm >= 2) {
+        state->segm = 0;
+        state->cntr++;
+        if (state->cntr >= repeats) {
+          state->cntr = 0;
+          state->cidx = (state->cidx + 1) % numc;
+        }
+      }
+
+      if (state->segm == 0) {
+        if (state->cntr == 0)                        state->trip = sbt;
+        else if (state->cntr < repeat_a)             state->trip = abt;
+        else if (state->cntr == repeat_a)            state->trip = sbt;
+        else if (state->cntr < repeat_a + repeat_b)  state->trip = bbt;
+        else if (state->cntr == repeat_a + repeat_b) state->trip = sbt;
+        else                                         state->trip = cbt;
+      } else {
+        if (state->cntr < repeat_a)                  state->trip = ast;
+        else if (state->cntr < repeat_a + repeat_b)  state->trip = bst;
+        else                                         state->trip = cst;
+      }
+    }
+  }
+
+  int8_t color = -1;
+  if (state->segm == 0) {
+    color = -1;
+  } else {
+    if (state->cntr < repeat_a)                 color = state->cidx;
+    else if (state->cntr < repeat_a + repeat_b) color = (state->cidx + skip) % numc;
+    else                                        color = (state->cidx + skip + skip) % numc;
+  }
+  return color;
+}
+
+int8_t pattern_runner(PatternState *state) {
+  uint8_t numc = constrain(state->numc, 1, MAX_COLORS);
+
+  uint8_t pick = constrain((state->args[0] == 0) ? numc - 1 : state->args[0], 1, numc);
+  uint8_t skip = constrain((state->args[1] == 0) ? pick : state->args[1], 1, pick);
+  uint8_t repeat = constrain((state->args[2] == 0) ? pick : state->args[2], 1, MAX_REPEATS);
+
+  uint8_t cst = state->timings[0];
+  uint8_t cbt = state->timings[1];
+  uint8_t rst = state->timings[2];
+  uint8_t rbt = state->timings[3];
+  uint8_t sbt = state->timings[4];
+
+  if (cst == 0 && cbt == 0 && rst == 0 && rbt == 0 && sbt == 0) sbt = 1;
+
+  if (state->tick >= state->trip) {
+    if (mode.data[0] == 0) calc_pattern_state();
+    state->tick = state->trip = 0;
+    while (state->trip == 0) {
+      state->segm++;
+      if (state->segm >= 2) {
+        state->segm = 0;
+        state->cntr++;
+        if (state->cntr >= repeat + pick) {
+          state->cntr = 0;
+          state->cidx += skip;
+          if (state->cidx >= (numc - 1)) {
+            state->cidx = (pick == skip) ? 0 : state->cidx % (numc - 1);
+          }
+        }
+      }
+
+      if (state->segm == 0) {
+        if (state->cntr == 0 || state->cntr == pick) state->trip = sbt;
+        else if (state->cntr < pick)                 state->trip = cbt;
+        else                                         state->trip = rbt;
+      } else {
+        if (state->cntr < pick)                      state->trip = cst;
+        else                                         state->trip = rst;
+      }
+    }
+  }
+
+  int8_t color = -1;
+  if (state->segm == 0) {
+    color = -1;
+  } else {
+    if (state->cntr < pick) color = state->cidx + state->cntr + 1;
+    else                    color = 0;
+  }
+
+  if (color >= numc) color = (pick == skip) ? -1 : (color % (numc - 1) + 1);
+  return color;
+}
+
+int8_t pattern_stepper(PatternState *state) {
+  uint8_t numc = constrain(state->numc, 1, MAX_COLORS);
+
+  uint8_t steps = constrain(state->args[0], 1, 7);
+  uint8_t random_step = state->args[1];
+  uint8_t random_color = state->args[2];
+
+  uint8_t bt = state->timings[0];
+  uint8_t ct[7] = {state->timings[1], state->timings[2], state->timings[3],
+    state->timings[4], state->timings[5], state->timings[6], state->timings[7]};
+
+  if (bt == 0 && ct[0] == 0 && ct[1] == 0 && ct[2] == 0 && ct[3] == 0 && ct[4] == 0 && ct[5] == 0 && ct[6] == 0) bt = 1;
+
+  if (state->tick >= state->trip) {
+    if (mode.data[0] == 0) calc_pattern_state();
+    state->tick = state->trip = 0;
+    while (state->trip == 0) {
+      state->segm++;
+      if (state->segm >= 2) {
+        state->segm = 0;
+        state->cidx = (random_color) ? rand(0, numc) : (state->cidx + 1) % numc;
+        state->cntr = (random_step) ? rand(0, steps) : (state->cntr + 1) % steps;
+      }
+
+      if (state->segm == 0) state->trip = bt;
+      else                  state->trip = ct[state->cntr];
+    }
+  }
+
+  return (state->segm == 0) ? -1 : state->cidx;
+}
+
+int8_t pattern_random(PatternState *state) {
+  uint8_t numc = constrain(state->numc, 1, MAX_COLORS);
+
+  uint8_t random_color = state->args[0];
+  uint8_t multiplier = constrain(state->args[1], 1, 10);
+
+  uint8_t ctl = min(state->timings[0], state->timings[1]);
+  uint8_t cth = max(state->timings[0], state->timings[1]);
+  uint8_t btl = min(state->timings[2], state->timings[3]);
+  uint8_t bth = max(state->timings[2], state->timings[3]);
+
+  if (state->tick >= state->trip) {
+    if (mode.data[0] == 0) calc_pattern_state();
+    state->tick = state->trip = 0;
+    while (state->trip == 0) {
+      state->segm++;
+      if (state->segm >= 2) {
+        state->segm = 0;
+        state->cidx = (random_color) ? rand(0, numc) : (state->cidx + 1) % numc;
+      }
+
+      if (state->segm == 0) state->trip = rand(ctl, cth + 1) * multiplier;
+      else                  state->trip = rand(btl, bth + 1) * multiplier;
+    }
+  }
+
+  return (state->segm == 0) ? state->cidx : -1;
+}
+
+
+//********************************************************************************
+// handle_accel
+//********************************************************************************
+void inline _request_axis(uint8_t axis) {
+  uint8_t a = (axis == AXIS_X) ? 3 : (axis == AXIS_Y) ? 1 : 5;
+  Wire.beginTransmission(V2_ACCEL_ADDR);
+  Wire.write(a);
+  Wire.endTransmission(false);
+  Wire.requestFrom(V2_ACCEL_ADDR, (uint8_t)2);
+}
+
+void inline _read_axis(uint8_t axis) {
+  if (Wire.available()) adata.gs[axis] = Wire.read() << 4;
+  if (Wire.available()) adata.gs[axis] |= Wire.read() >> 4;
+  adata.gs[axis] = (adata.gs[axis] < 2048) ? adata.gs[axis] : -4096 + adata.gs[axis];
+  adata.gs2[axis] = adata.gs[axis] * adata.gs[axis];
+}
+
+void _update_bins() {
+  uint8_t i = 0;
+  uint16_t bin_thresh = ACCEL_ONEG;
+  adata.velocity = 0;
+
+  while (i < ACCEL_BINS) {
+    bin_thresh += ACCEL_BIN_SIZE;
+    if (adata.mag > bin_thresh) {
+      adata.velocity_last[i] = 0;
+      adata.velocity_cntr[i] = min(adata.velocity_cntr[i] + 1, 128);
+    }
+
+    if (adata.velocity_last[i] >= ACCEL_FALLOFF) adata.velocity_cntr[i] = 0;
+    else                                         adata.velocity_last[i]++;
+
+    if (adata.velocity_cntr[i] > ACCEL_TARGET) {
+      adata.velocity = i + 1;
+    }
+    i++;
+  }
+}
+
+void _update_variant() {
+  uint8_t v = 0;
+
+  if (mode.pm.trigger_mode == 1)      v = adata.velocity;
+  else if (mode.pm.trigger_mode == 2) v = adata.pitch;
+  else if (mode.pm.trigger_mode == 3) v = adata.roll;
+  else if (mode.pm.trigger_mode == 4) v = adata.flip;
+
+  if ((variant == 0 && v >= mode.pm.trigger_thresh[0]) ||
+      (variant == 1 && v <= mode.pm.trigger_thresh[1])) {
+    adata.prime_last = 0;
+    adata.prime_cntr = min(adata.prime_cntr + 1, 128);
+  }
+
+  if (adata.prime_last >= ACCEL_FALLOFF) adata.prime_cntr = 0;
+  else                                   adata.prime_last++;
+
+  if (adata.prime_cntr >= ACCEL_TARGET) {
+    adata.prime_last = adata.prime_cntr = 0;
+    variant = (variant + 1) % 2;
+  }
+}
+
+void handle_accel() {
+  switch (accel_tick % ACCEL_COUNTS) {
+    case 0:
+      _request_axis(AXIS_X);
+      break;
+    case 1:
+      _read_axis(AXIS_X);
+      break;
+    case 2:
+      _request_axis(AXIS_Y);
+      break;
+    case 3:
+      _read_axis(AXIS_Y);
+      break;
+    case 4:
+      _request_axis(AXIS_Z);
+      break;
+    case 5:
+      _read_axis(AXIS_Z);
+      break;
+    case 7:
+      adata.mag = sqrt(adata.gs2[0] + adata.gs2[1] + adata.gs2[2]);
+      break;
+    case 8:
+      _update_bins();
+      break;
+    case 9:
+      adata.roll = atan2(-adata.gs[1], adata.gs[2]);
+      break;
+    case 10:
+      adata.pitch = sqrt(adata.gs2[1] + adata.gs2[2]);
+      break;
+    case 11:
+      adata.pitch = atan2(adata.gs[0], adata.pitch);
+      break;
+    case 12:
+      adata.flip = 32 - ((constrain(adata.gs[2], -496, 496) + 496) / 31);
+      adata.pitch = constrain((adata.pitch + 1.396) * 11.817, 0, 32);
+      break;
+    case 13:
+      if (adata.roll > M_PI_2) {
+        adata.roll = M_PI - adata.roll;
+      } else if (adata.roll < -M_PI_2) {
+        adata.roll = -M_PI - adata.roll;
+      }
+      adata.roll = constrain((adata.roll + 1.396) * 11.817, 0, 32);
+      break;
+    case 14:
+      if (mode.data[0] == 1) {
+        _update_variant();
+      }
+      break;
+
+    default:
+      break;
+  }
+
+  accel_tick++;
+  if (accel_tick >= ACCEL_COUNTS) accel_tick = 0;
+}
+
+
+//********************************************************************************
+// handle_button
+//********************************************************************************
+void handle_button() {
+  bool pressed = digitalRead(PIN_BUTTON) == LOW;
+  switch (op_state) {
+    //****************************************************************************
+    // Play Mode
+    //****************************************************************************
     case S_PLAY_OFF:
       if (pressed && since_trans >= PRESS_DELAY) {
         new_state = S_PLAY_PRESSED;
@@ -416,7 +673,7 @@ void handlePress(bool pressed) {
 
     case S_PLAY_PRESSED:
       if (!pressed) {
-        changeMode(101);
+        change_mode(101);
         new_state = S_PLAY_OFF;
       } else if (since_trans >= SHORT_HOLD) {
         new_state = S_PLAY_SLEEP_WAIT;
@@ -425,7 +682,7 @@ void handlePress(bool pressed) {
 
     case S_PLAY_SLEEP_WAIT:
       if (!pressed) {
-        enterSleep();
+        enter_sleep();
       } else if (since_trans >= LONG_HOLD) {
         new_state = S_PLAY_CONJURE_WAIT;
       }
@@ -434,7 +691,7 @@ void handlePress(bool pressed) {
     case S_PLAY_CONJURE_WAIT:
       if (since_trans == 0) flash(0, 0, 128, 5);
       if (!pressed) {
-        EEPROMupdate(ADDR_CONJURE, 1);
+        ee_update(ADDR_CONJURE, 1);
         new_state = S_CONJURE_OFF;
       } else if (since_trans >= LONG_HOLD) {
         new_state = S_PLAY_LOCK_WAIT;
@@ -444,14 +701,17 @@ void handlePress(bool pressed) {
     case S_PLAY_LOCK_WAIT:
       if (since_trans == 0) flash(128, 0, 0, 5);
       if (!pressed) {
-        EEPROMupdate(ADDR_LOCKED, 1);
-        enterSleep();
+        ee_update(ADDR_LOCKED, 1);
+        enter_sleep();
       } else if (since_trans >= LONG_HOLD) {
         flash(48, 48, 48, 5);
         new_state = S_PLAY_SLEEP_WAIT;
       }
       break;
 
+    //****************************************************************************
+    // Conjure Mode
+    //****************************************************************************
     case S_CONJURE_OFF:
       if (pressed && since_trans >= PRESS_DELAY) {
         new_state = S_CONJURE_PRESS;
@@ -460,8 +720,8 @@ void handlePress(bool pressed) {
 
     case S_CONJURE_PRESS:
       if (!pressed) {
-        EEPROMupdate(ADDR_CONJURE_MODE, cur_mode);
-        enterSleep();
+        ee_update(ADDR_CONJURE_MODE, cur_mode);
+        enter_sleep();
       } else if (since_trans >= LONG_HOLD) {
         new_state = S_CONJURE_PLAY_WAIT;
       }
@@ -470,15 +730,18 @@ void handlePress(bool pressed) {
     case S_CONJURE_PLAY_WAIT:
       if (since_trans == 0) flash(0, 0, 128, 5);
       if (!pressed) {
-        EEPROMupdate(ADDR_CONJURE, 0);
+        ee_update(ADDR_CONJURE, 0);
         new_state = S_PLAY_OFF;
       }
       break;
 
+    //****************************************************************************
+    //  Sleeping
+    //****************************************************************************
     case S_SLEEP_WAKE:
       if (!pressed) {
-        if (EEPROMread(ADDR_CONJURE)) {
-          changeMode(EEPROMread(ADDR_CONJURE_MODE));
+        if (ee_read(ADDR_CONJURE)) {
+          change_mode(ee_read(ADDR_CONJURE_MODE));
           new_state = S_CONJURE_OFF;
         } else {
           new_state = S_PLAY_OFF;
@@ -500,7 +763,7 @@ void handlePress(bool pressed) {
     case S_SLEEP_RESET_WAIT:
       if (since_trans == 0) flash(128, 0, 0, 5);
       if (!pressed) {
-        new_state = S_RESET_START;
+        new_state = S_RESET_OFF;
       } else if (since_trans >= VERY_LONG_HOLD) {
         new_state = S_SLEEP_HELD;
       }
@@ -508,57 +771,60 @@ void handlePress(bool pressed) {
 
     case S_SLEEP_HELD:
       if (!pressed) {
-        enterSleep();
+        enter_sleep();
       }
       break;
 
+    //****************************************************************************
+    // Sleep lock
+    //****************************************************************************
     case S_SLEEP_LOCK:
       if (since_trans == VERY_LONG_HOLD) flash(0, 128, 0, 5);
       if (!pressed) {
         if (since_trans > VERY_LONG_HOLD) {
-          EEPROMupdate(ADDR_LOCKED, 0);
-          if (EEPROMread(ADDR_CONJURE)) {
-            changeMode(EEPROMread(ADDR_CONJURE_MODE));
+          ee_update(ADDR_LOCKED, 0);
+          if (ee_read(ADDR_CONJURE)) {
+            change_mode(ee_read(ADDR_CONJURE_MODE));
             new_state = S_CONJURE_OFF;
           } else {
             new_state = S_PLAY_OFF;
           }
         } else {
           flash(128, 0, 0, 5);
-          enterSleep();
+          enter_sleep();
         }
       }
       break;
 
-    case S_RESET_START:
+    //****************************************************************************
+    // Master Reset
+    //****************************************************************************
+    case S_RESET_OFF:
       if (pressed) {
-        new_state = S_RESET_WAIT;
+        new_state = S_RESET_PRESSED;
       } else if (since_trans >= VERY_LONG_HOLD) {
-        enterSleep();
+        enter_sleep();
       }
       break;
 
-    case S_RESET_WAIT:
+    case S_RESET_PRESSED:
+      if (since_trans == VERY_LONG_HOLD) flash(128, 0, 0, 5);
       if (!pressed) {
         if (since_trans >= VERY_LONG_HOLD) {
-          wdt_disable();
-          memoryReset();
-          wdt_enable(WDTO_15MS);
-          for (int i = 0; i < 5; i++) {
-            flash(0, 0, 128, 1);
-            flash(128, 0, 0, 1);
-          }
-          enterSleep();
+          reset_memory();
+          flash(128, 128, 128, 5);
+          enter_sleep();
         } else {
-          enterSleep();
+          enter_sleep();
         }
-      } else if (since_trans == VERY_LONG_HOLD) {
-        flash(128, 0, 0, 5);
       } else if (since_trans >= VERY_LONG_HOLD * 4) {
-        enterSleep();
+        enter_sleep();
       }
       break;
 
+    //****************************************************************************
+    // Brightness Settings
+    //****************************************************************************
     case S_BRIGHT_OFF:
       if (pressed && since_trans >= PRESS_DELAY) {
         new_state = S_BRIGHT_PRESSED;
@@ -566,14 +832,10 @@ void handlePress(bool pressed) {
       break;
 
     case S_BRIGHT_PRESSED:
-      if (since_trans == LONG_HOLD) {
-        flash(128, 0, 0, 1);
-        flash(0, 128, 0, 1);
-        flash(0, 0, 128, 1);
-      }
+      if (since_trans == LONG_HOLD) flash(128, 128, 128, 5);
       if (!pressed) {
         if (since_trans >= LONG_HOLD) {
-          EEPROMupdate(ADDR_BRIGHTNESS, brightness);
+          ee_update(ADDR_BRIGHTNESS, brightness);
           new_state = S_PLAY_OFF;
         } else {
           brightness = (brightness + 1) % 3;
@@ -586,8 +848,8 @@ void handlePress(bool pressed) {
       break;
   }
 
-  if (state != new_state) {
-    state = new_state;
+  if (op_state != new_state) {
+    op_state = new_state;
     since_trans = 0;
   } else {
     since_trans++;
@@ -595,624 +857,125 @@ void handlePress(bool pressed) {
 }
 
 
-void handleAccel() {
-  switch (accel_tick % ACCEL_COUNTS) {
-    case 0:
-      Wire.beginTransmission(V2_ACCEL_ADDR);
-      Wire.write(0x01);
-      Wire.endTransmission(false);
-      break;
-    case 1:
-      Wire.requestFrom(V2_ACCEL_ADDR, 2);
-      break;
-    case 2:
-      if (Wire.available()) gs[0] = Wire.read() << 4;
-      if (Wire.available()) gs[0] |= Wire.read() >> 4;
-      gs[0] = (gs[0] < 2048) ? gs[0] : -4096 + gs[0];
-      break;
-    case 3:
-      Wire.beginTransmission(V2_ACCEL_ADDR);
-      Wire.write(0x03);
-      Wire.endTransmission(false);
-      break;
-    case 4:
-      Wire.requestFrom(V2_ACCEL_ADDR, 2);
-      break;
-    case 5:
-      if (Wire.available()) gs[1] = Wire.read() << 4;
-      if (Wire.available()) gs[1] |= Wire.read() >> 4;
-      gs[1] = (gs[1] < 2048) ? gs[1] : -4096 + gs[1];
-      break;
-    case 6:
-      Wire.beginTransmission(V2_ACCEL_ADDR);
-      Wire.write(0x05);
-      Wire.endTransmission(false);
-      break;
-    case 7:
-      Wire.requestFrom(V2_ACCEL_ADDR, 2);
-      break;
-    case 8:
-      if (Wire.available()) gs[2] = Wire.read() << 4;
-      if (Wire.available()) gs[2] |= Wire.read() >> 4;
-      gs[2] = (gs[2] < 2048) ? gs[2] : -4096 + gs[2];
-      break;
-    case 9:
-      gs2[0] = gs[0] * gs[0];
-      gs2[1] = gs[1] * gs[1];
-      gs2[2] = gs[2] * gs[2];
-      a_mag = sqrt(gs2[0] + gs2[1] + gs2[2]);
-      break;
-    case 10:
-      accelUpdateBins();
-      break;
-    case 11:
-      if (pm.d[0] == 1) {
-        accel_last++;
-        if ((variant == 0 && a_speed > pm.pm.accel_trig) ||
-            (variant == 1 && a_speed <= pm.pm.accel_drop)) {
-          accel_count++;
-          accel_last = 0;
-        }
+//********************************************************************************
+// handle_render
+//********************************************************************************
+void _render_mode() {
+  int8_t color;
+  if (mode.data[0] == 0) {
+    // Run pattern func to get color index and increment tick
+    color = pattern_funcs[pattern_state.pattern](&pattern_state);
+    pattern_state.tick++;
 
-        if (accel_last >= 5) accel_count = 0;
-        if (accel_count >= 5) {
-          variant = !variant;
-          accel_last = accel_count = 0;
-        }
+    // Write color to led buffer
+    if (color < 0) led.r = led.g = led.b = 0;
+    else           calc_color(color);
+
+  } else if (mode.data[0] == 1) {
+    if (variant == 0) {
+      color = pattern_funcs[pattern_state.pattern](&pattern_state);
+      pattern_funcs[pattern_state2.pattern](&pattern_state2);
+    } else {
+      color = pattern_funcs[pattern_state2.pattern](&pattern_state2);
+      pattern_funcs[pattern_state.pattern](&pattern_state);
+    }
+    pattern_state.tick++;
+    pattern_state2.tick++;
+    if (color < 0) {
+      led.r = led.g = led.b = 0;
+    } else {
+      led.r = mode.pm.colors[variant][color][0];
+      led.g = mode.pm.colors[variant][color][1];
+      led.b = mode.pm.colors[variant][color][2];
+    }
+  }
+}
+
+void handle_render() {
+  switch (op_state) {
+    case S_PLAY_OFF:
+    case S_CONJURE_OFF:
+    case S_VIEW_MODE:
+      _render_mode();
+      break;
+
+    case S_VIEW_COLOR:
+      if (mode.data[0] == 0) {
+        gui_set = constrain(gui_set, 0, 2);
+        gui_color = constrain(gui_set, 0, 8);
+        led.r = mode.vm.colors[gui_set][gui_color][0];
+        led.g = mode.vm.colors[gui_set][gui_color][1];
+        led.b = mode.vm.colors[gui_set][gui_color][2];
+      } else {
+        gui_set = constrain(gui_set, 0, 1);
+        gui_color = constrain(gui_set, 0, 8);
+        led.r = mode.pm.colors[gui_set][gui_color][0];
+        led.g = mode.pm.colors[gui_set][gui_color][1];
+        led.b = mode.pm.colors[gui_set][gui_color][2];
       }
+      break;
+
+    case S_BRIGHT_OFF:
+      led.r = led.g = led.b = 128;
+      break;
+
+    case S_RESET_OFF:
+      led.r = 128; led.g = led.b = 0;
       break;
 
     default:
-      /* a_pitch = sqrt(gs2[0] + gs2[2]); */
-      /* a_pitch = atan2(-gs[1], a_pitch); */
-      /* a_roll = atan2(-gs[0], gs[2]); */
+      led.r = led.g = led.b = 0;
       break;
   }
-
-  accel_tick++;
-  if (accel_tick >= ACCEL_COUNTS) accel_tick = 0;
-}
-
-void accelSend(uint8_t addr, uint8_t data) {
-  Wire.beginTransmission(V2_ACCEL_ADDR);
-  Wire.write(addr);
-  Wire.write(data);
-  Wire.endTransmission();
-}
-
-void accelInit() {
-  accelSend(0x2A, 0x00);        // Standby to accept new settings
-  accelSend(0x0E, 0x01);        // Set +-4g range
-  accelSend(0x2B, 0b00011000);  // Low Power SLEEP
-  accelSend(0x2A, 0b00100001);  // Set 50 samples/sec (every 40 frames) and active
-}
-
-void accelStandby() {
-  accelSend(0x2A, 0x00);
-}
-
-void accelUpdateBins() {
-  uint8_t i = 0;
-  uint16_t bin_thresh = ACCEL_ONEG;
-  a_speed = 0;
-
-  while (i < ACCEL_BINS) {
-    bin_thresh += ACCEL_BIN_SIZE;
-    if (a_mag > bin_thresh) {
-      thresh_last[i] = 0;
-      thresh_cnts[i] = min(thresh_cnts[i] + 1, 128);
-    }
-    if (thresh_last[i] >= ACCEL_FALLOFF) thresh_cnts[i] = 0;
-    if (thresh_cnts[i] > ACCEL_TARGET) a_speed = i + 1;
-    thresh_last[i]++;
-    i++;
-  }
+  write_frame(led.r, led.g, led.b);
 }
 
 
-uint8_t interp(uint8_t m, uint8_t n, uint16_t d, uint16_t D) {
-  int32_t o = n - m;
-  return m + ((o * d) / D);
-}
-
-void recalcArgs() {
-  if (a_speed <= pm.m.color_thresh[0])      numc = pm.m.num_colors[0];
-  else if (a_speed < pm.m.color_thresh[1])  numc = min(pm.m.num_colors[0], pm.m.num_colors[1]);
-  else if (a_speed <= pm.m.color_thresh[2]) numc = pm.m.num_colors[1];
-  else if (a_speed < pm.m.color_thresh[3])  numc = min(pm.m.num_colors[1], pm.m.num_colors[2]);
-  else                                      numc = pm.m.num_colors[2];
-
-  uint8_t as, d, v;
-  if (a_speed <= pm.m.pattern_thresh[0]) {
-    as = 0;
-    d = 1;
-    v = 0;
-  } else if (a_speed < pm.m.pattern_thresh[1]) {
-    as = a_speed - pm.m.pattern_thresh[0];
-    d = pm.m.pattern_thresh[1] - pm.m.pattern_thresh[0];
-    v = 0;
-  } else if (a_speed <= pm.m.pattern_thresh[2]) {
-    as = 0;
-    d = 1;
-    v = 1;
-  } else if (a_speed < pm.m.pattern_thresh[3]) {
-    as = a_speed - pm.m.pattern_thresh[2];
-    d = pm.m.pattern_thresh[3] - pm.m.pattern_thresh[2];
-    v = 1;
-  } else {
-    as = 1;
-    d = 1;
-    v = 1;
-  }
-
-  arg0 = pm.m.args[0];
-  arg1 = pm.m.args[1];
-  arg2 = pm.m.args[2];
-  timing0 = interp(pm.m.timings[v][0], pm.m.timings[v + 1][0], as, d);
-  timing1 = interp(pm.m.timings[v][1], pm.m.timings[v + 1][1], as, d);
-  timing2 = interp(pm.m.timings[v][2], pm.m.timings[v + 1][2], as, d);
-  timing3 = interp(pm.m.timings[v][3], pm.m.timings[v + 1][3], as, d);
-  timing4 = interp(pm.m.timings[v][4], pm.m.timings[v + 1][4], as, d);
-  timing5 = interp(pm.m.timings[v][5], pm.m.timings[v + 1][5], as, d);
-}
-
-void colorFlux(uint8_t color) {
-  uint8_t as, d, v;
-  if (a_speed <= pm.m.color_thresh[0]) {
-    as = 0;
-    d = 1;
-    v = 0;
-  } else if (a_speed < pm.m.color_thresh[1]) {
-    as = a_speed - pm.m.color_thresh[0];
-    d = pm.m.color_thresh[1] - pm.m.color_thresh[0];
-    v = 0;
-  } else if (a_speed <= pm.m.color_thresh[2]) {
-    as = 0;
-    d = 1;
-    v = 1;
-  } else if (a_speed < pm.m.color_thresh[3]) {
-    as = a_speed - pm.m.color_thresh[2];
-    d = pm.m.color_thresh[3] - pm.m.color_thresh[2];
-    v = 1;
-  } else {
-    as = 1;
-    d = 1;
-    v = 1;
-  }
-  r = interp(pm.m.colors[v][color][0], pm.m.colors[v + 1][color][0], as, d);
-  g = interp(pm.m.colors[v][color][1], pm.m.colors[v + 1][color][1], as, d);
-  b = interp(pm.m.colors[v][color][2], pm.m.colors[v + 1][color][2], as, d);
-}
-
-int8_t patternStrobe(uint8_t numc, uint8_t pick, uint8_t skip, uint8_t repeat,
-    uint8_t st, uint8_t bt, uint8_t lt,
-    uint32_t& tick, uint32_t& trip, uint32_t& cidx, uint32_t& cntr, uint32_t& segm) {
-
-  int8_t rtn = -1;
-  if (st == 0 && bt == 0 && lt == 0) return -1;
-  numc = constrain(numc, 1, (pm.d[0] == 0) ? NUM_COLORS0 : NUM_COLORS1);
-  pick = (pick == 0) ? numc : pick;
-  skip = (skip == 0) ? pick : skip;
-  repeat = max(1, repeat);
-
-  if (tick >= trip) {
-    if (pm.d[0] == 0) recalcArgs();
-    tick = trip = 0;
-    while (trip == 0) {
-      segm++;
-      if (segm >= ((2 * pick) + 1)) {
-        segm = 0;
-        cntr++;
-        if (cntr >= repeat) {
-          cntr = 0;
-          cidx += skip;
-          if (cidx >= numc) cidx = (pick == skip) ? 0 : cidx % numc;
-        }
-      }
-
-      if (segm == 2 * pick)   trip = lt;
-      else if (segm % 2 == 1) trip = st;
-      else                    trip = bt;
-    }
-  }
-  tick++;
-
-  if (segm % 2 == 1) rtn = (segm / 2) + cidx;
-  else               rtn = -1;
-
-  if (rtn >= numc) rtn = (pick == skip) ? -1 : rtn % numc;
-  return rtn;
-}
-
-int8_t patternVexer(uint8_t numc, uint8_t repeat_c, uint8_t repeat_t,
-    uint8_t cst, uint8_t cbt, uint8_t tst, uint8_t tbt,
-    uint32_t& tick, uint32_t& trip, uint32_t& cidx, uint32_t& cntr, uint32_t& segm) {
-
-  int8_t rtn = -1;
-  if (cst == 0 && cbt == 0 && tst == 0 && tbt == 0) return -1;
-  numc = constrain(numc, 1, (pm.d[0] == 0) ? NUM_COLORS0 : NUM_COLORS1);
-  repeat_c = max(1, repeat_c);
-  repeat_t = max(1, repeat_t);
-
-  if (tick >= trip) {
-    if (pm.d[0] == 0) recalcArgs();
-    tick = trip = 0;
-    while (trip == 0) {
-      segm++;
-      if (segm >= (2 * (repeat_c + repeat_t + 1))) {
-        segm = 0;
-        cidx = (cidx + 1) % (numc - 1);
-      }
-
-      if (segm < (2 * repeat_c) + 1) {
-        if (segm % 2 == 0) trip = cbt;
-        else               trip = cst;
-      } else {
-        if (segm % 2 == 1) trip = tbt;
-        else               trip = tst;
-      }
-    }
-  }
-  tick++;
-
-  if (segm < (2 * repeat_c) + 1) {
-    if (segm % 2 == 0) rtn = -1;
-    else               rtn = cidx + 1;
-  } else {
-    if (segm % 2 == 1) rtn = -1;
-    else               rtn = 0;
-  }
-  return rtn;
-}
-
-int8_t patternEdge(uint8_t numc, uint8_t pick,
-    uint8_t cst, uint8_t cbt, uint8_t est, uint8_t ebt,
-    uint32_t& tick, uint32_t& trip, uint32_t& cidx, uint32_t& cntr, uint32_t& segm) {
-
-  int8_t rtn = -1;
-  if (cst == 0 && cbt == 0 && est == 0 && ebt == 0) return -1;
-  numc = constrain(numc, 1, (pm.d[0] == 0) ? NUM_COLORS0 : NUM_COLORS1);
-  pick = (pick == 0) ? numc : pick;
-
-  if (tick >= trip) {
-    if (pm.d[0] == 0) recalcArgs();
-    tick = trip = 0;
-    while (trip == 0) {
-      segm++;
-      if (segm >= (4 * pick) - 2) {
-        segm = 0;
-        cidx += pick;
-        if (cidx >= numc) cidx = 0;
-      }
-
-      if (segm == 0)                   trip = ebt;
-      else if (segm == (2 * pick) - 1) trip = est;
-      else if (segm % 2 == 0)          trip = cbt;
-      else                             trip = cst;
-    }
-  }
-  tick++;
-
-  if (segm % 2 == 0)               rtn = -1;
-  else if (segm == (2 * pick) - 1) rtn = cidx;
-  else                             rtn = abs((int)((segm / 2) - (pick - 1))) + cidx;
-
-  if (rtn >= numc) rtn = -1;
-  return rtn;
-}
-
-int8_t patternDouble(uint8_t numc, uint8_t repeat_c, uint8_t repeat_d, uint8_t skip,
-    uint8_t cst, uint8_t cbt, uint8_t dst, uint8_t dbt, uint8_t sbt,
-    uint32_t& tick, uint32_t& trip, uint32_t& cidx, uint32_t& cntr, uint32_t& segm) {
-
-  int8_t rtn = -1;
-  if (cst == 0 && cbt == 0 && dst == 0 && dbt == 0 && sbt == 0) return -1;
-  numc = constrain(numc, 1, (pm.d[0] == 0) ? NUM_COLORS0 : NUM_COLORS1);
-  repeat_c = max(1, repeat_c);
-  repeat_d = max(1, repeat_d);
-  skip = min(numc - 1, skip);
-
-  if (tick >= trip) {
-    if (pm.d[0] == 0) recalcArgs();
-    tick = trip = 0;
-    while (trip == 0) {
-      segm++;
-      if (segm >= 2 * (repeat_c + repeat_d)) {
-        segm = 0;
-        cidx = (cidx + 1) % numc;
-      }
-
-      if (segm == 0) {
-        trip = sbt;
-      } else if (segm < (2 * repeat_d)) {
-        if (segm % 2 == 1) trip = dst;
-        else               trip = dbt;
-      } else if (segm == (2 * repeat_d)) {
-        trip = sbt;
-      } else {
-        if (segm % 2 == 1) trip = cst;
-        else               trip = cbt;
-      }
-    }
-  }
-  tick++;
-
-  if (segm == 0) {
-    rtn = -1;
-  } else if (segm < (2 * repeat_d)) {
-    if (segm % 2 == 1) rtn = (cidx + skip) % numc;
-    else               rtn = -1;
-  } else if (segm == (2 * repeat_d)) {
-    rtn = -1;
-  } else {
-    if (segm % 2 == 1) rtn = cidx;
-    else               rtn = -1;
-  }
-  return rtn;
-}
-
-int8_t patternRunner(uint8_t numc, uint8_t pick, uint8_t skip, uint8_t repeat,
-    uint8_t cst, uint8_t cbt, uint8_t rst, uint8_t rbt, uint8_t sbt,
-    uint32_t& tick, uint32_t& trip, uint32_t& cidx, uint32_t& cntr, uint32_t& segm) {
-
-  int8_t rtn = -1;
-  if (cst == 0 && cbt == 0 && rst == 0 && rbt == 0 && sbt == 0) return -1;
-  numc = constrain(numc, 1, (pm.d[0] == 0) ? NUM_COLORS0 : NUM_COLORS1);
-  pick = (pick == 0) ? numc - 1 : pick;
-  skip = (skip == 0) ? pick : skip;
-  repeat = (repeat == 0) ? pick : repeat;
-
-  if (tick >= trip) {
-    if (pm.d[0] == 0) recalcArgs();
-    tick = trip = 0;
-    while (trip == 0) {
-      segm++;
-      if (segm >= (2 * (repeat + pick))) {
-        segm = 0;
-        cidx += skip;
-        if (cidx >= (numc - 1)) cidx = (pick == skip) ? 0 : rtn % (numc - 1);
-      }
-
-      if (segm == 0 || segm == 2 * pick) {
-        trip = sbt;
-      } else if (segm < 2 * pick) {
-        if (segm % 2 == 0) trip = cbt;
-        else               trip = cst;
-      } else {
-        if (segm % 2 == 1) trip = rbt;
-        else               trip = rst;
-      }
-    }
-  }
-  tick++;
-
-  if (segm == 0 || segm == 2 * pick) {
-    rtn = -1;
-  } else if (segm < (2 * pick) + 1) {
-    if (segm % 2 == 0) rtn = -1;
-    else               rtn = (segm / 2) + 1 + cidx;
-  } else {
-    if (segm % 2 == 1) rtn = -1;
-    else               rtn = 0;
-  }
-
-  if (rtn >= numc) rtn = (pick == skip) ? -1 : (rtn % (numc - 1) + 1);
-  return rtn;
-}
-
-int8_t patternStepper(uint8_t numc, uint8_t steps, uint8_t rand_steps, uint8_t rand_colors,
-    uint8_t bt, uint8_t ct0, uint8_t ct1, uint8_t ct2, uint8_t ct3, uint8_t ct4,
-    uint32_t& tick, uint32_t& trip, uint32_t& cidx, uint32_t& cntr, uint32_t& segm) {
-
-  int8_t rtn = -1;
-  if (bt == 0 && ct0 == 0 && ct1 == 0 && ct2 == 0 && ct3 == 0 && ct4 == 0) return -1;
-  numc = constrain(numc, 1, (pm.d[0] == 0) ? NUM_COLORS0 : NUM_COLORS1);
-  steps = constrain(steps, 1, 5);
-
-  if (tick >= trip) {
-    if (pm.d[0] == 0) recalcArgs();
-    tick = trip = 0;
-    while (trip == 0) {
-
-      segm++;
-      if (segm >= 2) {
-        segm = 0;
-        cidx = (rand_colors) ? random(0, numc) : (cidx + 1) % numc;
-        cntr = (rand_steps) ? random(0, steps) : (cntr + 1) % steps;
-      }
-
-      if (segm % 2 == 0) {  trip = bt; }
-      else {
-        if (cntr == 0)      trip = ct0;
-        else if (cntr == 1) trip = ct1;
-        else if (cntr == 2) trip = ct2;
-        else if (cntr == 3) trip = ct3;
-        else if (cntr == 4) trip = ct4;
-      }
-    }
-  }
-  tick++;
-
-  if (segm % 2 == 0) rtn = -1;
-  else               rtn = cidx;
-  return rtn;
-}
-
-int8_t patternRandom(uint8_t numc, uint8_t rand_colors, uint8_t multiplier,
-    uint8_t ct0, uint8_t ct1, uint8_t bt0, uint8_t bt1,
-    uint32_t& tick, uint32_t& trip, uint32_t& cidx, uint32_t& cntr, uint32_t& segm) {
-
-  int8_t rtn = -1;
-  if (ct0 == 0 && ct1 == 0 && bt0 == 0 && bt1 == 0) return -1;
-  numc = constrain(numc, 1, (pm.d[0] == 0) ? NUM_COLORS0 : NUM_COLORS1);
-  multiplier = constrain(multiplier, 1, 10);
-  uint8_t mini;
-  uint8_t maxi;
-
-  mini = min(ct0, ct1); maxi = max(ct0, ct1);
-  ct0 = mini; ct1 = maxi;
-  mini = min(bt0, bt1); maxi = max(bt0, bt1);
-  bt0 = mini; bt1 = maxi;
-
-  if (tick >= trip) {
-    if (pm.d[0] == 0) recalcArgs();
-    tick = trip = 0;
-    while (trip == 0) {
-      segm++;
-      if (segm >= 2) {
-        segm = 0;
-        if (rand_colors) cidx = random(0, numc);
-        else             cidx = (cidx + 1) % numc;
-      }
-
-      if (segm == 0)      trip = random(bt0, bt1 + 1) * multiplier;
-      else if (segm == 1) trip = random(ct0, ct1 + 1) * multiplier;
-    }
-  }
-  tick++;
-
-  if (segm == 0) rtn = -1;
-  else           rtn = cidx;
-  return rtn;
-}
-
-void renderMode() {
-  if (pm.d[0] == 0) {
-    int8_t color = -1;
-    if (pm.m.pattern == P_STROBE)
-      color = patternStrobe(numc, arg0, arg1, arg2,
-          timing0, timing1, timing2,
-          ticks[0], trips[0], cidxs[0], cntrs[0], segms[0]);
-    else if (pm.m.pattern == P_VEXER)
-      color = patternVexer(numc, arg0, arg1,
-          timing0, timing1, timing2, timing3,
-          ticks[0], trips[0], cidxs[0], cntrs[0], segms[0]);
-    else if (pm.m.pattern == P_EDGE)
-      color = patternEdge(numc, arg0,
-          timing0, timing1, timing2, timing3,
-          ticks[0], trips[0], cidxs[0], cntrs[0], segms[0]);
-    else if (pm.m.pattern == P_DOUBLE)
-      color = patternDouble(numc, arg0, arg1, arg2,
-          timing0, timing1, timing2, timing3, timing4,
-          ticks[0], trips[0], cidxs[0], cntrs[0], segms[0]);
-    else if (pm.m.pattern == P_RUNNER)
-      color = patternRunner(numc, arg0, arg1, arg2,
-          timing0, timing1, timing2, timing3, timing4,
-          ticks[0], trips[0], cidxs[0], cntrs[0], segms[0]);
-    else if (pm.m.pattern == P_STEPPER)
-      color = patternStepper(numc, arg0, arg1, arg2,
-          timing0, timing1, timing2, timing3, timing4, timing5,
-          ticks[0], trips[0], cidxs[0], cntrs[0], segms[0]);
-    else if (pm.m.pattern == P_RANDOM)
-      color = patternRandom(numc, arg0, arg1,
-          timing0, timing1, timing2, timing3,
-          ticks[0], trips[0], cidxs[0], cntrs[0], segms[0]);
-
-    if (color < 0) {
-      r = g = b = 0;
-    } else {
-      colorFlux(color);
-    }
-
-  } else {
-    int8_t color[2] = {-1, -1};
-    for (uint8_t i = 0; i < 2; i++) {
-      if (pm.pm.pattern[i] == P_STROBE)
-        color[i] = patternStrobe(numc, pm.pm.args[i][0], pm.pm.args[i][1], pm.pm.args[i][2],
-            pm.pm.timings[i][0], pm.pm.timings[i][1], pm.pm.timings[i][2],
-            ticks[i], trips[i], cidxs[i], cntrs[i], segms[i]);
-      else if (pm.pm.pattern[i] == P_VEXER)
-        color[i] = patternVexer(numc, pm.pm.args[i][0], pm.pm.args[i][1],
-            pm.pm.timings[i][0], pm.pm.timings[i][1], pm.pm.timings[i][2], pm.pm.timings[i][3],
-            ticks[i], trips[i], cidxs[i], cntrs[i], segms[i]);
-      else if (pm.pm.pattern[i] == P_EDGE)
-        color[i] = patternEdge(numc, pm.pm.args[i][0],
-            pm.pm.timings[i][0], pm.pm.timings[i][1], pm.pm.timings[i][2], pm.pm.timings[i][3],
-            ticks[i], trips[i], cidxs[i], cntrs[i], segms[i]);
-      else if (pm.pm.pattern[i] == P_DOUBLE)
-        color[i] = patternDouble(numc, pm.pm.args[i][0], pm.pm.args[i][1], pm.pm.args[i][2],
-            pm.pm.timings[i][0], pm.pm.timings[i][1], pm.pm.timings[i][2], pm.pm.timings[i][3], pm.pm.timings[i][4],
-            ticks[i], trips[i], cidxs[i], cntrs[i], segms[i]);
-      else if (pm.pm.pattern[i] == P_RUNNER)
-        color[i] = patternRunner(numc, pm.pm.args[i][0], pm.pm.args[i][1], pm.pm.args[i][2],
-            pm.pm.timings[i][0], pm.pm.timings[i][1], pm.pm.timings[i][2], pm.pm.timings[i][3], pm.pm.timings[i][4],
-            ticks[i], trips[i], cidxs[i], cntrs[i], segms[i]);
-      else if (pm.pm.pattern[i] == P_STEPPER)
-        color[i] = patternStepper(numc, pm.pm.args[i][0], pm.pm.args[i][1], pm.pm.args[i][2],
-            pm.pm.timings[i][0], pm.pm.timings[i][1], pm.pm.timings[i][2], pm.pm.timings[i][3], pm.pm.timings[i][4], pm.pm.timings[i][5],
-            ticks[i], trips[i], cidxs[i], cntrs[i], segms[i]);
-      else if (pm.pm.pattern[i] == P_RANDOM)
-        color[i] = patternRandom(numc, pm.pm.args[i][0], pm.pm.args[i][1],
-            pm.pm.timings[i][0], pm.pm.timings[i][1], pm.pm.timings[i][2], pm.pm.timings[i][3],
-            ticks[i], trips[i], cidxs[i], cntrs[i], segms[i]);
-      // P_FLUX
-      // P_STRETCH
-
-      if (color[variant] < 0) {
-        r = g = b = 0;
-      } else {
-        r = pm.pm.colors[variant][color[variant]][0];
-        g = pm.pm.colors[variant][color[variant]][1];
-        b = pm.pm.colors[variant][color[variant]][2];
-      }
-    }
-  }
-
-  tick++;
-}
-
-
-void changeMode(uint8_t i) {
-  if (i < NUM_MODES) cur_mode = i;
-  else if (i == 99)  cur_mode = (cur_mode + NUM_MODES - 1) % NUM_MODES;
-  else if (i == 101) cur_mode = (cur_mode + 1) % NUM_MODES;
-
-  variant = 0;
-  ticks[0] = trips[0] = cidxs[0] = cntrs[0] = segms[0] = 0;
-  ticks[1] = trips[1] = cidxs[1] = cntrs[1] = segms[1] = 0;
-  loadMode(cur_mode);
-  gui_set = gui_color = -1;
-
-  if (pm.d[0] == 0) recalcArgs();
-}
-
-
-void modeSave() {
-  for (uint8_t i = 0; i < MODE_SIZE; i++) {
-    EEPROMupdate((cur_mode * 128) + i, pm.d[i]);
-  }
-}
-
-void modeRead(uint8_t addr) {
-  Serial.write(cur_mode);
-  Serial.write(addr);
-  Serial.write(pm.d[addr]);
-}
-
-void modeWrite(uint8_t addr, uint8_t val) {
-  pm.d[addr] = val;
-}
-
-void modeDump() {
+//********************************************************************************
+// handle_serial
+//********************************************************************************
+void ser_dump() {
   Serial.write(200); Serial.write(cur_mode); Serial.write(200);
-  for (uint8_t i = 0; i < MODE_SIZE; i++) modeRead(i);
+  for (uint8_t b = 0; b < MODE_SIZE; b++) {
+    Serial.write(cur_mode); Serial.write(b); Serial.write(mode.data[b]);
+  }
   Serial.write(210); Serial.write(cur_mode); Serial.write(210);
 }
 
-void modeDumpLight() {
+void ser_dump_light() {
   for (uint8_t m = 0; m < NUM_MODES; m++) {
-    for (uint8_t i = 0; i < MODE_SIZE; i++) {
-      Serial.write(m); Serial.write(i); Serial.write(EEPROMread((m * MODE_SIZE) + i));
+    for (uint8_t b = 0; b < MODE_SIZE; b++) {
+      Serial.write(m); Serial.write(b); Serial.write(ee_read((m * MODE_SIZE) + b));
     }
   }
   Serial.write(SER_DUMP_LIGHT); Serial.write(0); Serial.write(0);
 }
 
-void modeWriteLight(int m, int addr, int val) {
-  EEPROMupdate((m * MODE_SIZE) + addr, val);
+void ser_save() {
+  for (uint8_t b = 0; b < MODE_SIZE; b++) {
+    ee_update((cur_mode * MODE_SIZE) + b, mode.data[b]);
+  }
 }
 
-void handleSerial() {
+void ser_read(uint8_t b) {
+  if (b < MODE_SIZE) {
+    Serial.write(cur_mode); Serial.write(b); Serial.write(mode.data[b]);
+  }
+}
+
+void ser_write(uint8_t b, uint8_t v) {
+  if (b < MODE_SIZE) {
+    mode.data[b] = v;
+  }
+}
+
+void ser_write_light(uint8_t m, uint8_t b, uint8_t v) {
+  if (m < NUM_MODES && b < MODE_SIZE) {
+    ee_update((m * MODE_SIZE) + b, v);
+  }
+}
+
+void handle_serial() {
   uint8_t cmd, in0, in1, in2;
   while (Serial.available() >= 4) {
     cmd = Serial.read();
@@ -1225,26 +988,35 @@ void handleSerial() {
       if (in0 == SER_VERSION && in1 == SER_VERSION) {
         new_state = S_VIEW_MODE;
         comm_link = true;
-        wdt_disable();
         Serial.write(251); Serial.write(cur_mode); Serial.write(SER_VERSION);
       }
     } else if (comm_link) {
       if (cmd == SER_DUMP) {
-        modeDump();
+        ser_dump();
       } else if (cmd == SER_DUMP_LIGHT) {
-        modeDumpLight();
+        ser_dump_light();
       } else if (cmd == SER_SAVE) {
-        modeSave();
+        ser_save();
         flash(128, 128, 128, 5);
       } else if (cmd == SER_READ) {
-        modeRead(in0);
+        ser_read(in0);
       } else if (cmd == SER_WRITE) {
-        modeWrite(in0, in1);
+        ser_write(in0, in1);
+        if (mode.data[0] == 1) {
+          calc_primer_states();
+        }
       } else if (cmd == SER_WRITE_LIGHT) {
-        modeWriteLight(in0, in1, in2);
+        ser_write_light(in0, in1, in2);
+      } else if (cmd == SER_WRITE_MODE) {
+        new_state = S_MODE_WRITE;
+      } else if (cmd == SER_WRITE_MODE_END) {
+        reset_mode();
+        new_state = S_VIEW_MODE;
       } else if (cmd == SER_CHANGE_MODE) {
-        changeMode(in0);
-        modeDump();
+        change_mode(in0);
+        ser_dump();
+      } else if (cmd == SER_RESET_MODE) {
+        reset_mode();
       } else if (cmd == SER_VIEW_MODE) {
         new_state = S_VIEW_MODE;
       } else if (cmd == SER_VIEW_COLOR) {
@@ -1254,18 +1026,131 @@ void handleSerial() {
       } else if (cmd == SER_DISCONNECT) {
         new_state = S_PLAY_OFF;
         comm_link = false;
-        wdt_enable(WDTO_15MS);
       }
     }
   }
 }
 
-void EEPROMupdate(uint16_t addr, uint8_t val) {
-  while (!eeprom_is_ready());
-  EEPROM.update(addr, val);
+
+//********************************************************************************
+// Setup helpers
+//********************************************************************************
+void setup_state() {
+  // Listen for button press
+  attachInterrupt(0, _push_interrupt, FALLING);
+  if (ee_read(ADDR_SLEEPING)) {
+    // Disable sleeping bit
+    ee_update(ADDR_SLEEPING, 0);
+
+    // This is where we actually go to sleep
+    LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_ON);
+
+    // On wake up, check lock state
+    if (ee_read(ADDR_LOCKED)) {
+      op_state = new_state = S_SLEEP_LOCK;
+    } else {
+      op_state = new_state = S_SLEEP_WAKE;
+    }
+  } else {
+    // On reboot, check for conjure vs play state
+    if (ee_read(ADDR_CONJURE)) {
+      // Load current mode from memory when conjuring
+      cur_mode = ee_read(ADDR_CONJURE_MODE);
+      op_state = new_state = S_CONJURE_OFF;
+    } else {
+      op_state = new_state = S_PLAY_OFF;
+    }
+  }
+
+  // Can stop listening to button now
+  detachInterrupt(0);
 }
 
-uint8_t EEPROMread(uint16_t addr) {
-  while (!eeprom_is_ready());
-  return EEPROM.read(addr);
+void setup_pins() {
+  // Set the button for input
+  pinMode(PIN_BUTTON, INPUT);
+
+  // Set the LED pins for output
+  pinMode(PIN_R, OUTPUT);
+  pinMode(PIN_G, OUTPUT);
+  pinMode(PIN_B, OUTPUT);
+
+  // Power on the Low Drop Out voltage regulator
+  pinMode(PIN_LDO, OUTPUT);
+  digitalWrite(PIN_LDO, HIGH);
+
+  // Start up and initialize the acceleromater
+  Wire.begin();
+  accel_init();
+}
+
+void setup_timers() {
+  // Setup PWM speeds for timers
+  noInterrupts();
+  TCCR0B = (TCCR0B & 0b11111000) | 0b001;  // no prescaler ~64/ms
+  TCCR1B = (TCCR1B & 0b11111000) | 0b001;  // no prescaler ~32/ms
+  bitSet(TCCR1B, WGM12); // enable fast PWM                ~64/ms
+  interrupts();
+}
+
+void setup_funcs() {
+  pattern_funcs[P_STROBE] = &pattern_strobe;
+  pattern_funcs[P_VEXER] = &pattern_vexer;
+  pattern_funcs[P_EDGE] = &pattern_edge;
+  pattern_funcs[P_TRIPLE] = &pattern_triple;
+  pattern_funcs[P_RUNNER] = &pattern_runner;
+  pattern_funcs[P_STEPPER] = &pattern_stepper;
+  pattern_funcs[P_RANDOM] = &pattern_random;
+}
+
+
+bool version_match() {
+  for (uint8_t i = 0; i < 4; i++) {
+    if (EEPROM_VERSION[i] != ee_read(ADDR_VERSION[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void reset_memory() {
+  // Clear all memory
+  for (int i = 0; i < 1024; i++) ee_update(i, 0);
+
+  // Rewrite factory and version
+  for (uint8_t m = 0; m < NUM_MODES; m++) {
+    for (uint8_t b = 0; b < MODE_SIZE; b++) {
+      ee_update((m * MODE_SIZE) + b, pgm_read_byte(&factory[m][b]));
+    }
+
+    if (m < 4) ee_update(ADDR_VERSION[m], EEPROM_VERSION[m]);
+  }
+}
+
+
+//********************************************************************************
+// Main functions
+//********************************************************************************
+void setup() {
+  setup_state();
+  setup_pins();
+  setup_timers();
+  setup_funcs();
+
+  if (!version_match()) reset_memory();
+  brightness = ee_read(ADDR_BRIGHTNESS);
+
+  Serial.begin(115200);
+  Serial.write(SER_HANDSHAKE); Serial.write(SER_VERSION); Serial.write(SER_VERSION);
+
+  change_mode(cur_mode);
+  deadbeef_seed = analogRead(0);
+  delay(6400);
+}
+
+void loop() {
+  handle_serial();
+  handle_accel();
+  handle_button();
+  handle_render();
 }

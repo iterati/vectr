@@ -6,6 +6,39 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 ControlP5 cp5;
 
+
+// Main
+static final int ID_TYPE              = 100;
+static final int ID_COLOREDIT         = 300;
+static final int ID_COLORBANK         = 5000;
+
+// Shared
+static final int ID_PATTERN          = 1000;
+static final int ID_ARG              = 1100;
+static final int ID_TIMING           = 1200;
+static final int ID_NUMCOLORS        = 1300;
+static final int ID_COLORS           = 1400;
+
+// Vectr Only
+static final int ID_PATTERN_TRESH    = 1900;
+static final int ID_COLOR_TRESH      = 1901;
+
+// Primer Only
+static final int ID_TRIGGER_MODE     = 2900;
+static final int ID_TRIGGER_TRESH    = 2901;
+
+final static String[] PATTERNS = {
+  "Strobe",
+  "Vexer",
+  "Edge",
+  "Multi",
+  "Runner",
+  "Stepper",
+  "Random",
+};
+final static String[] TRIGGERMODES = {"Off", "Velocity", "Tilt", "Roll", "Flip"};
+final static String[] MODETYPES = {"Vectr", "Primr"};
+
 int COLOR_BANK[][] = {
   {255, 0, 0},
   {224, 32, 0},
@@ -57,18 +90,17 @@ int COLOR_BANK[][] = {
   {80, 8, 80}
 };
 
-final static String[] PATTERNS = {"Strobe", "Vexer", "Edge", "Double", "Runner", "Stepper", "Random"};
-/* final static String[] PPATTERNS = {"Strobe", "Vexer", "Edge", "Double", "Runner", "Stepper", "Random", "Flux"}; */
-/* final static String[] ACCELMODES = {"Off", "Velocity", "Tilt", "Roll", "Flip"}; */
-final static String[] MODETYPES = {"Vectr", "Primr"};
-
+static final int SER_VERSION = 101;
 static final int SER_DUMP           = 10;
 static final int SER_DUMP_LIGHT     = 11;
 static final int SER_SAVE           = 20;
 static final int SER_READ           = 30;
 static final int SER_WRITE          = 40;
 static final int SER_WRITE_LIGHT    = 41;
+static final int SER_WRITE_MODE     = 42;
+static final int SER_WRITE_MODE_END = 43;
 static final int SER_CHANGE_MODE    = 50;
+static final int SER_RESET_MODE     = 51;
 static final int SER_VIEW_MODE      = 100;
 static final int SER_VIEW_COLOR     = 110;
 static final int SER_DUMP_START     = 200;
@@ -76,8 +108,6 @@ static final int SER_DUMP_END       = 210;
 static final int SER_HANDSHAKE      = 250;
 static final int SER_HANDSHACK      = 251;
 static final int SER_DISCONNECT     = 254;
-
-static final int SER_VERSION = 101;
 
 int num_ports = 0;
 Serial ports[] = new Serial[10];
@@ -95,38 +125,15 @@ int cur_mode = 0;
 
 // All the groups
 Group gMain;
-Group gTitle;
-Group gControls;
-Group gColorEdit;
-Group gColorBank;
-Group gMode;
 
-// Main
 Mode mode;
 Mode[] modes = new Mode[7];
-
-// Title
-Textlabel tlTitle;
-Button bNextMode;
-Button bPrevMode;
-
-// Controls
-Button bSaveMode;
-Button bLoadMode;
-Button bWriteMode;
-Button bResetMode;
-Button bSaveLight;
-Button bWriteLight;
-Button bDisconnectLight;
-
-// ColorBank
-Button[] bColorBank = new Button[48];
 
 String file_path = "";
 
 
 void setup() {
-  surface.setTitle("VectrUI 02-01-2016");
+  surface.setTitle("VectrUI 02-09-2016");
   smooth(8);
   size(1040, 720);
   loadColorBank();
@@ -134,7 +141,13 @@ void setup() {
   cp5 = new ControlP5(this);
   cp5.setFont(createFont("Comfortaa-Bold", 14));
 
-  setupMainGroup();
+  gMain = cp5.addGroup("main")
+    .setPosition(0, 0)
+    .setWidth(1280)
+    .setHeight(720)
+    .hideBar()
+    .hideArrow();
+  mode = new Mode(gMain);
 
   for (int i = 0; i < 7; i++) {
     modes[i] = new Mode();
@@ -193,7 +206,7 @@ void sendCommand(int cmd, int in0, int in1) {
 }
 
 void sendCommand(int cmd, int in0, int in1, int in2) {
-  /* println("send " + cmd + " " + in0 + " " + in1 + " " + in2); */
+  println("send " + cmd + " " + in0 + " " + in1 + " " + in2);
   if (initialized) {
     port.write(cmd);
     port.write(in0);
@@ -206,7 +219,7 @@ void readCommand() {
   int cmd = port.read();
   int addr = port.read();
   int val = port.read();
-  /* if (cmd > 7) println("get " + cmd + " " + addr + " " + val); */
+  println("get " + cmd + " " + addr + " " + val);
 
   if (cmd == SER_HANDSHAKE) {
     if (addr == SER_VERSION && val == SER_VERSION) {
@@ -224,7 +237,7 @@ void readCommand() {
   } else if (cmd == SER_DUMP_END) {
     cur_mode = addr;
     reading = false;
-    tlTitle.setValue("Mode " + (cur_mode + 1));
+    mode.tlTitle.setValue("Mode " + (cur_mode + 1));
   } else if (cmd == SER_DUMP_LIGHT) {
     flashing = false;
     actuallySaveLightFile();
@@ -233,82 +246,6 @@ void readCommand() {
       modes[cmd].seta(addr, val);
     } else if (cmd == cur_mode) {
       mode.seta(addr, val);
-    }
-  }
-}
-
-
-void controlEvent(CallbackEvent theEvent) {
-  Controller eController = theEvent.getController();
-  String eName = eController.getName();
-  int eVal = (int)eController.getValue();
-  int eId = eController.getId();
-  int eAction = theEvent.getAction();
-
-  if (eController.equals(mode.dlType)) {
-    /* if (eAction == ControlP5.ACTION_BROADCAST) { */
-    /*   mode.setType(eVal); */
-    /*   mode.sendType(); */
-    /* } else if (eAction == ControlP5.ACTION_LEAVE) { */
-    /*   mode.dlType.close(); */
-    /* } */
-  } else if (eController.equals(mode.dlPattern)) {
-    if (eAction == ControlP5.ACTION_BROADCAST) {
-      if (eVal != mode.pattern) {
-        mode.setPattern(eVal);
-        mode.sendPattern();
-        mode.resetArgsAndTimings();
-      } else {
-        mode.setPattern(eVal);
-        mode.sendPattern();
-      }
-    } else if (eAction == ControlP5.ACTION_LEAVE) {
-      mode.dlPattern.close();
-    }
-  } else if (eId >= 10200 && eId < 10300) { // slArgs
-    if (eAction == ControlP5.ACTION_BROADCAST) {
-      mode.setArgs(eId - 10200, eVal);
-      mode.sendArgs(eId - 10200);
-    }
-  } else if (eController.equals(mode.trPatternThresh)) {
-    if (eAction == ControlP5.ACTION_RELEASED || eAction == ControlP5.ACTION_RELEASEDOUTSIDE) {
-      mode.setPatternThresh(mode.trPatternThresh.getArrayValue());
-      mode.sendPatternThresh();
-    }
-  } else if (eId >= 10100 && eId < 10200) { // slTimings
-    if (eAction == ControlP5.ACTION_BROADCAST) {
-      mode.setTimings(eId - 10100, eVal);
-      mode.sendTimings(eId - 10100);
-    }
-  } else if (eController.equals(mode.trColorThresh)) {
-    if (eAction == ControlP5.ACTION_RELEASED || eAction == ControlP5.ACTION_RELEASEDOUTSIDE) {
-      mode.setColorThresh(mode.trColorThresh.getArrayValue());
-      mode.sendColorThresh();
-    }
-  } else if (eId >= 10300 && eId < 10400) { // slNumColors
-    if (eAction == ControlP5.ACTION_BROADCAST) {
-      mode.setNumColors(eId - 10300, eVal);
-      mode.sendNumColors(eId - 10300);
-    }
-  } else if (eId >= 11000 && eId < 11100) { // bColors
-    if (eAction == ControlP5.ACTION_BROADCAST) {
-      mode.selectColor(eId - 11000);
-      if (!view_mode) {
-        viewColor(0);
-      }
-    }
-  } else if (eId >= 20000 && eId < 21000) { // bColorBank
-    if (eAction == ControlP5.ACTION_BROADCAST) {
-      int s = (eId - 20000) / 100;
-      int i = (eId - 20000) % 100;
-      int[] c = {COLOR_BANK[i][0] >> s, COLOR_BANK[i][1] >> s, COLOR_BANK[i][2] >> s};
-      mode.setColor(mode.color_set, mode.color_slot, c);
-      mode.sendColor(mode.color_set, mode.color_slot);
-    }
-  } else if (eId >= 21000 && eId < 22000) { // slColorValues
-    if (eAction == ControlP5.ACTION_BROADCAST) {
-      mode.setColors(mode.color_set, mode.color_slot, eId - 21000, eVal);
-      mode.sendColors(mode.color_set, mode.color_slot, eId - 21000);
     }
   }
 }
@@ -371,58 +308,6 @@ int getColorBankColor(int i, int s) {
   return translateColor(COLOR_BANK[i][0] >> s, COLOR_BANK[i][1] >> s, COLOR_BANK[i][2] >> s);
 }
 
-void setupMainGroup() {
-  gMain = cp5.addGroup("main")
-    .setPosition(0, 0)
-    .setWidth(1280)
-    .setHeight(720)
-    .hideBar()
-    .hideArrow();
-
-  gTitle = cp5.addGroup("title")
-    .setGroup(gMain)
-    .setPosition(240, 5)
-    .hideBar()
-    .hideArrow();
-  gTitle = makeTitle(gTitle);
-
-  gControls = cp5.addGroup("controls")
-    .setGroup(gMain)
-    .setPosition(30, 690)
-    .hideBar()
-    .hideArrow();
-  gControls = makeControls(gControls);
-
-  gMode = cp5.addGroup("mode")
-    .setGroup(gMain)
-    .setPosition(20, 60)
-    .hideBar()
-    .hideArrow();
-  mode = new Mode(gMode);
-
-  gColorBank = cp5.addGroup("colorBank")
-    .setGroup(gMain)
-    .setPosition(810, 0)
-    .hideBar()
-    .hideArrow();
-
-  for (int g = 0; g < 6; g++) {
-    for (int c = 0; c < 8; c++) {
-      for (int s = 0; s < 4; s++) {
-        bColorBank[(g * 8) + c] = cp5.addButton("ColorBank" + ((g * 8) + c) + "." + s)
-          .setGroup(gColorBank)
-          .setId(20000 + ((g * 8) + c) + (100 * s))
-          .setLabel("")
-          .setSize(16, 16)
-          .setPosition(24 + 4 + (24 * c), 12 + 4 + (120 * g) + (24 * s))
-          .setColorBackground(getColorBankColor((g * 8) + c, s))
-          .setColorForeground(getColorBankColor((g * 8) + c, s))
-          .setColorActive(getColorBankColor((g * 8) + c, s));
-      }
-    }
-  }
-}
-
 void loadColorBank() {
   try {
     JSONArray jarr = loadJSONArray("colorbank.json");
@@ -436,78 +321,10 @@ void loadColorBank() {
   }
 }
 
-Group makeTitle(Group g) {
-  g.setSize(320, 40);
-  tlTitle = cp5.addTextlabel("tlTitle")
-    .setGroup(g)
-    .setValue("Mode 1")
-    .setFont(createFont("Comfortaa-Regular", 32))
-    .setPosition(60, 0)
-    .setSize(120, 40)
-    .setColorValue(color(240));
 
-  bPrevMode = cp5.addButton("prevMode")
-    .setCaptionLabel("<<")
-    .setGroup(g)
-    .setPosition(0, 10);
-  style(bPrevMode, 20);
-
-  bNextMode = cp5.addButton("nextMode")
-    .setCaptionLabel(">>")
-    .setGroup(g)
-    .setPosition(220, 10);
-  style(bNextMode, 20);
-
-  return g;
-}
-
-Group makeControls(Group g) {
-  g.setSize(940, 20);
-  bResetMode = cp5.addButton("resetMode")
-    .setCaptionLabel("Reset Mode")
-    .setGroup(g)
-    .setPosition(10, 0);
-  style(bResetMode, 80);
-
-  bWriteMode = cp5.addButton("writeMode")
-    .setCaptionLabel("Write Mode")
-    .setGroup(g)
-    .setPosition(110, 0);
-  style(bWriteMode, 80);
-
-  bSaveMode = cp5.addButton("saveMode")
-    .setCaptionLabel("Save Mode")
-    .setGroup(g)
-    .setPosition(210, 0);
-  style(bSaveMode, 80);
-
-  bLoadMode = cp5.addButton("loadMode")
-    .setCaptionLabel("Load Mode")
-    .setGroup(g)
-    .setPosition(310, 0);
-  style(bLoadMode, 80);
-
-  bSaveLight = cp5.addButton("saveLight")
-    .setCaptionLabel("Save Light")
-    .setGroup(g)
-    .setPosition(510, 0);
-  style(bSaveLight, 80);
-
-  bWriteLight = cp5.addButton("writeLight")
-    .setCaptionLabel("Write Light")
-    .setGroup(g)
-    .setPosition(610, 0);
-  style(bWriteLight, 80);
-
-  bDisconnectLight = cp5.addButton("disconnectLight")
-    .setCaptionLabel("Disconnect")
-    .setGroup(g)
-    .setPosition(710, 0);
-  style(bDisconnectLight, 80);
-
-  return g;
-}
-
+//********************************************************************************
+// Button actions
+//********************************************************************************
 void prevMode(int v) {
   if (!view_mode) viewMode(0);
   sendCommand(SER_CHANGE_MODE, 99);
@@ -539,7 +356,7 @@ void _writeLightFile(File file) {
       sendCommand(SER_CHANGE_MODE, cur_mode);
       flashing = false;
     } catch (Exception ex) {
-      // TODO popup error message
+      println("SHIT! " + ex);
     }
   }
 }
@@ -600,10 +417,10 @@ void _saveModeFile(File file) {
   } else {
     String path = file.getAbsolutePath();
     if (!path.endsWith(".mode")) path = path + ".mode";
-
     try {
       saveJSONObject(mode.getJSON(), path, "compact");
     } catch (Exception ex) {
+      println("SHIT! " + ex);
       // TODO popup error message
     }
   }
@@ -632,7 +449,96 @@ void viewMode(int v) {
 
 void viewColor(int v) {
   view_mode = false;
-  sendCommand(SER_VIEW_COLOR, mode.color_set, mode.color_slot);
+  sendCommand(SER_VIEW_COLOR, mode.getColorSet(), mode.getColorSlot());
   mode.bViewMode.setColorBackground(color(48));
   mode.bViewColor.setColorBackground(color(128));
+}
+
+
+void controlEvent(CallbackEvent theEvent) {
+  Controller eController = theEvent.getController();
+  String eName = eController.getName();
+  int eVal = (int)eController.getValue();
+  int eId = eController.getId();
+  int eAction = theEvent.getAction();
+
+  if (eId == ID_TYPE) {
+    if (eAction == ControlP5.ACTION_BROADCAST) {
+      mode.setType(eVal);
+    } else if (eAction == ControlP5.ACTION_LEAVE) {
+      mode.dlType.close();
+    }
+  } else if (eId >= ID_PATTERN && eId < ID_PATTERN + 2) {
+    if (eAction == ControlP5.ACTION_BROADCAST) {
+      mode.setPattern(eId - ID_PATTERN, eVal);
+    } else if (eAction == ControlP5.ACTION_LEAVE) {
+      mode.closeDropdowns();
+    }
+  } else if (eId == ID_TRIGGER_MODE) {
+    if (eAction == ControlP5.ACTION_BROADCAST) {
+      mode.setTriggerMode(eVal);
+      mode.sendTriggerMode();
+    } else if (eAction == ControlP5.ACTION_LEAVE) {
+      mode.pmode.dlTriggerMode.close();
+    }
+  } else if (eId == ID_PATTERN_TRESH) {
+    if (eAction == ControlP5.ACTION_RELEASED || eAction == ControlP5.ACTION_RELEASEDOUTSIDE) {
+      mode.setPatternThresh(eController.getArrayValue());
+      mode.sendPatternThresh();
+    }
+  } else if (eId == ID_COLOR_TRESH) {
+    if (eAction == ControlP5.ACTION_RELEASED || eAction == ControlP5.ACTION_RELEASEDOUTSIDE) {
+      mode.setColorThresh(eController.getArrayValue());
+      mode.sendColorThresh();
+    }
+  } else if (eId == ID_TRIGGER_TRESH) {
+    if (eAction == ControlP5.ACTION_RELEASED || eAction == ControlP5.ACTION_RELEASEDOUTSIDE) {
+      mode.setTriggerThresh(eController.getArrayValue());
+      mode.sendTriggerThresh();
+    }
+  } else if (eId >= ID_ARG && eId < ID_ARG + 15) {
+    if (eAction == ControlP5.ACTION_BROADCAST) {
+      mode.setArgs(eId - ID_ARG, eVal);
+      mode.sendArgs(eId - ID_ARG);
+    }
+  } else if (eId >= ID_TIMING && eId < ID_TIMING + 24) {
+    if (eAction == ControlP5.ACTION_BROADCAST) {
+      mode.setTimings(eId - ID_TIMING, eVal);
+      mode.sendTimings(eId - ID_TIMING);
+    }
+  } else if (eId >= ID_NUMCOLORS && eId < ID_NUMCOLORS + 3) {
+    if (eAction == ControlP5.ACTION_BROADCAST) {
+      mode.setNumColors(eId - ID_NUMCOLORS, eVal);
+      mode.sendNumColors(eId - ID_NUMCOLORS);
+    }
+  } else if (eId >= ID_COLORS && eId < ID_COLORS + 27) {
+    if (eAction == ControlP5.ACTION_BROADCAST) {
+      mode.selectColor(eId - ID_COLORS);
+      if (!view_mode) {
+        viewColor(0);
+      }
+    }
+  } else if (eId >= ID_COLOREDIT && eId < ID_COLOREDIT + 3) {
+    if (eAction == ControlP5.ACTION_BROADCAST) {
+      mode.setColor(mode.getColorSet(), mode.getColorSlot(), eId - ID_COLOREDIT, eVal);
+      mode.sendColor(mode.getColorSet(), mode.getColorSlot(), eId - ID_COLOREDIT);
+    }
+  } else if (eId >= ID_COLORBANK) {
+    if (eAction == ControlP5.ACTION_BROADCAST) {
+      int s = (eId - ID_COLORBANK) / 100;
+      int i = (eId - ID_COLORBANK) % 100;
+      int[] c = {COLOR_BANK[i][0] >> s, COLOR_BANK[i][1] >> s, COLOR_BANK[i][2] >> s};
+      mode.setColor(mode.getColorSet(), mode.getColorSlot(), c);
+      mode.sendColor(mode.getColorSet(), mode.getColorSlot());
+    }
+  }
+}
+
+
+boolean oob(float x, float _min, float _max) {
+  return x < _min || x > _max;
+}
+
+boolean oob(int x, int _min, int _max) {
+  return x < _min || x > _max;
 }

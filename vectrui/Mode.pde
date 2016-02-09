@@ -4,247 +4,595 @@ class Mode {
   static final int _TYPE = 0;
   static final int _MODESIZE = 128;
 
-  static final int _PATTERN = 1;
-  static final int _ARGS = 2;
-  static final int _PATTERNTHRESH = 5;
-  static final int _TIMINGS = 9;
-  static final int _COLORTHRESH = 27;
-  static final int _NUMCOLORS = 31;
-  static final int _COLORS = 34;
-  static final int _PADDING = 115;
+  int   _type = -1;
+  int[] data = new int[_MODESIZE];
 
-  /* static final int _PACCELMODE = 1; */
-  /* static final int _PACCELTRIG = 2; */
-  /* static final int _PACCELDROP = 4; */
-  /* static final int _PPATTERNS = 6; */
-  /* static final int _PARGS = 9; */
-  /* static final int _PTIMINGS = 18; */
-  /* static final int _PNUMCOLORS = 36; */
-  /* static final int _PCOLORS = 39; */
+  VectrMode vmode;
+  PrimerMode pmode;
 
-  int       _type;
-  int       pattern;
-  int[]     args = new int[3];
-  int[][]   patternThresh = new int[2][2];
-  int[][]   timings = new int[3][6];
-  int[][]   colorThresh = new int[2][2];
-  int[]     numColors = new int[3];
-  int[][][] colors = new int[3][9][3];
+  Group gMain;
+  Group gVectr;
+  Group gPrimer;
+  Group gTitle;
+  Group gControls;
+  Group gColorEdit;
+  Group gColorBank;
 
-  /* int       pAccelMode; */
-  /* int       pAccelTrig; */
-  /* int       pAccelDrop; */
-  /* int[]     pPatterns = new int[2]; */
-  /* int[][]   pArgs = new int[2][3]; */
-  /* int[][]   pTimings = new int[2][6]; */
-  /* int[]     pNumColors = new int[2]; */
-  /* int[][][] pColors = new int[2][16][3]; */
+  // Title
+  Textlabel tlTitle;
+  Button bNextMode;
+  Button bPrevMode;
 
-  //********************************************************************************
-  // GUI Elements
-  //********************************************************************************
-  Group gMode;
-  Group gType0;
-  /* Group gType1; */
-
-  // Both
-  DropdownList dlType;
-
-  // Type0 - Vectr Mode
-  Textlabel tlPatternLabel;
-  ThreshRange trPatternThresh;
-  ThreshRange trColorThresh;
-  DropdownList dlPattern;
-  Textlabel[] tlArgLabels = new Textlabel[3];
-  Slider[] slArgs = new Slider[3];
-  Textlabel[] tlTimingLabels = new Textlabel[6];
-  Slider[][] slTimings = new Slider[3][6];
-  Slider[] slNumColors = new Slider[3];
-  Button[][] bColors = new Button[3][9];
+  // Controls
+  Button bSaveMode;
+  Button bLoadMode;
+  Button bWriteMode;
+  Button bResetMode;
+  Button bSaveLight;
+  Button bWriteLight;
+  Button bDisconnectLight;
 
   // ColorEdit
   Slider[] slColorValues = new Slider[3];
   Button bViewMode;
   Button bViewColor;
 
-  // Type1 - Primer Mode
-  /* DropdownList dlAccelMode; */
-  /* PrimerRange prPrimerThresh; */
-  /* DropdownList[] dlPPatterns = new DropdownList[2]; */
-  /* Textlabel[][] tlPArgLabels = new Textlabel[2][3]; */
-  /* Slider[][] slPArgs = new Slider[2][3]; */
-  /* Textlabel[][] tlPTimingLabels = new Textlabel[2][6]; */
-  /* Slider[][] slPTimings = new Slider[2][6]; */
-  /* Slider[] slPNumColors = new Slider[2]; */
-  /* Button[][] bPColors = new Button[2][15]; */
+  // ColorBank
+  Button[][] bColorBank = new Button[48][4];
 
-  Button bSelectedColor;
-  int color_set = -1;
-  int color_slot = -1;
+  DropdownList dlType;
 
 
   Mode() {
-    _type = 0;
     use_gui = false;
+    vmode = new VectrMode();
+    pmode = new PrimerMode();
   }
 
   Mode(Group g) {
-    gMode = g;
-    _type = 0;
+    gMain = g;
 
-    // Type0
-    gType0 = cp5.addGroup("type0")
-      .setGroup(gMode)
-      .hideBar()
-      .hideArrow();
-
-    bSelectedColor = cp5.addButton("selectedColor")
-      .setGroup(gType0)
-      .setSize(40, 40)
-      .setColorBackground(color(255))
-      .setColorForeground(color(255))
-      .setColorActive(color(255))
-      .setLabel("")
-      .hide();
-
-    for (int i = 0; i < 3; i++) {
-      slArgs[i] = cp5.addSlider("Args" + i)
-        .setGroup(gType0)
-        .setId(10200 + i)
-        .setLabel("")
-        .setPosition(150 + (225 * i), 20);
-      style(slArgs[i], 201, 0, 10);
-
-      tlArgLabels[i] = cp5.addTextlabel("ArgLabels" + i)
-        .setGroup(gType0)
-        .setValue("Arg " + (i + 1))
-        .setPosition(150 + (i * 225), 0)
-        .setSize(200, 20)
-        .setColorValue(color(240));
-    }
-
-    trPatternThresh = new ThreshRange(cp5, "PatternThresh", 0)
-      .setGroup(gType0)
-      .setPosition(4, 80)
-      .setBroadcast(false)
-      .setLabel("Pattern Thresholds")
-      .setBroadcast(true);
-    style(trPatternThresh);
-
-    for (int j = 0; j < 6; j++) {
-      for (int i = 0; i < 3; i++) {
-        slTimings[i][j] = cp5.addSlider("Timings" + i + "." + j)
-          .setGroup(gType0)
-          .setId(10100 + (6 * i) + j)
-          .setLabel("")
-          .setPosition(150 + (225 * i), 150 + (30 * j));
-        style(slTimings[i][j], 201, 0, 200);
-      }
-
-      tlTimingLabels[j] = cp5.addTextlabel("TimingLabels" + j)
-        .setGroup(gType0)
-        .setValue("Timing" + (j + 1))
-        .setPosition(0, 150 + (30 * j))
-        .setSize(200, 20)
-        .setColorValue(color(240));
-    }
-
-    trColorThresh = new ThreshRange(cp5, "ColorThresh", 0)
-      .setGroup(gType0)
-      .setPosition(4, 380)
-      .setBroadcast(false)
-      .setLabel("Color Thresholds")
-      .setBroadcast(true);
-    style(trColorThresh);
-
-    for (int i = 0; i < 3; i++) {
-      slNumColors[i] = cp5.addSlider("NumColors" + i)
-        .setGroup(gType0)
-        .setId(10300 + i)
-        .setLabel("")
-        .setPosition(0, 470 + (40 * i));
-      style(slNumColors[i], 90, 1, 9);
-
-      for (int j = 0; j < 9; j++) {
-        bColors[i][j] = cp5.addButton("Colors" + i + "." + j)
-          .setGroup(gType0)
-          .setId(11000 + (i * 9) + j)
-          .setLabel("")
-          .setSize(32, 32)
-          .setPosition(114 + (40 * j), 464 + (40 * i));
-      }
-    }
-
-    tlPatternLabel = cp5.addTextlabel("PatternLabel")
-        .setGroup(gType0)
-        .setValue("Base Pattern")
-        .setPosition(0, 0)
-        .setSize(80, 20)
-        .setColorValue(color(240));
-
-    dlPattern = cp5.addDropdownList("Pattern")
-      .setGroup(gType0)
-      .setPosition(0, 20)
-      .setSize(80, 160)
-      .setItems(PATTERNS);
-    style(dlPattern);
-
-    /*
-    // Type1
-    gType1 = cp5.addGroup("type1")
-      .setGroup(gMode)
-      .hideBar()
-      .hideArrow();
-
-    for (int i = 2; i >= 0; i--) {
-      for (int j = 0; j < 3; j++) {
-        slPArgs[i][j] = cp5.addSlider("PArgs" + i + "." + j)
-          .setGroup(gType1)
-          .setId(10500 + (i * 3) + j)
-          .setLabel("")
-          .setPosition(130 + (275 * j), 20 + (40 * i));
-        style(slPArgs[i][j], 250, 0, 10);
-
-        tlPArgLabels[i][j] = cp5.addTextlabel("PArgLabels" + i + "." + j)
-          .setGroup(gType1)
-          .setValue("Args " + (i + 1) + " " + (j + 1))
-          .setPosition(130 + (j * 275), (40 * i))
-          .setSize(250, 20)
-          .setColorValue(color(240));
-      }
-
-      dlPPatterns[i] = cp5.addDropdownList("PPattern" + i)
-        .setGroup(gType1)
-        .setId(10400 + i)
-        .setPosition(0, 10 + (40 * i))
-        .setSize(80, 160)
-        .setItems(PATTERNS);
-      style(dlPPatterns[i]);
-    }
-
-    dlAccelMode = cp5.addDropdownList("PAccelMode")
-      .setGroup(gType1)
-      .setPosition(460, -35)
-      .setSize(80, 120)
-      .setItems(ACCELMODES);
-    style(dlAccelMode);
-
-    dlType = cp5.addDropdownList("Type")
-      .setGroup(gMode)
-      .setPosition(360, -35)
-      .setSize(80, 120)
+    dlType = cp5.addDropdownList("type")
+      .setGroup(gMain)
+      .setId(ID_TYPE)
+      .setPosition(50, 15)
+      .setSize(80, 60)
       .setItems(MODETYPES);
     style(dlType);
 
-    gType1.hide();
-    */
+    gTitle = cp5.addGroup("title")
+      .setGroup(gMain)
+      .setPosition(300, 5)
+      .hideBar()
+      .hideArrow();
+    makeTitle();
+
+    gControls = cp5.addGroup("controls")
+      .setGroup(gMain)
+      .setPosition(30, 690)
+      .hideBar()
+      .hideArrow();
+    makeControls();
 
     gColorEdit = cp5.addGroup("colorEdit")
-      .setGroup(gMode)
-      .setPosition(544, 460)
+      .setGroup(gMain)
+      .setPosition(544, 540)
       .hideBar()
       .hideArrow()
       .hide();
+    makeColorEdit();
+
+    gVectr = cp5.addGroup("vectr")
+      .setGroup(gMain)
+      .setPosition(20, 60)
+      .hideBar()
+      .hideArrow();
+    vmode = new VectrMode(gVectr);
+    gVectr.hide();
+
+    gPrimer = cp5.addGroup("primer")
+      .setGroup(gMain)
+      .setPosition(20, 60)
+      .hideBar()
+      .hideArrow();
+    pmode = new PrimerMode(gPrimer);
+    gPrimer.hide();
+
+    gColorBank = cp5.addGroup("colorBank")
+      .setGroup(gMain)
+      .setPosition(810, 0)
+      .hideBar()
+      .hideArrow();
+    makeColorBank();
+
+    dlType.bringToFront();
+  }
+
+  int geta(int addr) {
+    if (addr < 0 || addr >= _MODESIZE) {
+    } else if (addr == 0) {
+      return _type;
+    } else {
+      if (_type == 0) {
+        return vmode.geta(addr);
+      } else if (_type == 1) {
+        return pmode.geta(addr);
+      }
+    }
+    return 0;
+  }
+
+  void seta(int addr, int val) {
+    if (addr < 0 || addr >= _MODESIZE) {
+    } else if (addr == 0) {
+      setType(val);
+    } else {
+      if (_type == 0) {
+        vmode.seta(addr, val);
+      } else {
+        pmode.seta(addr, val);
+      }
+    }
+  }
+
+  void resetTypeGui() {
+    gVectr.hide();
+    gPrimer.hide();
+
+    if (_type == 0) {
+      gVectr.show();
+      vmode.deselectColor();
+      vmode.setPattern(0);
+      for (int i = 0; i < 4; i++) {
+        vmode.setPatternThresh(i, 32);
+        vmode.setColorThresh(i, 32);
+      }
+      for (int i = 0; i < 3; i++) {
+        vmode.setNumColors(i, 3);
+        vmode.setColor(i, 0, COLOR_BANK[0]);
+        vmode.setColor(i, 1, COLOR_BANK[8]);
+        vmode.setColor(i, 2, COLOR_BANK[16]);
+        vmode.setColor(i, 3, COLOR_BANK[24]);
+        vmode.setColor(i, 4, COLOR_BANK[24]);
+        vmode.setColor(i, 5, COLOR_BANK[24]);
+        vmode.setColor(i, 6, COLOR_BANK[24]);
+        vmode.setColor(i, 7, COLOR_BANK[24]);
+        vmode.setColor(i, 8, COLOR_BANK[24]);
+      }
+    } else if (_type == 1) {
+      gPrimer.show();
+      pmode.deselectColor();
+      pmode.setPattern(0, 0);
+      pmode.setPattern(1, 0);
+      pmode.setTriggerMode(0);
+      for (int i = 0; i < 2; i++) {
+        pmode.setTriggerThresh(i, 32);
+      }
+      for (int i = 0; i < 2; i++) {
+        pmode.setNumColors(i, 3);
+        pmode.setColor(i, 0, COLOR_BANK[0]);
+        pmode.setColor(i, 1, COLOR_BANK[8]);
+        pmode.setColor(i, 2, COLOR_BANK[16]);
+        pmode.setColor(i, 3, COLOR_BANK[24]);
+        pmode.setColor(i, 4, COLOR_BANK[24]);
+        pmode.setColor(i, 5, COLOR_BANK[24]);
+        pmode.setColor(i, 6, COLOR_BANK[24]);
+        pmode.setColor(i, 7, COLOR_BANK[24]);
+        pmode.setColor(i, 8, COLOR_BANK[24]);
+      }
+    }
+
+    deselectColor();
+    resetPatternGui();
+    resetArgsAndTimings();
+  }
+
+  void resetPatternGui() {
+    if (_type == 0) {
+      vmode.resetPatternGui();
+    } else if (_type == 1) {
+      pmode.resetPatternGui(0);
+      pmode.resetPatternGui(1);
+    }
+  }
+
+  void resetArgsAndTimings() {
+    if (_type == 0) {
+      vmode.resetArgsAndTimings();
+    } else if (_type == 1) {
+      pmode.resetArgsAndTimings(0);
+      pmode.resetArgsAndTimings(1);
+    }
+  }
+
+  void resetArgsAndTimings(int i) {
+    if (_type == 1) {
+      pmode.resetArgsAndTimings(i);
+    }
+  }
+
+  void deselectColor() {
+    gColorEdit.hide();
+    if (_type == 0) {
+      vmode.deselectColor();
+    } else if (_type == 1) {
+      pmode.deselectColor();
+    }
+  }
+
+  void selectColor(int i) {
+    boolean success = false;
+    if (_type == 0) {
+      success = vmode.selectColor(i);
+    } else if (_type == 1) {
+      success = pmode.selectColor(i);
+    }
+    if (success) {
+      gColorEdit.show();
+    }
+  }
+
+  void selectColor(int _set, int _color) {
+    boolean success = false;
+    if (_type == 0) {
+      success = vmode.selectColor(_set, _color);
+    } else if (_type == 1) {
+      success = pmode.selectColor(_set, _color);
+    }
+    if (success) {
+      gColorEdit.show();
+    }
+  }
+
+  //********************************************************************************
+  // Setters
+  //********************************************************************************
+  // Type
+  void setType(int val) {
+    if (oob(val, 0, 1)) { return; }
+    int old = _type;
+    _type = val;
+    if (use_gui) {
+      dlType.setBroadcast(false).setValue(_type).setBroadcast(true);
+      dlType.setCaptionLabel(dlType.getItem(val).get("text").toString());
+      if (old != _type) {
+        resetTypeGui();
+        sendMode();
+      }
+    }
+  }
+
+  void sendType() {
+    sendCommand(SER_WRITE, _TYPE, _type);
+  }
+
+  // Pattern
+  void setPattern(int val) {
+    setPattern(0, val);
+  }
+
+  void setPattern(int i, int val) {
+    if (_type == 0) {
+      vmode.setPattern(val);
+    } else if (_type == 1) {
+      pmode.setPattern(i, val);
+    }
+  }
+
+  void sendPattern() {
+    sendPattern(0);
+  }
+
+  void sendPattern(int i) {
+    if (_type == 0) {
+      vmode.sendPattern();
+    } else if (_type == 1) {
+      pmode.sendPattern(i);
+    }
+  }
+
+  // Args
+  void setArgs(int i, int val) {
+    if (_type == 0) {
+      vmode.setArgs(i, val);
+    } else if (_type == 1) {
+      pmode.setArgs(i, val);
+    }
+  }
+
+  void sendArgs(int i) {
+    if (_type == 0) {
+      vmode.sendArgs(i);
+    } else if (_type == 1) {
+      pmode.sendArgs(i);
+    }
+  }
+
+  // Timings
+  void setTimings(int i, int val) {
+    if (_type == 0) {
+      vmode.setTimings(i, val);
+    } else if (_type == 1) {
+      pmode.setTimings(i, val);
+    }
+  }
+
+  void setTimings(int x, int y, int val) {
+    if (_type == 0) {
+      vmode.setTimings(x, y, val);
+    } else if (_type == 1) {
+      pmode.setTimings(x, y, val);
+    }
+  }
+
+  void sendTimings(int i) {
+    if (_type == 0) {
+      vmode.sendTimings(i);
+    } else if (_type == 1) {
+      pmode.sendTimings(i);
+    }
+  }
+
+  void sendTimings(int x, int y) {
+    if (_type == 0) {
+      vmode.sendTimings(x, y);
+    } else if (_type == 1) {
+      pmode.sendTimings(x, y);
+    }
+  }
+
+  // Num Colors
+  void setNumColors(int i, int val) {
+    if (_type == 0) {
+      vmode.setNumColors(i, val);
+    } else if (_type == 1) {
+      pmode.setNumColors(i, val);
+    }
+  }
+
+  void sendNumColors(int i) {
+    if (_type == 0) {
+      vmode.sendNumColors(i);
+    } else if (_type == 1) {
+      pmode.sendNumColors(i);
+    }
+  }
+
+  // Colors
+  void setColor(int _set, int _color, int _channel, int val) {
+    if (_type == 0) {
+      vmode.setColor(_set, _color, _channel, val);
+    } else if (_type == 1) {
+      pmode.setColor(_set, _color, _channel, val);
+    }
+  }
+
+  void setColor(int _set, int _color, int[] val) {
+    if (_type == 0) {
+      vmode.setColor(_set, _color, val);
+    } else if (_type == 1) {
+      pmode.setColor(_set, _color, val);
+    }
+  }
+
+  void setColor(int i, int val) {
+    if (_type == 0) {
+      vmode.setColor(i, val);
+    } else if (_type == 1) {
+      pmode.setColor(i, val);
+    }
+  }
+
+  void sendColor(int _set, int _color, int _channel) {
+    if (_type == 0) {
+      vmode.sendColor(_set, _color, _channel);
+    } else if (_type == 1) {
+      pmode.sendColor(_set, _color, _channel);
+    }
+  }
+
+  void sendColor(int _set, int _color) {
+    if (_type == 0) {
+      vmode.sendColor(_set, _color);
+    } else if (_type == 1) {
+      pmode.sendColor(_set, _color);
+    }
+  }
+
+  // Pattern Thresh - Vectr only
+  void setPatternThresh(float[] val) {
+    if (_type == 0) {
+      vmode.setPatternThresh(val);
+    }
+  }
+
+  void setPatternThresh(int i, int val) {
+    if (_type == 0) {
+      vmode.setPatternThresh(i, val);
+    }
+  }
+
+  void sendPatternThresh() {
+    if (_type == 0) {
+      vmode.sendPatternThresh();
+    }
+  }
+
+  // Color Thresh - Vectr only
+  void setColorThresh(float[] val) {
+    if (_type == 0) {
+      vmode.setColorThresh(val);
+    }
+  }
+
+  void setColorThresh(int i, int val) {
+    if (_type == 0) {
+      vmode.setColorThresh(i, val);
+    }
+  }
+
+  void sendColorThresh() {
+    if (_type == 0) {
+      vmode.sendColorThresh();
+    }
+  }
+
+  // Trigger Mode - Primer Only
+  void setTriggerMode(int val) {
+    if (_type == 1) {
+      pmode.setTriggerMode(val);
+    }
+  }
+
+  void sendTriggerMode() {
+    if (_type == 1) {
+      pmode.sendTriggerMode();
+    }
+  }
+
+  // Trigger Thresh - Primer Only
+  void setTriggerThresh(float[] val) {
+    if (_type == 1) {
+      pmode.setTriggerThresh(val);
+    }
+  }
+
+  void setTriggerThresh(int i, int val) {
+    if (_type == 1) {
+      pmode.setTriggerThresh(i, val);
+    }
+  }
+
+  void sendTriggerThresh() {
+    if (_type == 1) {
+      pmode.sendTriggerThresh();
+    }
+  }
+
+
+  //********************************************************************************
+  // JSON
+  //********************************************************************************
+  void fromJSON(JSONObject jo) {
+    setType(jo.getInt("type"));
+    if (_type == 0) {
+      vmode.fromJSON(jo);
+    } else if (_type == 1) {
+      pmode.fromJSON(jo);
+    }
+
+    for (int i = 0; i < _MODESIZE; i++) {
+      sendCommand(SER_WRITE, i, geta(i));
+    }
+  }
+
+  JSONObject getJSON() {
+    JSONObject jo = new JSONObject();
+    if (_type == 0) {
+      jo = vmode.getJSON();
+    } else if (_type == 1) {
+      jo = pmode.getJSON();
+    }
+    jo.setInt("type", _type);
+    return jo;
+  }
+
+  void makeTitle() {
+    tlTitle = cp5.addTextlabel("tlTitle")
+      .setGroup(gTitle)
+      .setValue("Mode 1")
+      .setFont(createFont("Comfortaa-Regular", 32))
+      .setPosition(60, 0)
+      .setSize(120, 40)
+      .setColorValue(color(240));
+
+    bPrevMode = cp5.addButton("prevMode")
+      .setCaptionLabel("<<")
+      .setGroup(gTitle)
+      .setPosition(0, 10);
+    style(bPrevMode, 20);
+
+    bNextMode = cp5.addButton("nextMode")
+      .setCaptionLabel(">>")
+      .setGroup(gTitle)
+      .setPosition(220, 10);
+    style(bNextMode, 20);
+  }
+
+  void makeControls() {
+    bResetMode = cp5.addButton("resetMode")
+      .setCaptionLabel("Reset Mode")
+      .setGroup(gControls)
+      .setPosition(10, 0);
+    style(bResetMode, 80);
+
+    bWriteMode = cp5.addButton("writeMode")
+      .setCaptionLabel("Write Mode")
+      .setGroup(gControls)
+      .setPosition(110, 0);
+    style(bWriteMode, 80);
+
+    bSaveMode = cp5.addButton("saveMode")
+      .setCaptionLabel("Save Mode")
+      .setGroup(gControls)
+      .setPosition(210, 0);
+    style(bSaveMode, 80);
+
+    bLoadMode = cp5.addButton("loadMode")
+      .setCaptionLabel("Load Mode")
+      .setGroup(gControls)
+      .setPosition(310, 0);
+    style(bLoadMode, 80);
+
+    bSaveLight = cp5.addButton("saveLight")
+      .setCaptionLabel("Save Light")
+      .setGroup(gControls)
+      .setPosition(510, 0);
+    style(bSaveLight, 80);
+
+    bWriteLight = cp5.addButton("writeLight")
+      .setCaptionLabel("Write Light")
+      .setGroup(gControls)
+      .setPosition(610, 0);
+    style(bWriteLight, 80);
+
+    bDisconnectLight = cp5.addButton("disconnectLight")
+      .setCaptionLabel("Disconnect")
+      .setGroup(gControls)
+      .setPosition(710, 0);
+    style(bDisconnectLight, 80);
+  }
+
+  void makeColorEdit() {
+    slColorValues[0] = cp5.addSlider("ColorValuesRed")
+      .setGroup(gColorEdit)
+      .setId(ID_COLOREDIT + 0)
+      .setLabel("")
+      .setPosition(0, 0);
+    style(slColorValues[0], 256, 0, 255);
+    slColorValues[0].setColorBackground(color(64, 0, 0))
+      .setColorForeground(color(128, 0, 0))
+      .setColorActive(color(192, 0, 0));
+
+    slColorValues[1] = cp5.addSlider("ColorValuesGreen")
+      .setGroup(gColorEdit)
+      .setId(ID_COLOREDIT + 1)
+      .setLabel("")
+      .setPosition(0, 30);
+    style(slColorValues[1], 256, 0, 255);
+    slColorValues[1].setColorBackground(color(0, 64, 0))
+      .setColorForeground(color(0, 128, 0))
+      .setColorActive(color(0, 192, 0));
+
+    slColorValues[2] = cp5.addSlider("ColorValuesBlue")
+      .setGroup(gColorEdit)
+      .setId(ID_COLOREDIT + 2)
+      .setLabel("")
+      .setPosition(0, 60);
+    style(slColorValues[2], 256, 0, 255);
+    slColorValues[2].setColorBackground(color(0, 0, 64))
+      .setColorForeground(color(0, 0, 128))
+      .setColorActive(color(0, 0, 192));
 
     bViewMode = cp5.addButton("viewMode")
       .setCaptionLabel("View Mode")
@@ -261,796 +609,58 @@ class Mode {
     style(bViewColor, 100);
     bViewColor.setColorBackground(color(48))
       .setColorForeground(color(96));
-
-    slColorValues[0] = cp5.addSlider("colorValuesRed")
-      .setGroup(gColorEdit)
-      .setBroadcast(false)
-      .setId(21000)
-      .setLabel("")
-      .setPosition(0, 0)
-      .setTriggerEvent(ControlP5.RELEASE)
-      .setSize(256, 20)
-      .setColorBackground(color(64, 0, 0))
-      .setColorForeground(color(128, 0, 0))
-      .setColorActive(color(192, 0, 0))
-      .setRange(0, 255)
-      .setNumberOfTickMarks(256)
-      .showTickMarks(false)
-      .setDecimalPrecision(0)
-      .setValue(0)
-      .setBroadcast(true);
-
-    slColorValues[1] = cp5.addSlider("colorValuesGreen")
-      .setGroup(gColorEdit)
-      .setBroadcast(false)
-      .setId(21001)
-      .setLabel("")
-      .setPosition(0, 30)
-      .setTriggerEvent(ControlP5.RELEASE)
-      .setSize(256, 20)
-      .setColorBackground(color(0, 64, 0))
-      .setColorForeground(color(0, 128, 0))
-      .setColorActive(color(0, 192, 0))
-      .setRange(0, 255)
-      .setNumberOfTickMarks(256)
-      .showTickMarks(false)
-      .setDecimalPrecision(0)
-      .setValue(0)
-      .setBroadcast(true);
-
-    slColorValues[2] = cp5.addSlider("colorValuesBlue")
-      .setGroup(gColorEdit)
-      .setBroadcast(false)
-      .setId(21002)
-      .setLabel("")
-      .setPosition(0, 60)
-      .setTriggerEvent(ControlP5.RELEASE)
-      .setSize(256, 20)
-      .setColorBackground(color(0, 0, 64))
-      .setColorForeground(color(0, 0, 128))
-      .setColorActive(color(0, 0, 192))
-      .setRange(0, 255)
-      .setNumberOfTickMarks(256)
-      .showTickMarks(false)
-      .setDecimalPrecision(0)
-      .setValue(0)
-      .setBroadcast(true);
   }
 
-  int geta(int addr) {
-    if (addr < 0) {
-    } else if (addr == 0) {
-    } else {
-      if (_type == 0) {
-        if (addr < _ARGS) {                 return pattern;
-        } else if (addr < _PATTERNTHRESH) { return args[addr - _ARGS];
-        } else if (addr < _TIMINGS) {       return patternThresh[(addr - _PATTERNTHRESH) / 2][(addr - _PATTERNTHRESH) % 2];
-        } else if (addr < _COLORTHRESH) {   return timings[(addr - _TIMINGS) / 6][(addr - _TIMINGS) % 6];
-        } else if (addr < _NUMCOLORS) {     return colorThresh[(addr - _COLORTHRESH) / 2][(addr - _COLORTHRESH) % 2];
-        } else if (addr < _COLORS) {        return numColors[addr - _NUMCOLORS];
-        } else if (addr < _PADDING) {       return colors[(addr - _COLORS) / 27][((addr - _COLORS) % 27) / 3][(addr - _COLORS) % 3];
+  void makeColorBank() {
+    for (int g = 0; g < 6; g++) {
+      for (int c = 0; c < 8; c++) {
+        for (int s = 0; s < 4; s++) {
+          bColorBank[(g * 8) + c][s] = cp5.addButton("ColorBank" + ((g * 8) + c) + "." + s)
+            .setGroup(gColorBank)
+            .setId(ID_COLORBANK + ((g * 8) + c) + (100 * s))
+            .setLabel("")
+            .setSize(16, 16)
+            .setPosition(24 + 4 + (24 * c), 12 + 4 + (120 * g) + (24 * s))
+            .setColorBackground(getColorBankColor((g * 8) + c, s))
+            .setColorForeground(getColorBankColor((g * 8) + c, s))
+            .setColorActive(getColorBankColor((g * 8) + c, s));
         }
-      /* } else { */
-      /*   if (addr < _PACCELTRIG) {           return pAccelMode; */
-      /*   } else if (addr < _PACCELDROP) {    return pAccelTrig[addr - _PACCELTRIG]; */
-      /*   } else if (addr < _PPATTERNS) {     return pAccelDrop[addr - _PACCELDROP]; */
-      /*   } else if (addr < _PARGS) {         return pPatterns[addr - _PPATTERNS]; */
-      /*   } else if (addr < _PTIMINGS) {      return pArgs[(addr - _PARGS) / 3][(addr - _PARGS) % 3]; */
-      /*   } else if (addr < _PNUMCOLORS) {    return timings[(addr - _PTIMINGS) / 6][(addr - _PTIMINGS) % 6]; */
-      /*   } else if (addr < _PCOLORS) {       return numColors[addr - _PNUMCOLORS]; */
-      /*   } else if (addr < _MODESIZE) {      return colors[(addr - _PCOLORS) / 9][((addr - _PCOLORS) % 9) / 3][(addr - _PCOLORS) % 3]; */
-      /*   } */
-      }
-    }
-    return 0;
-  }
-
-  void seta(int addr, int val) {
-    // From light -> update GUI
-    if (addr < 0) {
-    } else if (addr == 0) {                 setType(val);
-    } else {
-      if (_type == 0) {
-        if (addr < _ARGS) {                 setPattern(val);
-        } else if (addr < _PATTERNTHRESH) { setArgs(addr - _ARGS, val);
-        } else if (addr < _TIMINGS) {       setPatternThresh(addr - _PATTERNTHRESH, val);
-        } else if (addr < _COLORTHRESH) {   setTimings(addr - _TIMINGS, val);
-        } else if (addr < _NUMCOLORS) {     setColorThresh(addr - _COLORTHRESH, val);
-        } else if (addr < _COLORS) {        setNumColors(addr - _NUMCOLORS, val);;
-        } else if (addr < _PADDING) {       setColors(addr - _COLORS, val);
-        }
-      /* } else { */
-      /*   if (addr < _PACCELTRIG) {           setPAccelMode(val); */
-      /*   } else if (addr < _PACCELDROP) {    setPAccelTrig(addr - _PACCELTRIG, val); */
-      /*   } else if (addr < _PPATTERNS) {     setPAccelDrop(addr - _PACCELDROP, val); */
-      /*   } else if (addr < _PARGS) {         setPPatterns(addr - _PPATTERNS, val); */
-      /*   } else if (addr < _PTIMINGS) {      setPArgs(addr - _PARGS, val); */
-      /*   } else if (addr < _PNUMCOLORS) {    setPTimings(addr - _PTIMINGS, val); */
-      /*   } else if (addr < _PCOLORS) {       setPNumColors(addr - _PNUMCOLORS, val); */
-      /*   } else if (addr < _MODESIZE) {      setPColors(addr - _PCOLORS, val); */
-      /*   } */
       }
     }
   }
 
-  void deselectColor() {
-    bSelectedColor.hide();
-    gColorEdit.hide();
-    color_set = color_slot = -1;
-  }
-
-  void selectColor(int idx) {
-    selectColor(idx / 9, idx % 9);
-  }
-
-  void selectColor(int _set, int _color) {
-    if (_set < 0 || _set >= 3 || _color < 0 || _color >= numColors[_set]) {
-    } else {
-      float[] pos = bColors[_set][_color].getPosition();
-      color_set = _set;
-      color_slot = _color;
-      bSelectedColor.setPosition(pos[0] - 4, pos[1] - 4).show();
-      bColors[_set][_color].bringToFront();
-      gColorEdit.show();
-      slColorValues[0].setBroadcast(false).setValue(colors[_set][_color][0]).setBroadcast(true);
-      slColorValues[1].setBroadcast(false).setValue(colors[_set][_color][1]).setBroadcast(true);
-      slColorValues[2].setBroadcast(false).setValue(colors[_set][_color][2]).setBroadcast(true);
-    }
-  }
-
-  //********************************************************************************
-  //** Getters and Setters
-  //********************************************************************************
-  int getType() {
-    return _type;
-  }
-
-  int setType(int val) {
-    if (val != 0) { return _type; }
-    /* if (val != 0 || val != 1) { return _type; } */
-    if (_type != val) {
-      // TODO: Type changed - reset and update GUI
-    }
-    _type = val;
-    if (use_gui) {
-      /* dlType.setBroadcast(false).setValue(_type).setBroadcast(true); */
-    }
-    return val;
-  }
-
-  void sendType() {
-    sendCommand(SER_WRITE, _TYPE, _type);
-  }
-
-
-  void updateArg(int idx, String label, int _min, int _max) {
-    tlArgLabels[idx].setValue(label).show();
-    slArgs[idx].setBroadcast(false)
-      .setRange(_min, _max)
-      .setNumberOfTickMarks(_max - _min + 1)
-      .showTickMarks(false)
-      .setBroadcast(true)
-      .show();
-  }
-
-  void updateArg(int idx) {
-    tlArgLabels[idx].hide();
-    slArgs[idx].hide();
-  }
-
-  void updateTiming(int idx, String label) {
-    tlTimingLabels[idx].setValue(label).show();
-    slTimings[0][idx].show();
-    slTimings[1][idx].show();
-    slTimings[2][idx].show();
-  }
-
-  void updateTiming(int idx) {
-    tlTimingLabels[idx].hide();
-    slTimings[0][idx].hide();
-    slTimings[1][idx].hide();
-    slTimings[2][idx].hide();
-  }
-
-  void resetPatternGui() {
-    switch (pattern) {
-      case 0:
-        updateArg(0, "Group Size", 0, 9);
-        updateArg(1, "Skip After", 0, 9);
-        updateArg(2, "Repeat Group", 1, 100);
-        updateTiming(0, "Strobe");
-        updateTiming(1, "Blank");
-        updateTiming(2, "Tail Blank");
-        updateTiming(3);
-        updateTiming(4);
-        updateTiming(5);
-        break;
-      case 1:
-        updateArg(0, "Repeat Strobe", 1, 100);
-        updateArg(1, "Repeat Tracer", 1, 100);
-        updateArg(2);
-        updateTiming(0, "Strobe");
-        updateTiming(1, "Blank");
-        updateTiming(2, "Tracer Strobe");
-        updateTiming(3, "Tracer Blank");
-        updateTiming(4);
-        updateTiming(5);
-        break;
-      case 2:
-        updateArg(0, "Group Size", 0, 9);
-        updateArg(1);
-        updateArg(2);
-        updateTiming(0, "Strobe");
-        updateTiming(1, "Blank");
-        updateTiming(2, "Center Strobe");
-        updateTiming(3, "Tail Blank");
-        updateTiming(4);
-        updateTiming(5);
-        break;
-      case 3:
-        updateArg(0, "Repeat First", 1, 100);
-        updateArg(1, "Repeat Second", 1, 100);
-        updateArg(2, "Skip Colors", 0, 8);
-        updateTiming(0, "First Strobe");
-        updateTiming(1, "First Blank");
-        updateTiming(2, "Second Strobe");
-        updateTiming(3, "Second Blank");
-        updateTiming(4, "Separating Blank");
-        updateTiming(5);
-        break;
-      case 4:
-        updateArg(0, "Group Size", 0, 9);
-        updateArg(1, "Skip Between", 0, 9);
-        updateArg(2, "Repeat Runner", 1, 100);
-        updateTiming(0, "Strobe");
-        updateTiming(1, "Blank");
-        updateTiming(2, "Runner Strobe");
-        updateTiming(3, "Runner Blank");
-        updateTiming(4, "Separating Blank");
-        updateTiming(5);
-        break;
-      case 5:
-        updateArg(0, "Use Steps", 1, 5);
-        updateArg(1, "Randomize Steps", 0, 1);
-        updateArg(2, "Randomize Colors", 0, 1);
-        updateTiming(0, "Blank");
-        updateTiming(1, "Step 1");
-        updateTiming(2, "Step 2");
-        updateTiming(3, "Step 3");
-        updateTiming(4, "Step 4");
-        updateTiming(5, "Step 5");
-        break;
-      case 6:
-        updateArg(0, "Randomize Colors", 0, 1);
-        updateArg(1, "Time Multiplier", 1, 10);
-        updateArg(2);
-        updateTiming(0, "Strobe Low");
-        updateTiming(1, "Strobe High");
-        updateTiming(2, "Blank Low");
-        updateTiming(3, "Blank High");
-        updateTiming(4);
-        updateTiming(5);
-        break;
-    }
-  }
-
-  void resetArgsAndTimings() {
-    switch (pattern) {
-      case 0:
-        setArgs(0, 0); sendArgs(0);
-        setArgs(1, 0); sendArgs(1);
-        setArgs(2, 0); sendArgs(2);
-        for (int i = 0; i < 3; i++) {
-          setTimings(i, 0, 5); sendTimings(i, 0);
-          setTimings(i, 1, 8); sendTimings(i, 1);
-          setTimings(i, 2, 0); sendTimings(i, 2);
-          setTimings(i, 3, 0); sendTimings(i, 3);
-          setTimings(i, 4, 0); sendTimings(i, 4);
-          setTimings(i, 5, 0); sendTimings(i, 5);
-        }
-        break;
-      case 1:
-        setArgs(0, 1); sendArgs(0);
-        setArgs(1, 1); sendArgs(1);
-        setArgs(2, 0); sendArgs(2);
-        for (int i = 0; i < 3; i++) {
-          setTimings(i, 0, 5); sendTimings(i, 0);
-          setTimings(i, 1, 1); sendTimings(i, 1);
-          setTimings(i, 2, 20); sendTimings(i, 2);
-          setTimings(i, 3, 0); sendTimings(i, 3);
-          setTimings(i, 4, 0); sendTimings(i, 4);
-          setTimings(i, 5, 0); sendTimings(i, 5);
-        }
-        break;
-      case 2:
-        setArgs(0, 0); sendArgs(0);
-        setArgs(1, 0); sendArgs(1);
-        setArgs(2, 0); sendArgs(2);
-        for (int i = 0; i < 3; i++) {
-          setTimings(i, 0, 2); sendTimings(i, 0);
-          setTimings(i, 1, 0); sendTimings(i, 1);
-          setTimings(i, 2, 5); sendTimings(i, 2);
-          setTimings(i, 3, 50); sendTimings(i, 3);
-          setTimings(i, 4, 0); sendTimings(i, 4);
-          setTimings(i, 5, 0); sendTimings(i, 5);
-        }
-        break;
-      case 3:
-        setArgs(0, 2); sendArgs(0);
-        setArgs(1, 2); sendArgs(1);
-        setArgs(2, 0); sendArgs(2);
-        for (int i = 0; i < 3; i++) {
-          setTimings(i, 0, 5); sendTimings(i, 0);
-          setTimings(i, 1, 8); sendTimings(i, 1);
-          setTimings(i, 2, 1); sendTimings(i, 2);
-          setTimings(i, 3, 12); sendTimings(i, 3);
-          setTimings(i, 4, 5); sendTimings(i, 4);
-          setTimings(i, 5, 0); sendTimings(i, 5);
-        }
-        break;
-      case 4:
-        setArgs(0, 0); sendArgs(0);
-        setArgs(1, 0); sendArgs(1);
-        setArgs(2, 5); sendArgs(2);
-        for (int i = 0; i < 3; i++) {
-          setTimings(i, 0, 5); sendTimings(i, 0);
-          setTimings(i, 1, 0); sendTimings(i, 1);
-          setTimings(i, 2, 1); sendTimings(i, 2);
-          setTimings(i, 3, 12); sendTimings(i, 3);
-          setTimings(i, 4, 12); sendTimings(i, 4);
-          setTimings(i, 5, 0); sendTimings(i, 5);
-        }
-        break;
-      case 5:
-        setArgs(0, 5); sendArgs(0);
-        setArgs(1, 0); sendArgs(1);
-        setArgs(2, 0); sendArgs(2);
-        for (int i = 0; i < 3; i++) {
-          setTimings(i, 0, 10); sendTimings(i, 0);
-          setTimings(i, 1, 2); sendTimings(i, 1);
-          setTimings(i, 2, 4); sendTimings(i, 2);
-          setTimings(i, 3, 6); sendTimings(i, 3);
-          setTimings(i, 4, 8); sendTimings(i, 4);
-          setTimings(i, 5, 10); sendTimings(i, 5);
-        }
-        break;
-      case 6:
-        setArgs(0, 1); sendArgs(0);
-        setArgs(1, 4); sendArgs(1);
-        setArgs(2, 0); sendArgs(2);
-        for (int i = 0; i < 3; i++) {
-          setTimings(i, 0, 1); sendTimings(i, 0);
-          setTimings(i, 1, 5); sendTimings(i, 1);
-          setTimings(i, 2, 5); sendTimings(i, 2);
-          setTimings(i, 3, 5); sendTimings(i, 3);
-          setTimings(i, 4, 0); sendTimings(i, 4);
-          setTimings(i, 5, 0); sendTimings(i, 5);
-        }
-        break;
-    }
-  }
-
-
-  int getPattern() {
-    return pattern;
-  }
-
-  int setPattern(int val) {
-    if (_type != 0 || val < 0 || val >= 7) { return pattern; }
-    pattern = val;
-
-    if (use_gui) {
-      dlPattern.setBroadcast(false).setValue(pattern).setBroadcast(true);
-      dlPattern.setCaptionLabel(dlPattern.getItem(val).get("text").toString());
-      resetPatternGui();
-    }
-    return val;
-  }
-
-  void sendPattern() {
-    sendCommand(SER_WRITE, _PATTERN, pattern);
-  }
-
-
-  int getArgs(int idx) {
-    return args[idx];
-  }
-
-  int setArgs(int idx, int val) {
-    if (_type != 0 || idx < 0 || idx >= 3) { return 0; }
-    if (val < 0 || val > 255) { return args[idx]; }
-    args[idx] = val;
-
-    if (use_gui) {
-      slArgs[idx].setBroadcast(false).setValue(args[idx]).setBroadcast(true);
-    }
-    return val;
-  }
-
-  void sendArgs(int idx) {
-    sendCommand(SER_WRITE, _ARGS + idx, args[idx]);
-  }
-
-
-  int getPatternThresh(int x, int y) {
-    return patternThresh[x][y];
-  }
-
-  int getPatternThresh(int idx) {
-    return getPatternThresh(idx / 2, idx % 2);
-  }
-
-  void setPatternThresh(float[] val) {
-    patternThresh[0][0] = (int)val[0];
-    patternThresh[0][1] = (int)val[1];
-    patternThresh[1][0] = (int)val[2];
-    patternThresh[1][1] = (int)val[3];
-
-    if (use_gui) {
-      trPatternThresh.setBroadcast(false).setArrayValue(val).setBroadcast(true);
-    }
-  }
-
-  int setPatternThresh(int idx, int val) {
-    return setPatternThresh(idx / 2, idx % 2, val);
-  }
-
-  int setPatternThresh(int x, int y, int val) {
-    if (_type != 0 || x < 0 || y < 0 || x >= 2 || y >= 2) { return 0; }
-    if (val < 0 || val > 32) { return patternThresh[x][y]; }
-    patternThresh[x][y] = val;
-
-    if (use_gui) {
-      trPatternThresh.setBroadcast(false).setArrayValue((x * 2) + y, val).setBroadcast(true);
-    }
-    return val;
-  }
-
-  void sendPatternThresh() {
-    sendCommand(SER_WRITE, _PATTERNTHRESH + 0, patternThresh[0][0]);
-    sendCommand(SER_WRITE, _PATTERNTHRESH + 1, patternThresh[0][1]);
-    sendCommand(SER_WRITE, _PATTERNTHRESH + 2, patternThresh[1][0]);
-    sendCommand(SER_WRITE, _PATTERNTHRESH + 3, patternThresh[1][1]);
-  }
-
-  void sendPatternThresh(int x, int y) {
-    sendCommand(SER_WRITE, _PATTERNTHRESH + (2 * x) + y, patternThresh[x][y]);
-  }
-
-
-  int getTimings(int x, int y) {
-    return timings[x][y];
-  }
-
-  int getTimings(int idx) {
-    return getTimings(idx / 6, idx % 6);
-  }
-
-  int setTimings(int idx, int val) {
-    return setTimings(idx / 6, idx % 6, val);
-  }
-
-  int setTimings(int x, int y, int val) {
-    if (x < 0 || y < 0 || x >= 3 || y >= 6) { return 0; }
-    if (val < 0 || val > 255) { return timings[x][y]; }
-    timings[x][y] = val;
-    if (use_gui) {
-      slTimings[x][y].setBroadcast(false).setValue(timings[x][y]).setBroadcast(true);
-    }
-    return val;
-  }
-
-  void sendTimings(int idx) {
-    sendTimings(idx / 6, idx % 6);
-  }
-
-  void sendTimings(int x, int y) {
-    sendCommand(SER_WRITE, _TIMINGS + (6 * x) + y, timings[x][y]);
-  }
-
-
-  int getColorThresh(int x, int y) {
-    return colorThresh[x][y];
-  }
-
-  int getColorThresh(int idx) {
-    return getColorThresh(idx / 2, idx % 2);
-  }
-
-  void setColorThresh(float[] val) {
-    colorThresh[0][0] = (int)val[0];
-    colorThresh[0][1] = (int)val[1];
-    colorThresh[1][0] = (int)val[2];
-    colorThresh[1][1] = (int)val[3];
-    if (use_gui) {
-      trColorThresh.setBroadcast(false).setArrayValue(val).setBroadcast(true);
-    }
-  }
-
-  int setColorThresh(int idx, int val) {
-    return setColorThresh(idx / 2, idx % 2, val);
-  }
-
-  int setColorThresh(int x, int y, int val) {
-    if (_type != 0 || x < 0 || y < 0 || x >= 2 || y >= 2) { return 0; }
-    if (val < 0 || val > 32) { return colorThresh[x][y]; }
-    colorThresh[x][y] = val;
-    if (use_gui) {
-      trColorThresh.setBroadcast(false).setArrayValue((2 * x) + y, colorThresh[x][y]).setBroadcast(true);
-    }
-    return val;
-  }
-
-  void sendColorThresh(int x, int y) {
-    sendCommand(SER_WRITE, _COLORTHRESH + (2 * x) + y, colorThresh[x][y]);
-  }
-
-  void sendColorThresh() {
-    sendCommand(SER_WRITE, _COLORTHRESH + 0, colorThresh[0][0]);
-    sendCommand(SER_WRITE, _COLORTHRESH + 1, colorThresh[0][1]);
-    sendCommand(SER_WRITE, _COLORTHRESH + 2, colorThresh[1][0]);
-    sendCommand(SER_WRITE, _COLORTHRESH + 3, colorThresh[1][1]);
-  }
-
-  int getNumColors(int idx) {
-    return numColors[idx];
-  }
-
-  int setNumColors(int idx, int val) {
-    if (idx < 0 || idx >= 3) { return 0; }
-    if (val < 1 || val > 9) { return numColors[idx]; }
-    numColors[idx] = val;
-    if (color_set == idx && color_slot >= numColors[idx]) {
-      deselectColor();
-    }
-    if (use_gui) {
-      for (int i = 0; i < 9; i++) {
-        if (i < numColors[idx]) bColors[idx][i].show();
-        else                    bColors[idx][i].hide();
-      }
-      slNumColors[idx].setBroadcast(false).setValue(numColors[idx]).setBroadcast(true);
-    }
-    return val;
-  }
-
-  void sendNumColors(int idx) {
-    sendCommand(SER_WRITE, _NUMCOLORS + idx, numColors[idx]);
-  }
-
-
-  int getColors(int _color, int _set, int _channel) {
-    return colors[_color][_set][_channel];
-  }
-
-  int getColors(int idx) {
-    return getColors(idx / 27, (idx % 27) / 3, idx % 3);
-  }
-
-  void setColor(int _set, int _color, int[] val) {
-    if (_color < 0 || _set < 0 || _color >= 9 || _set >= 3) { return; }
-    colors[_set][_color][0] = val[0];
-    colors[_set][_color][1] = val[1];
-    colors[_set][_color][2] = val[2];
-    updateColor(_set, _color);
-  }
-
-  int setColors(int idx, int val) {
-    return setColors(idx / 27, (idx % 27) / 3, idx % 3, val);
-  }
-
-  void updateColor(int _set, int _color) {
-    int c = translateColor(colors[_set][_color]);
-    if (use_gui) {
-      bColors[_set][_color].setColorBackground(c);
-      bColors[_set][_color].setColorForeground(c);
-      bColors[_set][_color].setColorActive(c);
-
-      if (_set == color_set && _color == color_slot) {
-        slColorValues[0].setBroadcast(false).setValue(colors[_set][_color][0]).setBroadcast(true);
-        slColorValues[1].setBroadcast(false).setValue(colors[_set][_color][1]).setBroadcast(true);
-        slColorValues[2].setBroadcast(false).setValue(colors[_set][_color][2]).setBroadcast(true);
-      }
-    }
-  }
-
-  int setColors(int _set, int _color, int _channel, int val) {
-    if (_color < 0 || _set < 0 || _channel < 0 || _color >= 9 || _set >= 3 || _channel >= 3) { return 0; }
-    if (val < 0 || val > 255) { return colors[_set][_color][_channel]; }
-    colors[_set][_color][_channel] = val;
-    updateColor(_set, _color);
-    return val;
-  }
-
-  void sendColors(int _set, int _color, int _channel) {
-    sendCommand(SER_WRITE, _COLORS + (_set * 27) + (_color * 3) + _channel, colors[_set][_color][_channel]);
-  }
-
-  void sendColor(int _set, int _color) {
-    sendColors(_set, _color, 0);
-    sendColors(_set, _color, 1);
-    sendColors(_set, _color, 2);
-  }
-
-
-  //********************************************************************************
-  //** JSON
-  //********************************************************************************
-  Mode fromJSON(JSONObject j) {
-    setType(j.getInt("type"));
+  int getColorSet() {
     if (_type == 0) {
-      setPattern(j.getInt("pattern"));
-      sendPattern();
-
-      setArgs(j.getJSONArray("args"));
-      setPatternThresh(j.getJSONArray("pattern_thresh"));
-      setTimings(j.getJSONArray("timings"));
-      setColorThresh(j.getJSONArray("color_thresh"));
-      setNumColors(j.getJSONArray("num_colors"));
-      setColors(j.getJSONArray("colors"));
-    /* } else { */
-    /*   setPAccelMode(j.getInt("accel_mode")); */
-    /*   sendPAccelMode(); */
-
-    /*   setPAccelTrig(j.getJSONArray("accel_trig")); */
-    /*   setPAccelDrop(j.getJSONArray("accel_drop")); */
-    /*   setPPatterns(j.getJSONArray("patterns")); */
-    /*   setPArgs(j.getJSONArray("args")); */
-    /*   setPTimings(j.getJSONArray("timings")); */
-    /*   setPNumColors(j.getJSONArray("num_colors")); */
-    /*   setPColors(j.getJSONArray("colors")); */
+      return vmode.color_set;
+    } else if (_type == 1) {
+      return pmode.color_set;
     }
-    return this;
+    return -1;
   }
 
-  JSONObject getJSON() {
-    JSONObject jo = new JSONObject();
-    jo.setInt("type", _type);
-
+  int getColorSlot() {
     if (_type == 0) {
-      jo.setInt("pattern", pattern);
-      jo.setJSONArray("args", getArgs());
-      jo.setJSONArray("pattern_thresh", getPatternThresh());
-      jo.setJSONArray("timings", getTimings());
-      jo.setJSONArray("color_thresh", getColorThresh());
-      jo.setJSONArray("num_colors", getNumColors());
-      jo.setJSONArray("colors", getColors());
-    /* } else if (_type == 1) { */
-    /*   jo.setInt("accel_mode", pAccelMode); */
-    /*   jo.setJSONArray("accel_trig", getPAccelTrig()); */
-    /*   jo.setJSONArray("accel_drop", getPAccelDrop()); */
-    /*   jo.setJSONArray("patterns", getPPatterns()); */
-    /*   jo.setJSONArray("args", getPArgs()); */
-    /*   jo.setJSONArray("timings", getPTimings()); */
-    /*   jo.setJSONArray("num_colors", getPNumColors()); */
-    /*   jo.setJSONArray("colors", getPColors()); */
+      return vmode.color_slot;
+    } else if (_type == 1) {
+      return pmode.color_slot;
     }
-
-    return jo;
+    return -1;
   }
 
-  JSONArray getArgs() {
-    JSONArray ja = new JSONArray();
-    for (int i = 0; i < 3; i++) {
-      ja.setInt(i, args[i]);
-    }
-    return ja;
+  void closeDropdowns() {
+    vmode.dlPattern.close();
+    pmode.dlPattern[0].close();
+    pmode.dlPattern[1].close();
   }
 
-  JSONArray getPatternThresh() {
-    JSONArray ja = new JSONArray();
-    for (int i = 0; i < 2; i++) {
-      JSONArray ja1 = new JSONArray();
-      for (int j = 0; j < 2; j++) {
-        ja1.setInt(j, patternThresh[i][j]);
+  void sendMode() {
+    if (!reading) {
+      sendCommand(SER_WRITE_MODE);
+      for (int i = 0; i < _MODESIZE; i++) {
+        sendCommand(SER_WRITE, i, geta(i));
+        delay(2);
       }
-      ja.setJSONArray(i, ja1);
-    }
-    return ja;
-  }
-
-  JSONArray getTimings() {
-    JSONArray ja = new JSONArray();
-    for (int i = 0; i < 3; i++) {
-      JSONArray ja1 = new JSONArray();
-      for (int j = 0; j < 6; j++) {
-        ja1.setInt(j, timings[i][j]);
-      }
-      ja.setJSONArray(i, ja1);
-    }
-    return ja;
-  }
-
-  JSONArray getColorThresh() {
-    JSONArray ja = new JSONArray();
-    for (int i = 0; i < 2; i++) {
-      JSONArray ja1 = new JSONArray();
-      for (int j = 0; j < 2; j++) {
-        ja1.setInt(j, colorThresh[i][j]);
-      }
-      ja.setJSONArray(i, ja1);
-    }
-    return ja;
-  }
-
-  JSONArray getNumColors() {
-    JSONArray ja = new JSONArray();
-    for (int i = 0; i < 3; i++) {
-      ja.setInt(i, numColors[i]);
-    }
-    return ja;
-  }
-
-  JSONArray getColors() {
-    JSONArray ja = new JSONArray();
-    for (int i = 0; i < 3; i++) {
-      JSONArray ja1 = new JSONArray();
-      for (int j = 0; j < 9; j++) {
-        JSONArray ja2 = new JSONArray();
-        for (int k = 0; k < 3; k++) {
-          ja2.setInt(k, colors[i][j][k]);
-        }
-        ja1.setJSONArray(j, ja2);
-      }
-      ja.setJSONArray(i, ja1);
-    }
-    return ja;
-  }
-
-
-  void setArgs(JSONArray ja) {
-    for (int i = 0; i < 3; i++) {
-      setArgs(i, ja.getInt(i));
-      sendArgs(i);
-    }
-  }
-
-  void setPatternThresh(JSONArray ja) {
-    for (int i = 0; i < 2; i++) {
-      JSONArray ja1 = ja.getJSONArray(i);
-      for (int j = 0; j < 2; j++) {
-        setPatternThresh(i, j, ja1.getInt(j));
-        sendPatternThresh(i, j);
-      }
-    }
-  }
-
-  void setTimings(JSONArray ja) {
-    for (int i = 0; i < 3; i++) {
-      JSONArray ja1 = ja.getJSONArray(i);
-      for (int j = 0; j < 6; j++) {
-        setTimings(i, j, ja1.getInt(j));
-        sendTimings(i, j);
-      }
-    }
-  }
-
-  void setColorThresh(JSONArray ja) {
-    for (int i = 0; i < 2; i++) {
-      JSONArray ja1 = ja.getJSONArray(i);
-      for (int j = 0; j < 2; j++) {
-        setColorThresh(i, j, ja1.getInt(j));
-        sendColorThresh(i, j);
-      }
-    }
-  }
-
-  void setNumColors(JSONArray ja) {
-    for (int i = 0; i < 3; i++) {
-      setNumColors(i, ja.getInt(i));
-      sendNumColors(i);
-    }
-  }
-
-  void setColors(JSONArray ja) {
-    for (int _set = 0; _set < 3; _set++) {
-      JSONArray ja1 = ja.getJSONArray(_set);
-      for (int _color = 0; _color < 9; _color++) {
-        JSONArray ja2 = ja1.getJSONArray(_color);
-        for (int _channel = 0; _channel < 3; _channel++) {
-          setColors(_set, _color, _channel, ja2.getInt(_channel));
-          sendColors(_set, _color, _channel);
-        }
-      }
+      sendCommand(SER_WRITE_MODE_END);
     }
   }
 }

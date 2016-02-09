@@ -8,27 +8,28 @@ import processing.core.PVector;
 import controlP5.*;
 
 
-public class ThreshRange extends Controller<ThreshRange> {
-  int HANDLESIZE = 6;
-  int HANDLESIZE2 = 3;
+public class TriggerRange extends Controller<TriggerRange> {
+  int HANDLESIZE = 12;
+  int HANDLESIZE2 = 6;
 
   int mode = -1;
   int _myMin = 0;
   int _myMax = 32;
+  int triggerMode = 0;
 
   String myName;
-  Label[] _myValueLabels = new Label[5];
-  int[] _myHandles = new int[4];
+  Label[] _myValueLabels = new Label[2];
+  int[] _myHandles = new int[2];
   boolean isDragging;
 
 
-  public ThreshRange(ControlP5 _cp5, String _name) {
+  public TriggerRange(ControlP5 _cp5, String _name) {
     super(_cp5, _cp5.getDefaultTab(), _name, 0, 0, 792, 20);
     myName = _name;
     _cp5.register(_cp5.papplet, _name, this);
     makeLabels();
-    _myArrayValue = new float[4];
-    float[] _d = {4, 14, 18, 28};
+    _myArrayValue = new float[2];
+    float[] _d = {14, 18};
     setArrayValue(_d);
     update();
   }
@@ -42,10 +43,10 @@ public class ThreshRange extends Controller<ThreshRange> {
     _myCaptionLabel.getStyle().setPadding(4, 4, 4, 4)
       .setMargin(-4, 0, 0, 0);
 
-    String[] label_names = {"ZeroLabel", "MinALabel", "MaxALabel", "MinBLabel", "MaxBLabel"};
-    int[] aligns = {LEFT, LEFT, CENTER, RIGHT, RIGHT};
-    int[] paddings = {0, 160, 0, 160, 0};
-    for (int i = 0; i < 5; i++) {
+    String[] label_names = {"MinLabel", "MaxLabel"};
+    int[] aligns = {LEFT, RIGHT};
+    int[] paddings = {0, 0};
+    for (int i = 0; i < 2; i++) {
       _myValueLabels[i] = new controlP5.Label(cp5, myName + label_names[i])
         .setColor(240)
         .toUpperCase(false)
@@ -65,7 +66,7 @@ public class ThreshRange extends Controller<ThreshRange> {
       return -1;
     }
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 2; i++) {
       if (mX > _myHandles[i] - HANDLESIZE2 && mX < _myHandles[i] + HANDLESIZE2) {
         return i;
       }
@@ -73,16 +74,17 @@ public class ThreshRange extends Controller<ThreshRange> {
     return -1;
   }
 
-  @Override public void mousePressed() {
-    mode = getMode();
+  public TriggerRange setTriggerMode(int v) {
+    triggerMode = v;
+    return update();
   }
 
-  public ThreshRange updateInternalEvents(PApplet theApplet) {
+  public TriggerRange updateInternalEvents(PApplet theApplet) {
     if (isVisible) {
       int c = mouseX - pmouseX;
       if (c == 0) { return this; }
       if (isMousePressed && !cp5.isAltDown()) {
-        if (mode >= 0 && mode < 4) {
+        if (mode >= 0 && mode < 2) {
           updateHandle(mode, _myHandles[mode] + c);
           updateLabels();
         }
@@ -95,8 +97,8 @@ public class ThreshRange extends Controller<ThreshRange> {
     return _myArrayValue[i];
   }
 
-  public ThreshRange setValue(int i, float theValue, boolean isUpdate) {
-    if (i >= 0 && i < 4) {
+  public TriggerRange setValue(int i, float theValue, boolean isUpdate) {
+    if (i >= 0 && i < 2) {
       _myArrayValue[i] = theValue;
     }
     if (isUpdate) {
@@ -106,7 +108,7 @@ public class ThreshRange extends Controller<ThreshRange> {
     return this;
   }
 
-  public ThreshRange setValue(int i, float theValue) {
+  public TriggerRange setValue(int i, float theValue) {
     return setValue(i, theValue, true);
   }
 
@@ -114,8 +116,8 @@ public class ThreshRange extends Controller<ThreshRange> {
     return _myArrayValue;
   }
 
-  public ThreshRange setArrayValue(int[] theArray) {
-    for (int i = 0; i < 4; i++) {
+  public TriggerRange setArrayValue(int[] theArray) {
+    for (int i = 0; i < 2; i++) {
       setValue(i, theArray[i], false);
     }
     update();
@@ -124,29 +126,38 @@ public class ThreshRange extends Controller<ThreshRange> {
 
   // Call this to update handles based on value
   public void updateHandleByValue(int i) {
-    _myHandles[i] = ((int)_myArrayValue[i] * (HANDLESIZE * 4)) + (HANDLESIZE * i) + HANDLESIZE2;
+    _myHandles[i] = ((int)_myArrayValue[i] * (HANDLESIZE * 2)) + (HANDLESIZE * i) + HANDLESIZE2;
   }
 
   public void updateHandlesByValue() {
-    for (int i = 0; i < 4; i++) { updateHandleByValue(i); }
+    for (int i = 0; i < 2; i++) { updateHandleByValue(i); }
   }
 
   // Call this when the GUI updates the position - it'll update the value as well
   public void updateHandle(int i, int v) {
-    int[] tabs = {0, _myHandles[0], _myHandles[1], _myHandles[2], _myHandles[3], getWidth()};
+    int[] tabs = {0, _myHandles[0], _myHandles[1], getWidth()};
     _myHandles[i] = PApplet.max(tabs[i] + HANDLESIZE2, PApplet.min(tabs[i + 2] - HANDLESIZE2, v));
-    setValue(i, _myHandles[i] / (HANDLESIZE * 4), false);
+    setValue(i, _myHandles[i] / (HANDLESIZE * 2), false);
   }
 
   public void updateLabels() {
-    String[] labels = {"A", "A->B", "B", "B->C", "C"};
-    int[] vals = {0, (int)_myArrayValue[0], (int)_myArrayValue[1], (int)_myArrayValue[2], (int)_myArrayValue[3], 32};
-    for (int i = 0; i < 5; i++) {
-      _myValueLabels[i].set(labels[i] + ": " + vals[i] + " - " + vals[i + 1]);
+    if (triggerMode < 1 || triggerMode > 4) {
+    } else {
+      String[] labels = {"Trigger A", "Trigger B"};
+      int v;
+      for (int i = 0; i < 2; i++) {
+        if (triggerMode == 1) {
+          v = (int)_myArrayValue[i];
+        } else {
+          v = ((int)_myArrayValue[i] * 5) - 80;
+        }
+        _myValueLabels[i].set(labels[i] + ": " + v);
+      }
     }
+
   }
 
-  @Override public ThreshRange update() {
+  @Override public TriggerRange update() {
     updateHandlesByValue();
     updateLabels();
     return this;
@@ -156,8 +167,12 @@ public class ThreshRange extends Controller<ThreshRange> {
   //********************************************************************************
   // GUI Stuff
   //********************************************************************************
-  class ThreshRangeView implements ControllerView<ThreshRange> {
-    public void display(PGraphics theGraphics, ThreshRange theController) {
+  class TriggerRangeView implements ControllerView<TriggerRange> {
+    public void display(PGraphics theGraphics, TriggerRange theController) {
+      if (triggerMode < 1 || triggerMode > 4) {
+        return;
+      }
+
       int hl = getMode();
       theGraphics.pushMatrix();
 
@@ -165,14 +180,14 @@ public class ThreshRange extends Controller<ThreshRange> {
       theGraphics.stroke(0);
       theGraphics.rect(0, 0, getWidth(), getHeight());
 
-      int[] colors = {color(255, 0, 0), color(255, 255, 0), color(0, 255, 0), color(0, 255, 255), color(0, 0, 255)};
-      int[] tabs = {0, _myHandles[0], _myHandles[1], _myHandles[2], _myHandles[3], getWidth()};
-      for (int i = 0; i < 5; i++) {
+      int[] colors = {color(255, 0, 0), color(255, 0, 255), color(0, 0, 255)};
+      int[] tabs = {0, _myHandles[0], _myHandles[1], getWidth()};
+      for (int i = 0; i < 3; i++) {
         theGraphics.fill(colors[i]);
         theGraphics.rect(tabs[i], 0, tabs[i + 1] - tabs[i], getHeight());
       }
 
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < 2; i++) {
         theGraphics.fill((hl == i) ? 128 : 255);
         theGraphics.stroke((hl == i) ? 255 : 0);
         theGraphics.rect(_myHandles[i] - HANDLESIZE2, 0, HANDLESIZE, getHeight());
@@ -180,13 +195,17 @@ public class ThreshRange extends Controller<ThreshRange> {
 
       if (isLabelVisible) {
         _myCaptionLabel.draw(theGraphics, 0, 0, theController);
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 2; i++) {
           _myValueLabels[i].draw(theGraphics, 0, 0, theController);
         }
       }
 
       theGraphics.popMatrix();
     }
+  }
+
+  @Override public void mousePressed() {
+    mode = getMode();
   }
 
   @Override public void mouseReleased() {
@@ -203,17 +222,17 @@ public class ThreshRange extends Controller<ThreshRange> {
     isDragging = false;
   }
 
-  @Override public ThreshRange updateDisplayMode(int theMode) {
+  @Override public TriggerRange updateDisplayMode(int theMode) {
     _myDisplayMode = theMode;
     switch (theMode) {
       case (DEFAULT):
-        _myControllerView = new ThreshRangeView();
+        _myControllerView = new TriggerRangeView();
         break;
       case (SPRITE):
-        _myControllerView = new ThreshRangeSpriteView();
+        _myControllerView = new TriggerRangeSpriteView();
         break;
       case (IMAGE):
-        _myControllerView = new ThreshRangeImageView();
+        _myControllerView = new TriggerRangeImageView();
         break;
       case (CUSTOM):
       default:
@@ -222,19 +241,19 @@ public class ThreshRange extends Controller<ThreshRange> {
     return this;
   }
 
-  class ThreshRangeImageView implements ControllerView<ThreshRange> {
-    public void display(PGraphics theGraphics, ThreshRange theController) {
-      ControlP5.logger().log(Level.INFO, "ThreshRangeImageDisplay not implemented.");
+  class TriggerRangeImageView implements ControllerView<TriggerRange> {
+    public void display(PGraphics theGraphics, TriggerRange theController) {
+      ControlP5.logger().log(Level.INFO, "TriggerRangeImageDisplay not implemented.");
     }
   }
 
-  class ThreshRangeSpriteView implements ControllerView<ThreshRange> {
-    public void display(PGraphics theGraphics, ThreshRange theController) {
-      ControlP5.logger().log(Level.INFO, "ThreshRangeSpriteDisplay not available.");
+  class TriggerRangeSpriteView implements ControllerView<TriggerRange> {
+    public void display(PGraphics theGraphics, TriggerRange theController) {
+      ControlP5.logger().log(Level.INFO, "TriggerRangeSpriteDisplay not available.");
     }
   }
 
   @Override public String toString() {
-    return "type:\tThreshRange\n" + super.toString();
+    return "type:\tTriggerRange\n" + super.toString();
   }
 }
