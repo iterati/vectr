@@ -6,7 +6,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 ControlP5 cp5;
 
-
 // Main
 static final int ID_TYPE              = 100;
 static final int ID_COLOREDIT         = 300;
@@ -114,7 +113,7 @@ Serial ports[] = new Serial[10];
 Serial port = null;
 
 // State variables
-int gui_state = 0;
+boolean connected_serial = false;
 boolean initialized = false;
 boolean reading = false;
 boolean flashing = false;
@@ -125,6 +124,12 @@ int cur_mode = 0;
 
 // All the groups
 Group gMain;
+Group gSerial;
+
+Textlabel tlSerial;
+String[] sSerial = new String[4];
+Button[] bSerial = new Button[4];
+
 
 Mode mode;
 Mode[] modes = new Mode[7];
@@ -144,11 +149,44 @@ void setup() {
 
   gMain = cp5.addGroup("main")
     .setPosition(0, 0)
-    .setWidth(1280)
+    .setWidth(1040)
     .setHeight(720)
     .hideBar()
     .hideArrow();
   mode = new Mode(gMain);
+
+  gSerial = cp5.addGroup("serial")
+    .setPosition(0, 0)
+    .setWidth(1040)
+    .setHeight(720)
+    .hideBar()
+    .hideArrow();
+
+  cp5.addTextlabel("tlWelcome")
+    .setGroup(gSerial)
+    .setValue("Welcome to VectR!")
+    .setFont(createFont("Comfortaa-Regular", 48))
+    .setPosition(300, 100)
+    .setSize(120, 40)
+    .setColorValue(color(192, 192, 255));
+
+  tlSerial = cp5.addTextlabel("tlSerial")
+    .setGroup(gSerial)
+    .setValue("Pick a serial port:")
+    .setFont(createFont("Comfortaa-Regular", 32))
+    .setPosition(380, 250)
+    .setSize(120, 40)
+    .setColorValue(color(240));
+
+  for (int i = 0; i < 4; i++) {
+    bSerial[i] = cp5.addButton("Serial" + i)
+      .setCaptionLabel("")
+      .setGroup(gSerial)
+      .setId(10 + i)
+      .setPosition(370, 300 + (30 * i))
+      .hide();
+    style(bSerial[i], 300);
+  }
 
   for (int i = 0; i < 7; i++) {
     modes[i] = new Mode();
@@ -157,40 +195,38 @@ void setup() {
 
 void draw() {
   background(16);
-  if (!initialized) {
-    connectLight();
-  }
-
-  if (port == null) {
-    for (int i = 0; i < num_ports; i++) {
-      if (ports[i].available() >= 3) {
-        port = ports[i];
-        readCommand();
+  if (!connected_serial) {
+    for (String p: Serial.list()) {
+      if (num_ports < 4 && !p.contains("Bluetooth")) {
+        try {
+          bSerial[num_ports].hide();
+          ports[num_ports] = new Serial(this, p, 115200);
+          sSerial[num_ports] = p;
+          bSerial[num_ports].setCaptionLabel(p).show();
+          println("Found serial port " + p + " #" + num_ports + ": " + ports[num_ports]);
+          num_ports++;
+        } catch (Exception e) {
+        }
       }
     }
+    gSerial.show();
+    gMain.hide();
+  } else if (!initialized) {
+    if (port.available() >= 3) {
+      readCommand();
+    }
+    gSerial.hide();
+    gMain.hide();
   } else {
     while (port.available() >= 3) {
       readCommand();
     }
-  }
-
-  if (!initialized || reading || flashing) {
-    gMain.hide();
-  } else {
-    gMain.show();
-  }
-}
-
-
-void connectLight() {
-  for (String p: Serial.list()) {
-    try {
-      if (num_ports < 10) {
-        ports[num_ports] = new Serial(this, p, 115200);
-        num_ports++;
-      }
-    } catch (Exception e) {
+    if (reading || flashing) {
+      gMain.hide();
+    } else {
+      gMain.show();
     }
+    gSerial.hide();
   }
 }
 
@@ -319,6 +355,7 @@ void loadColorBank() {
       }
     }
   } catch (Exception ex) {
+    println("SHIT! Loading colorbank.json failed! Falling back on default. " + ex);
   }
 }
 
@@ -357,7 +394,7 @@ void _writeLightFile(File file) {
       sendCommand(SER_CHANGE_MODE, cur_mode);
       flashing = false;
     } catch (Exception ex) {
-      println("SHIT! " + ex);
+      println("SHIT Write light failed! " + ex);
     }
   }
 }
@@ -376,7 +413,7 @@ void actuallySaveLightFile() {
   try {
     saveJSONArray(ja, file_path, "compact");
   } catch (Exception ex) {
-    // TODO popup error message
+    println("SHIT! Save light failed! " + ex);
   }
 }
 
@@ -404,7 +441,7 @@ void _loadModeFile(File file) {
         sendCommand(SER_WRITE, b, mode.geta(b));
       }
     } catch (Exception ex) {
-      // TODO popup error message
+      println("SHIT! Load mode failed! " + ex);
     }
   }
 }
@@ -421,8 +458,7 @@ void _saveModeFile(File file) {
     try {
       saveJSONObject(mode.getJSON(), path, "compact");
     } catch (Exception ex) {
-      println("SHIT! " + ex);
-      // TODO popup error message
+      println("SHIT! Save mode failed! " + ex);
     }
   }
 }
@@ -437,7 +473,18 @@ void resetMode(int v) {
 
 void disconnectLight(int v) {
   sendCommand(SER_DISCONNECT);
+
+  connected_serial = false;
   initialized = false;
+  cur_mode = 0;
+
+  for (int i = 0; i < 4; i++) {
+    sSerial[i] = "";
+    bSerial[i].setCaptionLabel("").hide();
+    if (i < num_ports) {
+      ports[i] = null;
+    }
+  }
   port = null;
 }
 
@@ -531,6 +578,12 @@ void controlEvent(CallbackEvent theEvent) {
       int[] c = {COLOR_BANK[i][0] >> s, COLOR_BANK[i][1] >> s, COLOR_BANK[i][2] >> s};
       mode.setColor(mode.getColorSet(), mode.getColorSlot(), c);
       mode.sendColor(mode.getColorSet(), mode.getColorSlot());
+    }
+  } else if (eName.startsWith("Serial")) {
+    if (eAction == ControlP5.ACTION_BROADCAST) {
+      println("Connect to port " + (10 - eId));
+      port = ports[eId - 10];
+      connected_serial = true;
     }
   }
 }
