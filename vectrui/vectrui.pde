@@ -39,57 +39,57 @@ final static String[] TRIGGERMODES = {"Off", "Velocity", "Tilt", "Roll", "Flip"}
 final static String[] MODETYPES = {"Vectr", "Primr"};
 
 int COLOR_BANK[][] = {
-  {255, 0, 0},
-  {224, 32, 0},
-  {192, 64, 0},
-  {160, 96, 0},
-  {128, 128, 0},
-  {96, 160, 0},
-  {64, 192, 0},
-  {32, 224, 0},
-  {0, 255, 0},
-  {0, 224, 32},
-  {0, 192, 64},
-  {0, 160, 96},
-  {0, 128, 128},
-  {0, 96, 160},
-  {0, 64, 192},
-  {0, 32, 224},
-  {0, 0, 255},
-  {32, 0, 224},
-  {64, 0, 192},
-  {96, 0, 160},
-  {128, 0, 128},
-  {160, 0, 96},
-  {192, 0, 64},
-  {224, 0, 32},
-  {0, 0, 0},
-  {56, 64, 72},
-  {24, 0, 0},
-  {16, 16, 0},
-  {0, 24, 0},
-  {0, 16, 16},
-  {0, 0, 24},
-  {16, 0, 16},
-  {64, 64, 64},
-  {160, 16, 16},
-  {16, 160, 16},
-  {16, 16, 160},
-  {128, 8, 48},
-  {80, 48, 48},
-  {128, 48, 8},
-  {80, 80, 8},
-  {48, 128, 8},
-  {48, 80, 48},
-  {8, 128, 48},
-  {8, 80, 80},
-  {8, 48, 128},
-  {48, 48, 80},
-  {48, 8, 128},
-  {80, 8, 80}
+  {208, 0, 0},      // red
+  {182, 28, 0},     // sunrise
+  {156, 56, 0},     // orange
+  {130, 84, 0},     // banana
+  {104, 112, 0},    // yellow
+  {78, 140, 0},     // firefly
+  {52, 168, 0},     // lime
+  {26, 196, 0},     // emerald
+  {0, 224, 0},      // green
+  {0, 196, 30},     // seafoam
+  {0, 168, 60},     // turquoise
+  {0, 140, 90},     // ocean
+  {0, 112, 120},    // cyan
+  {0, 84, 150},     // sapphire
+  {0, 56, 180},     // sky blue
+  {0, 28, 210},     // royal blue
+  {0, 0, 240},      // blue
+  {26, 0, 210},     // indigo
+  {52, 0, 180},     // purple
+  {78, 0, 150},     // violet
+  {104, 0, 120},    // magenta
+  {130, 0, 90},     // blush
+  {156, 0, 60},     // pink
+  {182, 0, 30},     // sunset
+  {104, 112, 120},  // white
+  {130, 84, 90},    // redish white
+  {78, 140, 90},    // greenish white
+  {78, 84, 150},    // blueish white
+  {156, 56, 60},    // pastel red
+  {143, 112, 45},   // pastel
+  {130, 140, 30},   // pastel yellow
+  {104, 154, 45},   // pastel
+  {52, 168, 60},    // pastel green
+  {39, 154, 120},   // pastel
+  {26, 140, 150},   // pastel cyan
+  {39, 112, 165},   // pastel
+  {52, 56, 180},    // pastel blue
+  {104, 42, 165},   // pastel
+  {130, 28, 150},   // pastel magenta
+  {143, 42, 120},   // pastel
+  {0, 0, 0},        // blank
+  {13, 14, 16},     // dim white
+  {26, 0, 0},       // dim red
+  {20, 21, 0},      // dim yellow
+  {0, 28, 0},       // dim green
+  {0, 21, 24},      // dim cyan
+  {0, 0, 32},       // dim blue
+  {20, 0, 24},      // dim magenta
 };
 
-static final int SER_VERSION = 101;
+static final int SER_VERSION = 111;
 static final int SER_DUMP           = 10;
 static final int SER_DUMP_LIGHT     = 11;
 static final int SER_SAVE           = 20;
@@ -109,6 +109,7 @@ static final int SER_HANDSHACK      = 251;
 static final int SER_DISCONNECT     = 254;
 
 int num_ports = 0;
+int port_num = -1;
 Serial ports[] = new Serial[10];
 Serial port = null;
 
@@ -121,6 +122,7 @@ boolean view_mode = true;
 
 // Light variables
 int cur_mode = 0;
+String file_path = "";
 
 // All the groups
 Group gMain;
@@ -129,20 +131,18 @@ Group gSerial;
 Textlabel tlSerial;
 String[] sSerial = new String[4];
 Button[] bSerial = new Button[4];
-
+Button bRefreshSerial;
 
 Mode mode;
 Mode[] modes = new Mode[7];
 
-String file_path = "";
-
 
 void setup() {
-  surface.setTitle("VectrUI 02-09-2016");
+  surface.setTitle("VectR UI (Beta 1)");
   smooth(8);
-  frameRate(60);
-  size(1040, 720);
-  loadColorBank();
+  frameRate(120);
+  size(1060, 720);
+  _loadColorBank("colorbank.json");
 
   cp5 = new ControlP5(this);
   cp5.setFont(createFont("Comfortaa-Bold", 14));
@@ -164,9 +164,9 @@ void setup() {
 
   cp5.addTextlabel("tlWelcome")
     .setGroup(gSerial)
-    .setValue("Welcome to VectR!")
-    .setFont(createFont("Comfortaa-Regular", 48))
-    .setPosition(300, 100)
+    .setValue("Welcome to\n     VectR")
+    .setFont(createFont("Comfortaa-Regular", 72))
+    .setPosition(300, 150)
     .setSize(120, 40)
     .setColorValue(color(192, 192, 255));
 
@@ -174,7 +174,7 @@ void setup() {
     .setGroup(gSerial)
     .setValue("Pick a serial port:")
     .setFont(createFont("Comfortaa-Regular", 32))
-    .setPosition(380, 250)
+    .setPosition(380, 350)
     .setSize(120, 40)
     .setColorValue(color(240));
 
@@ -183,7 +183,7 @@ void setup() {
       .setCaptionLabel("")
       .setGroup(gSerial)
       .setId(10 + i)
-      .setPosition(370, 300 + (30 * i))
+      .setPosition(370, 400 + (30 * i))
       .hide();
     style(bSerial[i], 300);
   }
@@ -199,12 +199,12 @@ void draw() {
     for (String p: Serial.list()) {
       if (num_ports < 4 && !p.contains("Bluetooth")) {
         try {
-          bSerial[num_ports].hide();
-          ports[num_ports] = new Serial(this, p, 115200);
-          sSerial[num_ports] = p;
-          bSerial[num_ports].setCaptionLabel(p).show();
-          println("Found serial port " + p + " #" + num_ports + ": " + ports[num_ports]);
-          num_ports++;
+          int i = (port_num >= 0) ? port_num : num_ports;
+          ports[i] = new Serial(this, p, 115200);
+          sSerial[i] = p;
+          bSerial[i].setCaptionLabel(p).show();
+          println("Found serial port " + p + " #" + i + ": " + ports[i]);
+          if (port_num > 0) { num_ports++; }
         } catch (Exception e) {
         }
       }
@@ -345,20 +345,6 @@ int getColorBankColor(int i, int s) {
   return translateColor(COLOR_BANK[i][0] >> s, COLOR_BANK[i][1] >> s, COLOR_BANK[i][2] >> s);
 }
 
-void loadColorBank() {
-  try {
-    JSONArray jarr = loadJSONArray("colorbank.json");
-    for (int i = 0; i < 48; i++) {
-      JSONArray jarr1 = jarr.getJSONArray(i);
-      for (int j = 0; j < 3; j++) {
-        COLOR_BANK[i][j] = jarr1.getInt(j);
-      }
-    }
-  } catch (Exception ex) {
-    println("SHIT! Loading colorbank.json failed! Falling back on default. " + ex);
-  }
-}
-
 
 //********************************************************************************
 // Button actions
@@ -373,11 +359,37 @@ void nextMode(int v) {
   sendCommand(SER_CHANGE_MODE, 101);
 }
 
-void writeLight() {
-  selectInput("Select light file to write to light", "_writeLightFile");
+void loadColorBank() {
+  selectInput("Select json color bank file", "_loadColorBank");
 }
 
-void _writeLightFile(File file) {
+void _loadColorBank(File file) {
+  if (file == null) {
+  } else {
+    _loadColorBank(file.getAbsolutePath());
+    mode.loadColorBank();
+  }
+}
+
+void _loadColorBank(String fname) {
+  try {
+    JSONArray jarr = loadJSONArray(fname);
+    for (int i = 0; i < 48; i++) {
+      JSONArray jarr1 = jarr.getJSONArray(i);
+      for (int j = 0; j < 3; j++) {
+        COLOR_BANK[i][j] = jarr1.getInt(j);
+      }
+    }
+  } catch (Exception ex) {
+    println("SHIT! Loading colorbank.json failed! Falling back on default. " + ex);
+  }
+}
+
+void uploadLight() {
+  selectInput("Select light file to upload to the light", "_uploadLightFile");
+}
+
+void _uploadLightFile(File file) {
   if (file == null) {
   } else {
     try {
@@ -427,11 +439,11 @@ void _saveLightFile(File file) {
   }
 }
 
-void loadMode() {
-  selectInput("Select mode file to load", "_loadModeFile");
+void uploadMode() {
+  selectInput("Select mode file to load", "_uploadModeFile");
 }
 
-void _loadModeFile(File file) {
+void _uploadModeFile(File file) {
   if (file == null) {
   } else {
     try {
@@ -440,6 +452,7 @@ void _loadModeFile(File file) {
       for (int b = 0; b < mode._MODESIZE; b++) {
         sendCommand(SER_WRITE, b, mode.geta(b));
       }
+      sendCommand(SER_SAVE);
     } catch (Exception ex) {
       println("SHIT! Load mode failed! " + ex);
     }
@@ -463,29 +476,24 @@ void _saveModeFile(File file) {
   }
 }
 
-void writeMode(int v) {
+void writeChanges(int v) {
   sendCommand(SER_SAVE);
 }
 
-void resetMode(int v) {
+void resetChanges(int v) {
   sendCommand(SER_CHANGE_MODE, cur_mode);
 }
 
 void disconnectLight(int v) {
   sendCommand(SER_DISCONNECT);
 
+  sSerial[port_num] = "";
+  bSerial[port_num].hide();
+
   connected_serial = false;
   initialized = false;
   cur_mode = 0;
-
-  for (int i = 0; i < 4; i++) {
-    sSerial[i] = "";
-    bSerial[i].setCaptionLabel("").hide();
-    if (i < num_ports) {
-      ports[i] = null;
-    }
-  }
-  port = null;
+  port_num = -1;
 }
 
 void viewMode(int v) {
@@ -501,7 +509,6 @@ void viewColor(int v) {
   mode.bViewMode.setColorBackground(color(48));
   mode.bViewColor.setColorBackground(color(128));
 }
-
 
 void controlEvent(CallbackEvent theEvent) {
   Controller eController = theEvent.getController();
@@ -583,6 +590,7 @@ void controlEvent(CallbackEvent theEvent) {
     if (eAction == ControlP5.ACTION_BROADCAST) {
       println("Connect to port " + (10 - eId));
       port = ports[eId - 10];
+      port_num = eId - 10;
       connected_serial = true;
     }
   }

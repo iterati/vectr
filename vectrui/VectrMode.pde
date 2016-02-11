@@ -36,6 +36,7 @@ class VectrMode {
   Slider[][] slTimings = new Slider[3][8];
   Slider[] slNumColors = new Slider[3];
   Button[][] bColors = new Button[3][9];
+  /* Button[][] bColorBgs = new Button[3][9]; */
 
   Button bSelectedColor;
   int color_set = -1;
@@ -75,7 +76,7 @@ class VectrMode {
 
     gColors = cp5.addGroup("VectrColorGroup")
       .setGroup(gVectr)
-      .setPosition(0, 480)
+      .setPosition(10, 480)
       .hideBar()
       .hideArrow();
 
@@ -137,6 +138,15 @@ class VectrMode {
       style(slNumColors[i], 90, 1, 9);
 
       for (int j = 0; j < 9; j++) {
+        /* bColorBgs[i][j] = cp5.addButton("VectrColorBgs" + i + "." + j) */
+        /*   .setGroup(gColors) */
+        /*   .setLabel("") */
+        /*   .setSize(34, 34) */
+        /*   .setPosition(113 + (40 * j), 3 + (40 * i)) */
+        /*   .setColorBackground(color(64)) */
+        /*   .setColorForeground(color(192)) */
+        /*   .setColorActive(color(240)); */
+
         bColors[i][j] = cp5.addButton("VectrColors" + i + "." + j)
           .setGroup(gColors)
           .setId(ID_COLORS + (i * 9) + j)
@@ -184,6 +194,7 @@ class VectrMode {
   void deselectColor() {
     bSelectedColor.hide();
     color_set = color_slot = -1;
+    viewMode(0);
   }
 
   boolean selectColor(int i) {
@@ -609,8 +620,8 @@ class VectrMode {
     }
     if (use_gui) {
       for (int j = 0; j < 9; j++) {
-        if (j < numColors[i]) bColors[i][j].show();
-        else                  bColors[i][j].hide();
+        if (j < numColors[i]) { bColors[i][j].show(); } //bColorBgs[i][j].show(); }
+        else                  { bColors[i][j].hide(); } //bColorBgs[i][j].hide(); }
       }
       slNumColors[i].setBroadcast(false).setValue(numColors[i]).setBroadcast(true);
     }
@@ -750,8 +761,17 @@ class VectrMode {
   }
 
   void setPatternThresh(JSONArray ja) {
-    for (int i = 0; i < 4; i++) {
-      setPatternThresh(i, ja.getInt(i));
+    try {
+      for (int i = 0; i < 4; i++) {
+        setPatternThresh(i, ja.getInt(i));
+      }
+    } catch (Exception ex) {
+      for (int i = 0; i < 2; i++) {
+        JSONArray ja1 = ja.getJSONArray(i);
+        for (int j = 0; j < 2; j++) {
+          setPatternThresh((i * 2) + j, ja1.getInt(j));
+        }
+      }
     }
   }
 
@@ -769,8 +789,17 @@ class VectrMode {
   }
 
   void setColorThresh(JSONArray ja) {
-    for (int i = 0; i < 4; i++) {
-      setColorThresh(i, ja.getInt(i));
+    try {
+      for (int i = 0; i < 4; i++) {
+        setColorThresh(i, ja.getInt(i));
+      }
+    } catch (Exception ex) {
+      for (int i = 0; i < 2; i++) {
+        JSONArray ja1 = ja.getJSONArray(i);
+        for (int j = 0; j < 2; j++) {
+          setPatternThresh((i * 2) + j, ja1.getInt(j));
+        }
+      }
     }
   }
 

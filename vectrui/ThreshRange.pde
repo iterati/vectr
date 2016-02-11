@@ -162,7 +162,7 @@ public class ThreshRange extends Controller<ThreshRange> {
       theGraphics.pushMatrix();
 
       theGraphics.fill(0);
-      theGraphics.stroke(0);
+      theGraphics.stroke(64);
       theGraphics.rect(0, 0, getWidth(), getHeight());
 
       int[] colors = {color(255, 0, 0), color(255, 255, 0), color(0, 255, 0), color(0, 255, 255), color(0, 0, 255)};

@@ -31,6 +31,7 @@ class Mode {
   Button bSaveLight;
   Button bWriteLight;
   Button bDisconnectLight;
+  Button bLoadColors;
 
   // ColorEdit
   Slider[] slColorValues = new Slider[3];
@@ -55,28 +56,41 @@ class Mode {
     dlType = cp5.addDropdownList("type")
       .setGroup(gMain)
       .setId(ID_TYPE)
-      .setPosition(50, 15)
-      .setSize(80, 60)
+      /* .setPosition(50, 20) */
+      .setPosition(580, 20)
+      .setSize(90, 60)
       .setItems(MODETYPES);
     style(dlType);
 
     gTitle = cp5.addGroup("title")
       .setGroup(gMain)
-      .setPosition(300, 5)
+      .setPosition(300, 10)
       .hideBar()
       .hideArrow();
     makeTitle();
 
+    bDisconnectLight = cp5.addButton("disconnectLight")
+      .setCaptionLabel("Disconnect")
+      .setGroup(gMain)
+      .setPosition(50, 20);
+    style(bDisconnectLight, 90);
+
+    bLoadColors = cp5.addButton("loadColorBank")
+      .setCaptionLabel("Load Colors")
+      .setGroup(gMain)
+      .setPosition(170, 20);
+    style(bLoadColors, 90);
+
     gControls = cp5.addGroup("controls")
       .setGroup(gMain)
-      .setPosition(30, 690)
+      .setPosition(30, 680)
       .hideBar()
       .hideArrow();
     makeControls();
 
     gColorEdit = cp5.addGroup("colorEdit")
       .setGroup(gMain)
-      .setPosition(544, 540)
+      .setPosition(554, 540)
       .hideBar()
       .hideArrow()
       .hide();
@@ -100,7 +114,7 @@ class Mode {
 
     gColorBank = cp5.addGroup("colorBank")
       .setGroup(gMain)
-      .setPosition(810, 0)
+      .setPosition(820, 0)
       .hideBar()
       .hideArrow();
     makeColorBank();
@@ -126,10 +140,13 @@ class Mode {
     if (addr < 0 || addr >= _MODESIZE) {
     } else if (addr == 0) {
       setType(val);
+      if (_type == 0) {
+        pmode.setTriggerMode(0);
+      }
     } else {
       if (_type == 0) {
         vmode.seta(addr, val);
-      } else {
+      } else if (_type == 1) {
         pmode.seta(addr, val);
       }
     }
@@ -228,18 +245,9 @@ class Mode {
       success = pmode.selectColor(i);
     }
     if (success) {
-      gColorEdit.show();
-    }
-  }
-
-  void selectColor(int _set, int _color) {
-    boolean success = false;
-    if (_type == 0) {
-      success = vmode.selectColor(_set, _color);
-    } else if (_type == 1) {
-      success = pmode.selectColor(_set, _color);
-    }
-    if (success) {
+      if (!view_mode) {
+        sendCommand(SER_VIEW_COLOR, getColorSet(), getColorSlot());
+      }
       gColorEdit.show();
     }
   }
@@ -474,7 +482,11 @@ class Mode {
   // JSON
   //********************************************************************************
   void fromJSON(JSONObject jo) {
-    setType(jo.getInt("type"));
+    try {
+      setType(jo.getInt("type"));
+    } catch (Exception ex) {
+      setType(0);
+    }
     if (_type == 0) {
       vmode.fromJSON(jo);
     } else if (_type == 1) {
@@ -520,47 +532,41 @@ class Mode {
   }
 
   void makeControls() {
-    bResetMode = cp5.addButton("resetMode")
-      .setCaptionLabel("Reset Mode")
+    bResetMode = cp5.addButton("resetChanges")
+      .setCaptionLabel("Undo Edits")
       .setGroup(gControls)
-      .setPosition(10, 0);
-    style(bResetMode, 80);
+      .setPosition(5, 0);
+    style(bResetMode, 90);
 
-    bWriteMode = cp5.addButton("writeMode")
-      .setCaptionLabel("Write Mode")
+    bWriteMode = cp5.addButton("writeChanges")
+      .setCaptionLabel("Save Edits")
       .setGroup(gControls)
-      .setPosition(110, 0);
-    style(bWriteMode, 80);
+      .setPosition(105, 0);
+    style(bWriteMode, 90);
 
     bSaveMode = cp5.addButton("saveMode")
       .setCaptionLabel("Save Mode")
       .setGroup(gControls)
-      .setPosition(210, 0);
-    style(bSaveMode, 80);
+      .setPosition(305, 0);
+    style(bSaveMode, 90);
 
-    bLoadMode = cp5.addButton("loadMode")
-      .setCaptionLabel("Load Mode")
+    bLoadMode = cp5.addButton("uploadMode")
+      .setCaptionLabel("Upload Mode")
       .setGroup(gControls)
-      .setPosition(310, 0);
-    style(bLoadMode, 80);
+      .setPosition(405, 0);
+    style(bLoadMode, 90);
 
     bSaveLight = cp5.addButton("saveLight")
       .setCaptionLabel("Save Light")
       .setGroup(gControls)
-      .setPosition(510, 0);
-    style(bSaveLight, 80);
+      .setPosition(605, 0);
+    style(bSaveLight, 90);
 
-    bWriteLight = cp5.addButton("writeLight")
-      .setCaptionLabel("Write Light")
+    bWriteLight = cp5.addButton("uploadLight")
+      .setCaptionLabel("Upload Light")
       .setGroup(gControls)
-      .setPosition(610, 0);
-    style(bWriteLight, 80);
-
-    bDisconnectLight = cp5.addButton("disconnectLight")
-      .setCaptionLabel("Disconnect")
-      .setGroup(gControls)
-      .setPosition(710, 0);
-    style(bDisconnectLight, 80);
+      .setPosition(705, 0);
+    style(bWriteLight, 90);
   }
 
   void makeColorEdit() {
@@ -620,11 +626,22 @@ class Mode {
             .setId(ID_COLORBANK + ((g * 8) + c) + (100 * s))
             .setLabel("")
             .setSize(16, 16)
-            .setPosition(24 + 4 + (24 * c), 12 + 4 + (120 * g) + (24 * s))
+            .setPosition(24 + 4 + (24 * c), 22 + 4 + (116 * g) + (24 * s))
             .setColorBackground(getColorBankColor((g * 8) + c, s))
             .setColorForeground(getColorBankColor((g * 8) + c, s))
             .setColorActive(getColorBankColor((g * 8) + c, s));
         }
+      }
+    }
+  }
+
+  void loadColorBank() {
+    for (int c = 0; c < 48; c++) {
+      for (int s = 0; s < 4; s++) {
+        bColorBank[c][s]
+          .setColorActive(getColorBankColor(c, s))
+          .setColorBackground(getColorBankColor(c, s))
+          .setColorForeground(getColorBankColor(c, s));
       }
     }
   }

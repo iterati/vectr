@@ -11,8 +11,9 @@
 // Globals
 //********************************************************************************
 PackedMode mode;
-PatternState pattern_state;
-PatternState pattern_state2;
+/* PatternState pattern_state; */
+/* PatternState pattern_state2; */
+PatternState pattern_state[2];
 AccelData adata;
 Led led = {PIN_R, PIN_G, PIN_B, 0, 0, 0};
 int8_t (*pattern_funcs[7]) (PatternState*);
@@ -127,28 +128,38 @@ void load_mode(uint8_t m) {
 }
 
 void calc_primer_states() {
-  pattern_state.pattern = constrain(mode.pm.pattern[0], 0, 6);
-  pattern_state2.pattern = constrain(mode.pm.pattern[1], 0, 6);
-  pattern_state.numc = mode.pm.numc[0];
-  pattern_state2.numc = mode.pm.numc[1];
-  for (uint8_t i = 0; i < 8; i++) {
-    if (i < 5) {
-      pattern_state.args[i] = mode.pm.args[0][i];
-      pattern_state2.args[i] = mode.pm.args[1][i];
+  for (uint8_t s = 0; s < 2; s++) {
+    pattern_state[s].pattern = constrain(mode.pm.pattern[s], 0, 6);
+    pattern_state[s].numc = mode.pm.numc[s];
+    for (uint8_t i = 0; i < 8; i++) {
+      if (i < 5) {
+        pattern_state[s].args[i] = mode.pm.args[s][i];
+      }
+      pattern_state[s].timings[i] = mode.pm.timings[s][i];
     }
-    pattern_state.timings[i] = mode.pm.timings[0][i];
-    pattern_state2.timings[i] = mode.pm.timings[1][i];
   }
+  /* pattern_state.pattern = constrain(mode.pm.pattern[0], 0, 6); */
+  /* pattern_state2.pattern = constrain(mode.pm.pattern[1], 0, 6); */
+  /* pattern_state.numc = mode.pm.numc[0]; */
+  /* pattern_state2.numc = mode.pm.numc[1]; */
+  /* for (uint8_t i = 0; i < 8; i++) { */
+  /*   if (i < 5) { */
+  /*     pattern_state.args[i] = mode.pm.args[0][i]; */
+  /*     pattern_state2.args[i] = mode.pm.args[1][i]; */
+  /*   } */
+  /*   pattern_state.timings[i] = mode.pm.timings[0][i]; */
+  /*   pattern_state2.timings[i] = mode.pm.timings[1][i]; */
+  /* } */
 }
 
 void calc_pattern_state() {
-  pattern_state.pattern = constrain(mode.vm.pattern, 0, 6);
+  pattern_state[0].pattern = constrain(mode.vm.pattern, 0, 6);
 
-  if (adata.velocity <= mode.vm.tr_flux[0])      pattern_state.numc = mode.vm.numc[0];
-  else if (adata.velocity < mode.vm.tr_flux[1])  pattern_state.numc = min(mode.vm.numc[0], mode.vm.numc[1]);
-  else if (adata.velocity <= mode.vm.tr_flux[2]) pattern_state.numc = mode.vm.numc[1];
-  else if (adata.velocity < mode.vm.tr_flux[3])  pattern_state.numc = min(mode.vm.numc[1], mode.vm.numc[2]);
-  else                                           pattern_state.numc = mode.vm.numc[2];
+  if (adata.velocity <= mode.vm.tr_flux[0])      pattern_state[0].numc = mode.vm.numc[0];
+  else if (adata.velocity < mode.vm.tr_flux[1])  pattern_state[0].numc = min(mode.vm.numc[0], mode.vm.numc[1]);
+  else if (adata.velocity <= mode.vm.tr_flux[2]) pattern_state[0].numc = mode.vm.numc[1];
+  else if (adata.velocity < mode.vm.tr_flux[3])  pattern_state[0].numc = min(mode.vm.numc[1], mode.vm.numc[2]);
+  else                                           pattern_state[0].numc = mode.vm.numc[2];
 
   uint8_t v, d, s;
   if (adata.velocity <= mode.vm.tr_meta[0]) {
@@ -164,8 +175,8 @@ void calc_pattern_state() {
   }
 
   for (uint8_t i = 0; i < 8; i++) {
-    if (i < 5) pattern_state.args[i] = mode.vm.args[i];
-    pattern_state.timings[i] = interp(mode.vm.timings[s][i], mode.vm.timings[s + 1][i], v, d);
+    if (i < 5) pattern_state[0].args[i] = mode.vm.args[i];
+    pattern_state[0].timings[i] = interp(mode.vm.timings[s][i], mode.vm.timings[s + 1][i], v, d);
   }
 }
 
@@ -196,11 +207,15 @@ void change_mode(uint8_t i) {
   reset_mode();
 }
 
+inline void reset_state(PatternState *state) {
+  state->tick = state->trip = state->cidx = state->cntr = state->segm = 0;
+}
+
 void reset_mode() {
   gui_set = gui_color = -1;
   variant = 0;
-  pattern_state.tick = pattern_state.trip = pattern_state.cidx = pattern_state.cntr = pattern_state.segm = 0;
-  pattern_state2.tick = pattern_state2.trip = pattern_state2.cidx = pattern_state2.cntr = pattern_state2.segm = 0;
+  reset_state(&pattern_state[0]);
+  reset_state(&pattern_state[1]);
   if (mode.data[0] == 0) {
     calc_pattern_state();
   } else if (mode.data[0] == 1) {
@@ -257,7 +272,7 @@ int8_t pattern_strobe(PatternState *state) {
 }
 
 int8_t pattern_vexer(PatternState *state) {
-  uint8_t numc = constrain(state->numc, 1, MAX_COLORS);
+  uint8_t numc = constrain(state->numc, 2, MAX_COLORS) - 1;
 
   uint8_t repeat_c = constrain(state->args[0], 1, MAX_REPEATS);
   uint8_t repeat_t = constrain(state->args[1], 1, MAX_REPEATS);
@@ -278,29 +293,28 @@ int8_t pattern_vexer(PatternState *state) {
       if (state->segm >= 2) {
         state->segm = 0;
         state->cntr++;
-        if (state->cntr >= repeat_t + repeat_c) {
+        if (state->cntr >= repeat_c + repeat_t) {
           state->cntr = 0;
-          state->cidx = (state->cidx + 1) % (numc - 1);
+          state->cidx = (state->cidx + 1) % numc;
         }
       }
 
       if (state->segm == 0) {
-        if (state->cntr == 0 || state->cntr == repeat_t) state->trip = sbt;
-        else if (state->cntr < repeat_t)                 state->trip = tbt;
-        else                                             state->trip = cbt;
+        if (state->cntr == 0 || state->cntr == repeat_c) state->trip = sbt;
+        else if (state->cntr < repeat_c)                 state->trip = cbt;
+        else                                             state->trip = tbt;
       } else {
-        if (state->cntr < repeat_t)                      state->trip = tst;
-        else                                             state->trip = cst;
+        if (state->cntr < repeat_c)                      state->trip = cst;
+        else                                             state->trip = tst;
       }
     }
   }
 
   int8_t color = -1;
-  if (state->segm == 0) {
-    color = -1;
+  if (state->segm == 0) {       color = -1;
   } else {
-    if (state->cntr < repeat_t) color = 0;
-    else                        color = state->cidx + 1;
+    if (state->cntr < repeat_c) color = state->cidx + 1;
+    else                        color = 0;
   }
   return color;
 }
@@ -528,6 +542,22 @@ int8_t pattern_random(PatternState *state) {
   }
 
   return (state->segm == 0) ? state->cidx : -1;
+}
+
+int8_t pattern_flux(PatternState *state) {
+  uint8_t numc = constrain(state->numc, 1, MAX_COLORS);
+
+  uint8_t steps = constrain(state->args[0], 1, 100);
+  uint8_t blend_dir = state->args[1] % 3;
+  bool target_color = state->args[2];
+
+  uint8_t st = state->timings[0];
+  uint8_t at = state->timings[1];
+
+  if (st == 0 && at == 0) st = 1;
+
+  if (state->tick >= state->trip) {
+  }
 }
 
 
@@ -864,23 +894,18 @@ void _render_mode() {
   int8_t color;
   if (mode.data[0] == 0) {
     // Run pattern func to get color index and increment tick
-    color = pattern_funcs[pattern_state.pattern](&pattern_state);
-    pattern_state.tick++;
+    color = pattern_funcs[pattern_state[0].pattern](&pattern_state[0]);
+    pattern_state[0].tick++;
 
     // Write color to led buffer
     if (color < 0) led.r = led.g = led.b = 0;
     else           calc_color(color);
 
   } else if (mode.data[0] == 1) {
-    if (variant == 0) {
-      color = pattern_funcs[pattern_state.pattern](&pattern_state);
-      pattern_funcs[pattern_state2.pattern](&pattern_state2);
-    } else {
-      color = pattern_funcs[pattern_state2.pattern](&pattern_state2);
-      pattern_funcs[pattern_state.pattern](&pattern_state);
-    }
-    pattern_state.tick++;
-    pattern_state2.tick++;
+    color = pattern_funcs[pattern_state[variant].pattern](&pattern_state[variant]);
+    pattern_funcs[pattern_state[!variant].pattern](&pattern_state[!variant]);
+    pattern_state[0].tick++;
+    pattern_state[1].tick++;
     if (color < 0) {
       led.r = led.g = led.b = 0;
     } else {
@@ -902,13 +927,13 @@ void handle_render() {
     case S_VIEW_COLOR:
       if (mode.data[0] == 0) {
         gui_set = constrain(gui_set, 0, 2);
-        gui_color = constrain(gui_set, 0, 8);
+        gui_color = constrain(gui_color, 0, 8);
         led.r = mode.vm.colors[gui_set][gui_color][0];
         led.g = mode.vm.colors[gui_set][gui_color][1];
         led.b = mode.vm.colors[gui_set][gui_color][2];
       } else {
         gui_set = constrain(gui_set, 0, 1);
-        gui_color = constrain(gui_set, 0, 8);
+        gui_color = constrain(gui_color, 0, 8);
         led.r = mode.pm.colors[gui_set][gui_color][0];
         led.g = mode.pm.colors[gui_set][gui_color][1];
         led.b = mode.pm.colors[gui_set][gui_color][2];

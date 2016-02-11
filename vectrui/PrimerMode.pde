@@ -37,6 +37,7 @@ class PrimerMode {
   Slider[][] slTimings = new Slider[2][8];
   Slider[] slNumColors = new Slider[2];
   Button[][] bColors = new Button[2][9];
+  /* Button[][] bColorBgs = new Button[2][9]; */
 
   Button bSelectedColor;
   int color_set = -1;
@@ -60,8 +61,8 @@ class PrimerMode {
     dlTriggerMode = cp5.addDropdownList("PrimerTriggerMode")
       .setGroup(gPrimer)
       .setId(ID_TRIGGER_MODE)
-      .setPosition(150, -45)
-      .setSize(80, 120)
+      .setPosition(680, -40)
+      .setSize(90, 120)
       .setItems(TRIGGERMODES);
     style(dlTriggerMode);
 
@@ -86,7 +87,7 @@ class PrimerMode {
 
     gColors = cp5.addGroup("PrimerColorGroup")
       .setGroup(gPrimer)
-      .setPosition(0, 480)
+      .setPosition(10, 480)
       .hideBar()
       .hideArrow();
 
@@ -149,12 +150,24 @@ class PrimerMode {
       style(slNumColors[i], 90, 1, 9);
 
       for (int j = 0; j < 9; j++) {
+        /* bColorBgs[i][j] = cp5.addButton("PrimerColorBgs" + i + "." + j) */
+        /*   .setGroup(gColors) */
+        /*   .setLabel("") */
+        /*   .setSize(34, 34) */
+        /*   .setPosition(113 + (40 * j), 23 + (40 * i)) */
+        /*   .setColorBackground(color(64)) */
+        /*   .setColorForeground(color(192)) */
+        /*   .setColorActive(color(240)); */
+
         bColors[i][j] = cp5.addButton("PrimerColors" + i + "." + j)
           .setGroup(gColors)
           .setId(ID_COLORS + (i * 9) + j)
           .setLabel("")
           .setSize(32, 32)
-          .setPosition(114 + (40 * j), 24 + (40 * i));
+          .setPosition(114 + (40 * j), 24 + (40 * i))
+          .setColorBackground(color(0))
+          .setColorForeground(color(0))
+          .setColorActive(color(0));
       }
     }
 
@@ -197,6 +210,7 @@ class PrimerMode {
   void deselectColor() {
     bSelectedColor.hide();
     color_set = color_slot = -1;
+    viewMode(0);
   }
 
   boolean selectColor(int i) {
@@ -496,8 +510,6 @@ class PrimerMode {
   }
 
   void setTriggerThresh(float[] val) {
-    if (oob(val[0], 0, val[1]) || oob(val[1], val[0], 32)) { return; }
-
     triggerThresh[0] = (int)val[0];
     triggerThresh[1] = (int)val[1];
 
@@ -587,8 +599,8 @@ class PrimerMode {
     }
     if (use_gui) {
       for (int j = 0; j < 9; j++) {
-        if (j < numColors[i]) bColors[i][j].show();
-        else                  bColors[i][j].hide();
+        if (j < numColors[i]) { bColors[i][j].show(); } //bColorBgs[i][j].show(); }
+        else                  { bColors[i][j].hide(); } //bColorBgs[i][j].hide(); }
       }
       slNumColors[i].setBroadcast(false).setValue(numColors[i]).setBroadcast(true);
     }
