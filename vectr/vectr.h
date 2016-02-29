@@ -147,7 +147,7 @@ typedef struct AccelData {
   uint8_t velocity_cntr[32];
   uint8_t prime_last;
   uint8_t prime_cntr;
-  int32_t gs[3];
+  int16_t gs[3];
   uint32_t gs2[3];
   uint32_t mag, velocity;
   int32_t flip;
