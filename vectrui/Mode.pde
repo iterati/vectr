@@ -4,7 +4,7 @@ class Mode {
   static final int _TYPE = 0;
   static final int _MODESIZE = 128;
 
-  int   _type = -1;
+  int   _type = 0;
   int[] data = new int[_MODESIZE];
 
   VectrMode vmode;
@@ -125,11 +125,15 @@ class Mode {
   int geta(int addr) {
     if (addr < 0 || addr >= _MODESIZE) {
     } else if (addr == 0) {
+      if (_type != 0 && _type != 1) {
+        // force vectr mode
+        _type = 0;
+      }
       return _type;
     } else {
-      if (_type == 0) {
+      if (_type != 1) {
         return vmode.geta(addr);
-      } else if (_type == 1) {
+      } else {
         return pmode.geta(addr);
       }
     }
@@ -140,13 +144,13 @@ class Mode {
     if (addr < 0 || addr >= _MODESIZE) {
     } else if (addr == 0) {
       setType(val);
-      if (_type == 0) {
+      if (_type == 1) {
         pmode.setTriggerMode(0);
       }
     } else {
-      if (_type == 0) {
+      if (_type != 1) {
         vmode.seta(addr, val);
-      } else if (_type == 1) {
+      } else {
         pmode.seta(addr, val);
       }
     }
@@ -156,7 +160,7 @@ class Mode {
     gVectr.hide();
     gPrimer.hide();
 
-    if (_type == 0) {
+    if (_type != 1) {
       gVectr.show();
       vmode.deselectColor();
       vmode.setPattern(0);
@@ -176,7 +180,7 @@ class Mode {
         vmode.setColor(i, 7, COLOR_BANK[24]);
         vmode.setColor(i, 8, COLOR_BANK[24]);
       }
-    } else if (_type == 1) {
+    } else {
       gPrimer.show();
       pmode.deselectColor();
       pmode.setPattern(0, 0);
@@ -205,18 +209,18 @@ class Mode {
   }
 
   void resetPatternGui() {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.resetPatternGui();
-    } else if (_type == 1) {
+    } else {
       pmode.resetPatternGui(0);
       pmode.resetPatternGui(1);
     }
   }
 
   void resetArgsAndTimings() {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.resetArgsAndTimings();
-    } else if (_type == 1) {
+    } else {
       pmode.resetArgsAndTimings(0);
       pmode.resetArgsAndTimings(1);
     }
@@ -230,18 +234,18 @@ class Mode {
 
   void deselectColor() {
     gColorEdit.hide();
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.deselectColor();
-    } else if (_type == 1) {
+    } else {
       pmode.deselectColor();
     }
   }
 
   void selectColor(int i) {
     boolean success = false;
-    if (_type == 0) {
+    if (_type != 1) {
       success = vmode.selectColor(i);
-    } else if (_type == 1) {
+    } else {
       success = pmode.selectColor(i);
     }
     if (success) {
@@ -257,7 +261,7 @@ class Mode {
   //********************************************************************************
   // Type
   void setType(int val) {
-    if (oob(val, 0, 1)) { return; }
+    if (oob(val, 0, 1)) { val = 0; }
     int old = _type;
     _type = val;
     if (use_gui) {
@@ -280,9 +284,9 @@ class Mode {
   }
 
   void setPattern(int i, int val) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.setPattern(val);
-    } else if (_type == 1) {
+    } else {
       pmode.setPattern(i, val);
     }
   }
@@ -292,155 +296,155 @@ class Mode {
   }
 
   void sendPattern(int i) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.sendPattern();
-    } else if (_type == 1) {
+    } else {
       pmode.sendPattern(i);
     }
   }
 
   // Args
   void setArgs(int i, int val) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.setArgs(i, val);
-    } else if (_type == 1) {
+    } else {
       pmode.setArgs(i, val);
     }
   }
 
   void sendArgs(int i) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.sendArgs(i);
-    } else if (_type == 1) {
+    } else {
       pmode.sendArgs(i);
     }
   }
 
   // Timings
   void setTimings(int i, int val) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.setTimings(i, val);
-    } else if (_type == 1) {
+    } else {
       pmode.setTimings(i, val);
     }
   }
 
   void setTimings(int x, int y, int val) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.setTimings(x, y, val);
-    } else if (_type == 1) {
+    } else {
       pmode.setTimings(x, y, val);
     }
   }
 
   void sendTimings(int i) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.sendTimings(i);
-    } else if (_type == 1) {
+    } else {
       pmode.sendTimings(i);
     }
   }
 
   void sendTimings(int x, int y) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.sendTimings(x, y);
-    } else if (_type == 1) {
+    } else {
       pmode.sendTimings(x, y);
     }
   }
 
   // Num Colors
   void setNumColors(int i, int val) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.setNumColors(i, val);
-    } else if (_type == 1) {
+    } else {
       pmode.setNumColors(i, val);
     }
   }
 
   void sendNumColors(int i) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.sendNumColors(i);
-    } else if (_type == 1) {
+    } else {
       pmode.sendNumColors(i);
     }
   }
 
   // Colors
   void setColor(int _set, int _color, int _channel, int val) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.setColor(_set, _color, _channel, val);
-    } else if (_type == 1) {
+    } else {
       pmode.setColor(_set, _color, _channel, val);
     }
   }
 
   void setColor(int _set, int _color, int[] val) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.setColor(_set, _color, val);
-    } else if (_type == 1) {
+    } else {
       pmode.setColor(_set, _color, val);
     }
   }
 
   void setColor(int i, int val) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.setColor(i, val);
-    } else if (_type == 1) {
+    } else {
       pmode.setColor(i, val);
     }
   }
 
   void sendColor(int _set, int _color, int _channel) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.sendColor(_set, _color, _channel);
-    } else if (_type == 1) {
+    } else {
       pmode.sendColor(_set, _color, _channel);
     }
   }
 
   void sendColor(int _set, int _color) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.sendColor(_set, _color);
-    } else if (_type == 1) {
+    } else {
       pmode.sendColor(_set, _color);
     }
   }
 
   // Pattern Thresh - Vectr only
   void setPatternThresh(float[] val) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.setPatternThresh(val);
     }
   }
 
   void setPatternThresh(int i, int val) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.setPatternThresh(i, val);
     }
   }
 
   void sendPatternThresh() {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.sendPatternThresh();
     }
   }
 
   // Color Thresh - Vectr only
   void setColorThresh(float[] val) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.setColorThresh(val);
     }
   }
 
   void setColorThresh(int i, int val) {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.setColorThresh(i, val);
     }
   }
 
   void sendColorThresh() {
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.sendColorThresh();
     }
   }
@@ -487,9 +491,9 @@ class Mode {
     } catch (Exception ex) {
       setType(0);
     }
-    if (_type == 0) {
+    if (_type != 1) {
       vmode.fromJSON(jo);
-    } else if (_type == 1) {
+    } else {
       pmode.fromJSON(jo);
     }
 
@@ -500,9 +504,9 @@ class Mode {
 
   JSONObject getJSON() {
     JSONObject jo = new JSONObject();
-    if (_type == 0) {
+    if (_type != 1) {
       jo = vmode.getJSON();
-    } else if (_type == 1) {
+    } else {
       jo = pmode.getJSON();
     }
     jo.setInt("type", _type);
@@ -647,18 +651,18 @@ class Mode {
   }
 
   int getColorSet() {
-    if (_type == 0) {
+    if (_type != 1) {
       return vmode.color_set;
-    } else if (_type == 1) {
+    } else {
       return pmode.color_set;
     }
     return -1;
   }
 
   int getColorSlot() {
-    if (_type == 0) {
+    if (_type != 1) {
       return vmode.color_slot;
-    } else if (_type == 1) {
+    } else {
       return pmode.color_slot;
     }
     return -1;

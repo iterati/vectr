@@ -368,6 +368,21 @@ class VectrMode {
         updateTiming(6);
         updateTiming(7);
         break;
+      case 7:
+        updateArg(0, "Steps", 0, 100);
+        updateArg(1, "Strobe/Blank", 0, 1);
+        updateArg(2, "Up/Down/Both", 0, 2);
+        updateArg(3);
+        updateArg(4);
+        updateTiming(0, "Strobe");
+        updateTiming(1, "Blank");
+        updateTiming(2, "Flux");
+        updateTiming(3);
+        updateTiming(4);
+        updateTiming(5);
+        updateTiming(6);
+        updateTiming(7);
+        break;
     }
   }
 
@@ -492,12 +507,29 @@ class VectrMode {
           setTimings(i, 7, 0);
         }
         break;
+      case 7:
+        setArgs(0, 10);
+        setArgs(1, 1);
+        setArgs(2, 2);
+        setArgs(3, 0);
+        setArgs(4, 0);
+        for (int i = 0; i < 3; i++) {
+          setTimings(i, 0, 1);
+          setTimings(i, 1, 0);
+          setTimings(i, 2, 1);
+          setTimings(i, 3, 0);
+          setTimings(i, 4, 0);
+          setTimings(i, 5, 0);
+          setTimings(i, 6, 0);
+          setTimings(i, 7, 0);
+        }
+        break;
     }
   }
 
   // Pattern
   void setPattern(int val) {
-    if (oob(val, 0, 6)) { return; }
+    if (oob(val, 0, 7)) { return; }
     int old = pattern;
     pattern = val;
     if (use_gui) {
@@ -740,7 +772,11 @@ class VectrMode {
       for (int j = 0; j < 9; j++) {
         JSONArray ja2 = new JSONArray();
         for (int k = 0; k < 3; k++) {
-          ja2.setInt(k, colors[i][j][k]);
+          if (j < numColors[i]) {
+            ja2.setInt(k, colors[i][j][k]);
+          } else {
+            ja2.setInt(k, 0);
+          }
         }
         ja1.setJSONArray(j, ja2);
       }

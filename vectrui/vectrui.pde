@@ -34,6 +34,7 @@ final static String[] PATTERNS = {
   "Runner",
   "Stepper",
   "Random",
+  "Flux",
 };
 final static String[] TRIGGERMODES = {"Off", "Velocity", "Tilt", "Roll", "Flip"};
 final static String[] MODETYPES = {"Vectr", "Primr"};
