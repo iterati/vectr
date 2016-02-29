@@ -11,8 +11,6 @@
 // Globals
 //********************************************************************************
 PackedMode mode;
-/* PatternState pattern_state; */
-/* PatternState pattern_state2; */
 PatternState pattern_state[2];
 AccelData adata;
 Led led = {PIN_R, PIN_G, PIN_B, 0, 0, 0};
@@ -102,7 +100,6 @@ void accel_standby() {
   accel_send(0x2A, 0x00);
 }
 
-// If write_frame isn't called every 15ms, the chip will reset
 void write_frame(uint8_t r, uint8_t g, uint8_t b) {
   /* if (limiter > 64000) { Serial.print(limiter); Serial.print(F("\t")); Serial.println(accel_tick); } */
   while (limiter < 64000) {}
@@ -138,18 +135,6 @@ void calc_primer_states() {
       pattern_state[s].timings[i] = mode.pm.timings[s][i];
     }
   }
-  /* pattern_state.pattern = constrain(mode.pm.pattern[0], 0, 6); */
-  /* pattern_state2.pattern = constrain(mode.pm.pattern[1], 0, 6); */
-  /* pattern_state.numc = mode.pm.numc[0]; */
-  /* pattern_state2.numc = mode.pm.numc[1]; */
-  /* for (uint8_t i = 0; i < 8; i++) { */
-  /*   if (i < 5) { */
-  /*     pattern_state.args[i] = mode.pm.args[0][i]; */
-  /*     pattern_state2.args[i] = mode.pm.args[1][i]; */
-  /*   } */
-  /*   pattern_state.timings[i] = mode.pm.timings[0][i]; */
-  /*   pattern_state2.timings[i] = mode.pm.timings[1][i]; */
-  /* } */
 }
 
 void calc_pattern_state() {
@@ -545,18 +530,61 @@ int8_t pattern_random(PatternState *state) {
 }
 
 int8_t pattern_flux(PatternState *state) {
-  uint8_t numc = constrain(state->numc, 1, MAX_COLORS);
+  const uint8_t numc = constrain(state->numc, 1, MAX_COLORS);
 
-  uint8_t steps = constrain(state->args[0], 1, 100);
-  uint8_t blend_dir = state->args[1] % 3;
-  bool target_color = state->args[2];
+  const uint8_t steps = constrain(state->args[0], 1, MAX_REPEATS);
+  const uint8_t s_or_b = state->args[1] % 2;
+  const uint8_t direc = state->args[2] % 3;
 
-  uint8_t st = state->timings[0];
-  uint8_t at = state->timings[1];
+  const uint8_t st = state->timings[0];
+  const uint8_t bt = state->timings[1];
+  const uint8_t ft = state->timings[2];
 
-  if (st == 0 && at == 0) st = 1;
+  const uint8_t t_steps = (direc == 2) ? 2 * steps : steps + 1;
+
+  if (st == 0 && bt == 0) bt = 1;
 
   if (state->tick >= state->trip) {
+    if (mode.data[0] == 0) calc_pattern_state();
+    state->tick = state->trip = 0;
+    while (state->trip == 0) {
+      state->segm++;
+      if (state->segm >= 3) {
+        state->segm = 0;
+        state->cidx = (state->cidx + 1) % numc;
+        state->cntr = (state->cntr + 1) % t_steps;
+      }
+
+      if (state->segm == 0) {
+        state->trip = bt;
+      } else if (state->segm == 1) {
+        if (direc == 0) {
+          state->trip = state->cntr * ft;
+        } else if (direc == 1) {
+          state->trip = (steps - state->cntr) * ft;
+        } else {
+          if (state->cntr < steps) {
+            state->trip = state->cntr * ft;
+          } else {
+            state->trip = (steps - (state->cntr - steps)) * ft;
+          }
+        }
+      } else {
+        state->trip = st;
+      }
+    }
+  }
+
+  if (state->segm == 0) {
+    return -1;
+  } else if (state->segm == 1) {
+    if (s_or_b == 0) {
+      return state->cidx;
+    } else {
+      return -1;
+    }
+  } else {
+    return state->cidx;
   }
 }
 
@@ -644,26 +672,26 @@ void handle_accel() {
     case 5:
       _read_axis(AXIS_Z);
       break;
-    case 7:
+    case 6:
       adata.mag = sqrt(adata.gs2[0] + adata.gs2[1] + adata.gs2[2]);
       break;
-    case 8:
+    case 7:
       _update_bins();
       break;
-    case 9:
+    case 8:
       adata.roll = atan2(-adata.gs[1], adata.gs[2]);
       break;
-    case 10:
+    case 9:
       adata.pitch = sqrt(adata.gs2[1] + adata.gs2[2]);
       break;
-    case 11:
+    case 10:
       adata.pitch = atan2(adata.gs[0], adata.pitch);
       break;
-    case 12:
+    case 11:
       adata.flip = 32 - ((constrain(adata.gs[2], -496, 496) + 496) / 31);
       adata.pitch = constrain((adata.pitch + 1.396) * 11.817, 0, 32);
       break;
-    case 13:
+    case 12:
       if (adata.roll > M_PI_2) {
         adata.roll = M_PI - adata.roll;
       } else if (adata.roll < -M_PI_2) {
@@ -671,7 +699,7 @@ void handle_accel() {
       }
       adata.roll = constrain((adata.roll + 1.396) * 11.817, 0, 32);
       break;
-    case 14:
+    case 13:
       if (mode.data[0] == 1) {
         _update_variant();
       }
