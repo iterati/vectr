@@ -382,7 +382,7 @@ void _loadColorBank(String fname) {
       }
     }
   } catch (Exception ex) {
-    println("SHIT! Loading colorbank.json failed! Falling back on default. " + ex);
+    println("Loading colorbank.json failed! Falling back on default. " + ex);
   }
 }
 
@@ -399,15 +399,18 @@ void _uploadLightFile(File file) {
       JSONArray ja = loadJSONArray(path);
       for (int i = 0; i < 7; i++) {
         modes[i].fromJSON(ja.getJSONObject(i));
-        for (int b = 0; b < mode._MODESIZE; b++) {
-          sendCommand(SER_WRITE_LIGHT, i, b, modes[i].geta(b));
-          delay(2);
+        for (int c = 0; c < 16; c++) {
+          for (int b = 0; b < 8; b++) {
+            sendCommand(SER_WRITE_LIGHT, i, b, modes[i].geta(b));
+            delay(2);
+          }
+          delay(5);
         }
       }
       sendCommand(SER_CHANGE_MODE, cur_mode);
       flashing = false;
     } catch (Exception ex) {
-      println("SHIT Write light failed! " + ex);
+      println("Write light failed! " + ex);
     }
   }
 }
@@ -426,7 +429,7 @@ void actuallySaveLightFile() {
   try {
     saveJSONArray(ja, file_path, "compact");
   } catch (Exception ex) {
-    println("SHIT! Save light failed! " + ex);
+    println("Save light failed! " + ex);
   }
 }
 
@@ -455,7 +458,7 @@ void _uploadModeFile(File file) {
       }
       sendCommand(SER_SAVE);
     } catch (Exception ex) {
-      println("SHIT! Load mode failed! " + ex);
+      println("Load mode failed! " + ex);
     }
   }
 }
@@ -472,7 +475,7 @@ void _saveModeFile(File file) {
     try {
       saveJSONObject(mode.getJSON(), path, "compact");
     } catch (Exception ex) {
-      println("SHIT! Save mode failed! " + ex);
+      println("Save mode failed! " + ex);
     }
   }
 }
