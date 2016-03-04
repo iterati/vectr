@@ -529,7 +529,7 @@ class VectrMode {
 
   // Pattern
   void setPattern(int val) {
-    if (oob(val, 0, 7)) { return; }
+    if (oob(val, 0, 6)) { return; }
     int old = pattern;
     pattern = val;
     if (use_gui) {

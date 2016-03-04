@@ -565,7 +565,7 @@ class PrimerMode {
 
   // Pattern
   void setPattern(int i, int val) {
-    if (oob(i, 0, 1) || oob(val, 0, 7)) { return; }
+    if (oob(i, 0, 1) || oob(val, 0, 6)) { return; }
     int old = pattern[i];
     pattern[i] = val;
     if (use_gui) {
