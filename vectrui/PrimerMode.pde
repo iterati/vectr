@@ -382,19 +382,19 @@ class PrimerMode {
         updateTiming(i, 7);
         break;
       case 7:
-        updateArg(0, "Steps", 0, 100);
-        updateArg(1, "Strobe/Blank", 0, 1);
-        updateArg(2, "Up/Down/Both", 0, 2);
-        updateArg(3);
-        updateArg(4);
-        updateTiming(0, "Strobe");
-        updateTiming(1, "Blank");
-        updateTiming(2, "Flux");
-        updateTiming(3);
-        updateTiming(4);
-        updateTiming(5);
-        updateTiming(6);
-        updateTiming(7);
+        updateArg(i, 0, "Steps", 0, 100);
+        updateArg(i, 1, "Strobe/Blank", 0, 1);
+        updateArg(i, 2, "Up/Down/Both", 0, 2);
+        updateArg(i, 3);
+        updateArg(i, 4);
+        updateTiming(i, 0, "Strobe");
+        updateTiming(i, 1, "Blank");
+        updateTiming(i, 2, "Flux");
+        updateTiming(i, 3);
+        updateTiming(i, 4);
+        updateTiming(i, 5);
+        updateTiming(i, 6);
+        updateTiming(i, 7);
         break;
     }
   }

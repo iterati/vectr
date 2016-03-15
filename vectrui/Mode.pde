@@ -4,7 +4,7 @@ class Mode {
   static final int _TYPE = 0;
   static final int _MODESIZE = 128;
 
-  int   _type = 0;
+  int   _type = -1;
   int[] data = new int[_MODESIZE];
 
   VectrMode vmode;
@@ -656,7 +656,6 @@ class Mode {
     } else {
       return pmode.color_set;
     }
-    return -1;
   }
 
   int getColorSlot() {
@@ -665,7 +664,6 @@ class Mode {
     } else {
       return pmode.color_slot;
     }
-    return -1;
   }
 
   void closeDropdowns() {

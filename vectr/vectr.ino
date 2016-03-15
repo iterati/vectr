@@ -205,12 +205,12 @@ void TWADC_endTransmission() {
   I2CADC_SDA_H_OUTPUT();
 }
 
-void TWADC_requestFrom(uint8_t addr, uint8_t data) {
+void TWADC_requestFrom(uint8_t dev_addr, uint8_t data_addr) {
   TWADC_begin();
-  TWADC_write_w(addr);
-  TWADC_write(data);
+  TWADC_write_w(dev_addr);
+  TWADC_write(data_addr);
   TWADC_begin();
-  TWADC_write_r(addr);
+  TWADC_write_r(dev_addr);
 }
 
 void TWADC_send(uint8_t dev_addr, uint8_t addr, uint8_t data) {
@@ -1455,6 +1455,7 @@ void setup() {
   Serial.begin(115200);
   Serial.write(SER_HANDSHAKE); Serial.write(SER_VERSION); Serial.write(SER_VERSION);
 
+  cur_mode = 5;
   change_mode(cur_mode);
 }
 
