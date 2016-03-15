@@ -401,7 +401,7 @@ void _uploadLightFile(File file) {
         modes[i].fromJSON(ja.getJSONObject(i));
         for (int c = 0; c < 16; c++) {
           for (int b = 0; b < 8; b++) {
-            sendCommand(SER_WRITE_LIGHT, i, b, modes[i].geta(b));
+            sendCommand(SER_WRITE_LIGHT, i, (c * 8) + b, modes[i].geta((c * 8) + b));
             delay(2);
           }
           delay(5);
