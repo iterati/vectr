@@ -365,7 +365,7 @@ int8_t pattern_edge(PatternState *state, bool rend) {
     state->tick = state->trip = 0;
     while (state->trip == 0) {
       state->segm++;
-      if (state->segm > 2) {
+      if (state->segm >= 2) {
         state->segm = 0;
         state->cntr++;
         if (state->cntr >= (2 * pick) - 1) {
