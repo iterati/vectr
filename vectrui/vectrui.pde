@@ -399,12 +399,12 @@ void _uploadLightFile(File file) {
       JSONArray ja = loadJSONArray(path);
       for (int i = 0; i < 7; i++) {
         modes[i].fromJSON(ja.getJSONObject(i));
-        for (int c = 0; c < 16; c++) {
-          for (int b = 0; b < 8; b++) {
-            sendCommand(SER_WRITE_LIGHT, i, (c * 8) + b, modes[i].geta((c * 8) + b));
-            delay(2);
+        for (int b = 0; b < modes[i]._MODESIZE; b++) {
+          sendCommand(SER_WRITE_LIGHT, i, b, modes[i].geta(b));
+          delay(2);
+          if ((b+1) % 8 == 0) {
+            delay(5);
           }
-          delay(5);
         }
       }
       sendCommand(SER_CHANGE_MODE, cur_mode);
