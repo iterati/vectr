@@ -579,7 +579,7 @@ class Mode {
       .setId(ID_COLOREDIT + 0)
       .setLabel("")
       .setPosition(0, 0);
-    style(slColorValues[0], 256, 0, 255);
+    style(slColorValues[0], 256, 0, 255, false);
     slColorValues[0].setColorBackground(color(64, 0, 0))
       .setColorForeground(color(128, 0, 0))
       .setColorActive(color(192, 0, 0));
@@ -589,7 +589,7 @@ class Mode {
       .setId(ID_COLOREDIT + 1)
       .setLabel("")
       .setPosition(0, 30);
-    style(slColorValues[1], 256, 0, 255);
+    style(slColorValues[1], 256, 0, 255, false);
     slColorValues[1].setColorBackground(color(0, 64, 0))
       .setColorForeground(color(0, 128, 0))
       .setColorActive(color(0, 192, 0));
@@ -599,7 +599,7 @@ class Mode {
       .setId(ID_COLOREDIT + 2)
       .setLabel("")
       .setPosition(0, 60);
-    style(slColorValues[2], 256, 0, 255);
+    style(slColorValues[2], 256, 0, 255, false);
     slColorValues[2].setColorBackground(color(0, 0, 64))
       .setColorForeground(color(0, 0, 128))
       .setColorActive(color(0, 0, 192));
@@ -674,12 +674,10 @@ class Mode {
 
   void sendMode() {
     if (!reading) {
-      sendCommand(SER_WRITE_MODE);
       for (int i = 0; i < _MODESIZE; i++) {
         sendCommand(SER_WRITE, i, geta(i));
         delay(2);
       }
-      sendCommand(SER_WRITE_MODE_END);
     }
   }
 }

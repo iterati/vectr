@@ -12,8 +12,8 @@
 #define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 #endif
 
-const uint8_t EEPROM_VERSION[4]  = {3, 3, 5, 8};
-const uint16_t ADDR_VERSION[4]   = {904, 936, 968, 1000};
+const uint8_t EEPROM_VERSION[4] = {2, 3, 5, 8};
+const uint16_t ADDR_VERSION[4]  = {904, 936, 968, 1000};
 
 #define ADDR_BRIGHTNESS   1019
 #define ADDR_CONJURE_MODE 1020
@@ -125,13 +125,13 @@ typedef struct AccelData {
 
 
 void (*pattern_funcs[10]) (PatternState*, uint8_t*, uint8_t*, uint8_t*, bool);
-
-uint32_t limiter_us = 500;   // Frame time in us
 PackedMode mode;
 AccelData adata;
 PatternState patterns[2];
+
+uint32_t limiter_us = 500;  // Frame time in us
 elapsedMicros limiter = 0;
-uint8_t rgb_r = 0;          // Light color values
+uint8_t rgb_r = 0;
 uint8_t rgb_g = 0;
 uint8_t rgb_b = 0;
 uint8_t accel_tick = 0;     // Tick to track what accel action to perform
@@ -149,15 +149,15 @@ uint8_t gui_slot = 0;       // Which color slot to display for GUI
 
 PROGMEM const uint8_t factory[NUM_MODES][MODE_SIZE] = {
   {
-    0, 1, 1, 0, 5, 0, 0,
-    0, 32, 32, 32,
-    5, 0, 0, 20, 0, 0, 0, 0,
-    5, 0, 20, 0, 0, 0, 0, 0,
-    3, 50, 0, 0, 0, 0, 0, 0,
+    0, 4, 64, 2, 1, 0, 0,
+    32, 32, 32, 32,
+    3, 0, 1, 0, 0, 0, 0, 0,
+    3, 0, 1, 0, 0, 0, 0, 0,
+    3, 0, 1, 0, 0, 0, 0, 0,
     32, 32, 32, 32,
     3, 3, 3,
 
-    16, 16, 16,     255, 0, 0,      0, 0, 255,
+    255, 0, 0,      0, 255, 0,      0, 0, 255,
     0, 0, 0,        0, 0, 0,        0, 0, 0,
     0, 0, 0,        0, 0, 0,        0, 0, 0,
 
@@ -409,20 +409,20 @@ uint8_t fast_interp(uint8_t s, uint8_t e, uint8_t d, uint8_t D) {
 
 
 inline void ee_update(uint16_t addr, uint8_t val) {
-  while (!eeprom_is_ready());
+  while (!eeprom_is_ready()) {}
   EEPROM.update(addr, val);
 }
 
 inline uint8_t ee_read(uint16_t addr) {
-  while (!eeprom_is_ready());
+  while (!eeprom_is_ready()) {}
   return EEPROM.read(addr);
 }
 
 
 inline void I2CADC_SDA_H_OUTPUT() { DDRC &= ~(1 << 4); }
-inline void I2CADC_SDA_L_INPUT()  { DDRC |= (1 << 4); }
+inline void I2CADC_SDA_L_INPUT()  { DDRC |=  (1 << 4); }
 inline void I2CADC_SCL_H_OUTPUT() { DDRC &= ~(1 << 5); }
-inline void I2CADC_SCL_L_INPUT()  { DDRC |= (1 << 5); }
+inline void I2CADC_SCL_L_INPUT()  { DDRC |=  (1 << 5); }
 
 void TWADC_write(uint8_t data) {
   uint8_t data_r = ~data;
@@ -873,41 +873,37 @@ void pattern_flux(PatternState *state, uint8_t *r, uint8_t *g, uint8_t *b, bool 
     state->segm++;
     if (state->segm >= 2) {
       state->segm = 0;
-      state->cntr++;
-
       if (every == 0) {
+        state->cntr++;
+        state->cidx++;
+        if (state->cntr >= tsteps) state->cntr = 0;
+        if (state->cidx >= numc) state->cidx = 0;
+      } else {
+        state->cntr++;
         if (state->cntr >= tsteps) {
           state->cntr = 0;
           state->cidx++;
+          if (state->cidx >= numc) state->cidx = 0;
         }
-      } else {
-        if (state->cntr >= tsteps) {
-          state->cntr = 0;
-        }
-        state->cntr++;
-      }
-
-      if (state->cidx >= numc) {
-        state->cidx = 0;
       }
     }
 
-    uint8_t length = 0;
+    uint8_t len = 0;
     if (direc == 0) {
-      length = state->cntr;
+      len = state->cntr;
     } else if (direc == 1) {
-      length = steps - state->cntr - 1;
+      len = steps - state->cntr - 1;
     } else {
       if (state->cntr < steps) {
-        length = state->cntr;
+        len = state->cntr;
       } else {
-        length = tsteps - state->cntr - 1;
+        len = tsteps - state->cntr - 1;
       }
     }
 
     if (state->segm == 0) {
       if (alter == 0) {
-        state->trip = st + (length * ct);
+        state->trip = st + (len * ct);
       } else {
         state->trip = st;
       }
@@ -915,7 +911,7 @@ void pattern_flux(PatternState *state, uint8_t *r, uint8_t *g, uint8_t *b, bool 
       if (alter == 0) {
         state->trip = bt;
       } else {
-        state->trip = bt + (length * ct);
+        state->trip = bt + (len * ct);
       }
     }
   }
@@ -947,26 +943,25 @@ void pattern_dynamo(PatternState *state, uint8_t *r, uint8_t *g, uint8_t *b, boo
   uint8_t ct = state->timings[2];
 
   if (st == 0 && bt == 0 && ct == 0) bt = 1;
-  uint8_t tsteps = (direc == 2) ? steps * 2 : steps;
+  uint8_t tsteps = steps;
+  if (direc == 2) tsteps <<= 1;
 
   while (state->trip == 0) {
     state->segm++;
     if (state->segm >= 2) {
       state->segm = 0;
-      state->cntr++;
-
       if (every == 0) {
-        if (state->cntr >= tsteps) {
-        }
+        state->cntr++;
+        state->cidx++;
+        if (state->cntr >= tsteps) state->cntr = 0;
+        if (state->cidx >= numc) state->cidx = 0;
       } else {
+        state->cntr++;
         if (state->cntr >= tsteps) {
           state->cntr = 0;
+          state->cidx++;
+          if (state->cidx >= numc) state->cidx = 0;
         }
-        state->cidx++;
-      }
-
-      if (state->cidx >= numc) {
-        state->cidx = 0;
       }
     }
 
@@ -975,6 +970,12 @@ void pattern_dynamo(PatternState *state, uint8_t *r, uint8_t *g, uint8_t *b, boo
       len_s = state->cntr;
     } else if (direc == 1) {
       len_s = steps - state->cntr - 1;
+    } else {
+      if (state->cntr < steps) {
+        len_s = state->cntr;
+      } else {
+        len_s = tsteps - state->cntr - 1;
+      }
     }
     uint8_t len_b = steps - len_s - 1;
 
@@ -1019,44 +1020,42 @@ void pattern_shifter(PatternState *state, uint8_t *r, uint8_t *g, uint8_t *b, bo
     if (state->segm >= (2 * numc) + 1) {
       state->segm = 0;
       state->cntr++;
-      if (state->cntr >= tsteps) {
-        state->cntr = 0;
-      }
+      if (state->cntr >= tsteps) state->cntr = 0;
     }
 
-    uint8_t length;
+    uint8_t len;
     if (direc == 0) {
-      length = state->cntr;
+      len = state->cntr;
     } else if (direc == 1) {
-      length = steps - state->cntr - 1;
+      len = steps - state->cntr - 1;
     } else {
       if (state->cntr < steps) {
-        length = state->cntr;
+        len = state->cntr;
       } else {
-        length = tsteps - state->cntr - 1;
+        len = tsteps - state->cntr - 1;
       }
     }
 
-    if (state->segm & 1 == 0) {
+    if (state->segm & 1) {
+      state->trip = st + (len * ct);
+    } else {
       if (state->segm == 0) {
         state->trip = gt;
       } else {
         state->trip = bt;
       }
-    } else {
-      state->trip = st + (length * ct);
     }
   }
 
   if (rend) {
-    if (state->segm & 1 == 0) {
-      *r = 0;
-      *g = 0;
-      *b = 0;
-    } else {
+    if (state->segm & 1) {
       *r = state->colors[state->segm / 2][0];
       *g = state->colors[state->segm / 2][1];
       *b = state->colors[state->segm / 2][2];
+    } else {
+      *r = 0;
+      *g = 0;
+      *b = 0;
     }
   }
 
@@ -1257,6 +1256,7 @@ void init_mode() {
 
   if (mode.data[0] == 0) {
     patterns[0].numc = mode.vm.numc[0];
+    patterns[1].numc = mode.vm.numc[0];
     for (uint8_t i = 0; i < 9; i++) {
       if (i < 5) patterns[0].args[i] = mode.vm.args[i];
       if (i < 5) patterns[1].args[i] = mode.vm.args[i];
@@ -1277,35 +1277,28 @@ void init_mode() {
       if (i < 5) patterns[1].args[i] = mode.pm.args[1][i];
       if (i < 8) patterns[0].timings[i] = mode.pm.timings[0][i];
       if (i < 8) patterns[1].timings[i] = mode.pm.timings[1][i];
-      patterns[0].colors[i][0] = mode.vm.colors[0][i][0];
-      patterns[0].colors[i][1] = mode.vm.colors[0][i][1];
-      patterns[0].colors[i][2] = mode.vm.colors[0][i][2];
-      patterns[1].colors[i][0] = mode.vm.colors[1][i][0];
-      patterns[1].colors[i][1] = mode.vm.colors[1][i][1];
-      patterns[1].colors[i][2] = mode.vm.colors[1][i][2];
+      patterns[0].colors[i][0] = mode.pm.colors[0][i][0];
+      patterns[0].colors[i][1] = mode.pm.colors[0][i][1];
+      patterns[0].colors[i][2] = mode.pm.colors[0][i][2];
+      patterns[1].colors[i][0] = mode.pm.colors[1][i][0];
+      patterns[1].colors[i][1] = mode.pm.colors[1][i][1];
+      patterns[1].colors[i][2] = mode.pm.colors[1][i][2];
     }
   }
 
   patterns[0].trip = patterns[0].cidx = patterns[0].cntr = patterns[0].segm = 0;
-  patterns[1].trip = patterns[1].cidx = patterns[1].cntr = patterns[1].segm = 1;
+  patterns[1].trip = patterns[1].cidx = patterns[1].cntr = patterns[1].segm = 0;
 }
 
 void change_mode(uint8_t i) {
-  if (i < NUM_MODES) {
-    cur_mode = i;
-  } else if (i == 99) {
-    cur_mode += NUM_MODES - 1;
-  } else {
-    cur_mode++;
-  }
-
-  if (cur_mode >= NUM_MODES) {
-    cur_mode -= NUM_MODES;
-  }
+  if (i < NUM_MODES) cur_mode = i;
+  else if (i == 99)  cur_mode += NUM_MODES - 1;
+  else if (i == 101) cur_mode++;
+  cur_mode %= NUM_MODES;
 
   for (uint8_t b = 0; b < MODE_SIZE; b++) {
-    /* mode.data[b] = ee_read((cur_mode * MODE_SIZE) + b); */
     mode.data[b] = pgm_read_byte(&factory[cur_mode][b]);
+    /* mode.data[b] = ee_read((cur_mode * MODE_SIZE) + b); */
   }
 
   init_mode();
@@ -1380,6 +1373,7 @@ void handle_serial() {
         if (in0 < MODE_SIZE) {
           mode.data[in0] = in1;
         }
+        init_mode();
       } else if (cmd == SER_WRITE_LIGHT) {
         if (in0 < NUM_MODES && in1 < MODE_SIZE) {
           ee_update((in0 * MODE_SIZE) + in1, in2);
@@ -1567,9 +1561,7 @@ void handle_accel() {
   }
 
   accel_tick++;
-  if (accel_tick >= ACCEL_COUNTS) {
-    accel_tick = 0;
-  }
+  if (accel_tick >= ACCEL_COUNTS) accel_tick = 0;
 }
 
 void handle_button() {

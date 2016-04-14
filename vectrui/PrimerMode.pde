@@ -37,7 +37,6 @@ class PrimerMode {
   Slider[][] slTimings = new Slider[2][8];
   Slider[] slNumColors = new Slider[2];
   Button[][] bColors = new Button[2][9];
-  /* Button[][] bColorBgs = new Button[2][9]; */
 
   Button bSelectedColor;
   int color_set = -1;
@@ -106,7 +105,7 @@ class PrimerMode {
         .setGroup(gPatternArgs)
         .setId(ID_PATTERN + i)
         .setPosition(0, 20 + (50 * i))
-        .setSize(80, 160)
+        .setSize(80, 220)
         .setItems(PATTERNS);
       style(dlPattern[i]);
 
@@ -123,7 +122,7 @@ class PrimerMode {
           .setId(ID_ARG + (5 * i) + j)
           .setLabel("")
           .setPosition(150 + (137 * j), 20 + (50 * i));
-        style(slArgs[i][j], 101, 0, 10);
+        style(slArgs[i][j], 101, 0, 10, false);
       }
 
       for (int j = 0; j < 8; j++) {
@@ -139,7 +138,7 @@ class PrimerMode {
           .setId(ID_TIMING + (8 * i) + j)
           .setLabel("")
           .setPosition(150 + (450 * i), 30 * j);
-        style(slTimings[i][j], 201, 0, 200);
+        style(slTimings[i][j], 201, 0, 200, true);
       }
 
       slNumColors[i] = cp5.addSlider("PrimerNumColors" + i)
@@ -147,18 +146,9 @@ class PrimerMode {
         .setId(ID_NUMCOLORS + i)
         .setLabel("")
         .setPosition(0, 30 + (40 * i));
-      style(slNumColors[i], 90, 1, 9);
+      style(slNumColors[i], 90, 1, 9, false);
 
       for (int j = 0; j < 9; j++) {
-        /* bColorBgs[i][j] = cp5.addButton("PrimerColorBgs" + i + "." + j) */
-        /*   .setGroup(gColors) */
-        /*   .setLabel("") */
-        /*   .setSize(34, 34) */
-        /*   .setPosition(113 + (40 * j), 23 + (40 * i)) */
-        /*   .setColorBackground(color(64)) */
-        /*   .setColorForeground(color(192)) */
-        /*   .setColorActive(color(240)); */
-
         bColors[i][j] = cp5.addButton("PrimerColors" + i + "." + j)
           .setGroup(gColors)
           .setId(ID_COLORS + (i * 9) + j)
@@ -292,21 +282,36 @@ class PrimerMode {
         updateTiming(i, 7);
         break;
       case 1:
-        updateArg(i, 0, "Repeat Strobe", 1, 100);
-        updateArg(i, 1, "Repeat Tracer", 1, 100);
-        updateArg(i, 2);
+        updateArg(i, 0, "Group Size", 0, 9);
+        updateArg(i, 1, "Skip After", 0, 9);
+        updateArg(i, 2, "Repeat Tracer", 0, 100);
         updateArg(i, 3);
         updateArg(i, 4);
         updateTiming(i, 0, "Strobe");
         updateTiming(i, 1, "Blank");
         updateTiming(i, 2, "Tracer Strobe");
         updateTiming(i, 3, "Tracer Blank");
-        updateTiming(i, 4, "Split Blank");
+        updateTiming(i, 4, "Gap");
         updateTiming(i, 5);
         updateTiming(i, 6);
         updateTiming(i, 7);
         break;
       case 2:
+        updateArg(i, 0, "Morph Steps", 1, 100);
+        updateArg(i, 1, "Morph/Fuse", 0, 1);
+        updateArg(i, 2);
+        updateArg(i, 3);
+        updateArg(i, 4);
+        updateTiming(i, 0, "Strobe");
+        updateTiming(i, 1, "Blank");
+        updateTiming(i, 2, "Solid Strobe");
+        updateTiming(i, 3, "Gap");
+        updateTiming(i, 4);
+        updateTiming(i, 5);
+        updateTiming(i, 6);
+        updateTiming(i, 7);
+        break;
+      case 3:
         updateArg(i, 0, "Group Size", 0, 9);
         updateArg(i, 1);
         updateArg(i, 2);
@@ -321,54 +326,84 @@ class PrimerMode {
         updateTiming(i, 6);
         updateTiming(i, 7);
         break;
-      case 3:
-        updateArg(i, 0, "Repeat First", 1, 100);
-        updateArg(i, 1, "Repeat Second", 1, 100);
-        updateArg(i, 2, "Repeat Third", 1, 100);
-        updateArg(i, 3, "Skip Colors", 0, 8);
-        updateArg(i, 4, "Use Third", 0, 1);
-        updateTiming(i, 0, "First Strobe");
-        updateTiming(i, 1, "First Blank");
-        updateTiming(i, 2, "Second Strobe");
-        updateTiming(i, 3, "Second Blank");
-        updateTiming(i, 4, "Third Strobe");
-        updateTiming(i, 5, "Third Blank");
-        updateTiming(i, 6, "Separating Blank");
-        updateTiming(i, 7);
-        break;
       case 4:
-        updateArg(i, 0, "Group Size", 0, 9);
-        updateArg(i, 1, "Skip Between", 0, 9);
-        updateArg(i, 2, "Repeat Runner", 1, 100);
-        updateArg(i, 3);
+        updateArg(i, 0, "Flux Steps", 1, 100);
+        updateArg(i, 1, "Flux Grow/Shrink/Both", 0, 2);
+        updateArg(i, 2, "Alter Color/Blank", 0, 1);
+        updateArg(i, 3, "Change Every Strobe/Group", 0, 1);
         updateArg(i, 4);
         updateTiming(i, 0, "Strobe");
         updateTiming(i, 1, "Blank");
-        updateTiming(i, 2, "Runner Strobe");
-        updateTiming(i, 3, "Runner Blank");
-        updateTiming(i, 4, "Separating Blank");
+        updateTiming(i, 2, "Chunk");
+        updateTiming(i, 3);
+        updateTiming(i, 4);
         updateTiming(i, 5);
         updateTiming(i, 6);
         updateTiming(i, 7);
         break;
       case 5:
+        updateArg(i, 0, "Dynamo Steps", 1, 100);
+        updateArg(i, 1, "Dynamo Grow/Shrink/Both", 0, 2);
+        updateArg(i, 2, "Change Every Strobe/Group", 0, 1);
+        updateArg(i, 3);
+        updateArg(i, 4);
+        updateTiming(i, 0, "Strobe");
+        updateTiming(i, 1, "Blank");
+        updateTiming(i, 2, "Chunk");
+        updateTiming(i, 3);
+        updateTiming(i, 4);
+        updateTiming(i, 5);
+        updateTiming(i, 6);
+        updateTiming(i, 7);
+        break;
+      case 6:
+        updateArg(i, 0, "Shifter Steps", 1, 100);
+        updateArg(i, 1, "Shifter Grow/Shrink/Both", 0, 2);
+        updateArg(i, 2);
+        updateArg(i, 3);
+        updateArg(i, 4);
+        updateTiming(i, 0, "Strobe");
+        updateTiming(i, 1, "Blank");
+        updateTiming(i, 2, "Chunk");
+        updateTiming(i, 3, "Gap");
+        updateTiming(i, 4);
+        updateTiming(i, 5);
+        updateTiming(i, 6);
+        updateTiming(i, 7);
+        break;
+      case 7:
+        updateArg(i, 0, "Repeat A", 1, 100);
+        updateArg(i, 1, "Repeat B", 1, 100);
+        updateArg(i, 2, "Repeat C", 1, 100);
+        updateArg(i, 3, "Use C", 0, 1);
+        updateArg(i, 4);
+        updateTiming(i, 0, "Strobe A");
+        updateTiming(i, 1, "Blank A");
+        updateTiming(i, 2, "Strobe B");
+        updateTiming(i, 3, "Blank B");
+        updateTiming(i, 4, "Strobe C");
+        updateTiming(i, 5, "Blank C");
+        updateTiming(i, 6, "Gap");
+        updateTiming(i, 7);
+        break;
+      case 8:
         updateArg(i, 0, "Use Steps", 1, 7);
-        updateArg(i, 1, "Random Steps", 0, 1);
-        updateArg(i, 2, "Random Colors", 0, 1);
+        updateArg(i, 1, "Random Step", 0, 1);
+        updateArg(i, 2, "Random Color", 0, 1);
         updateArg(i, 3);
         updateArg(i, 4);
         updateTiming(i, 0, "Blank");
-        updateTiming(i, 1, "Step 1");
-        updateTiming(i, 2, "Step 2");
-        updateTiming(i, 3, "Step 3");
-        updateTiming(i, 4, "Step 4");
-        updateTiming(i, 5, "Step 5");
-        updateTiming(i, 6, "Step 6");
-        updateTiming(i, 7, "Step 7");
+        updateTiming(i, 1, "Strobe 1");
+        updateTiming(i, 2, "Strobe 2");
+        updateTiming(i, 3, "Strobe 3");
+        updateTiming(i, 4, "Strobe 4");
+        updateTiming(i, 5, "Strobe 5");
+        updateTiming(i, 6, "Strobe 6");
+        updateTiming(i, 7, "Strobe 7");
         break;
-      case 6:
-        updateArg(i, 0, "Random Colors", 0, 1);
-        updateArg(i, 1, "Time Multiplier", 1, 10);
+      case 9:
+        updateArg(i, 0, "Random Color", 0, 1);
+        updateArg(i, 1, "Multiplier", 1, 20);
         updateArg(i, 2);
         updateArg(i, 3);
         updateArg(i, 4);
@@ -376,21 +411,6 @@ class PrimerMode {
         updateTiming(i, 1, "Strobe High");
         updateTiming(i, 2, "Blank Low");
         updateTiming(i, 3, "Blank High");
-        updateTiming(i, 4);
-        updateTiming(i, 5);
-        updateTiming(i, 6);
-        updateTiming(i, 7);
-        break;
-      case 7:
-        updateArg(i, 0, "Steps", 0, 100);
-        updateArg(i, 1, "Strobe/Blank", 0, 1);
-        updateArg(i, 2, "Up/Down/Both", 0, 2);
-        updateArg(i, 3);
-        updateArg(i, 4);
-        updateTiming(i, 0, "Strobe");
-        updateTiming(i, 1, "Blank");
-        updateTiming(i, 2, "Flux");
-        updateTiming(i, 3);
         updateTiming(i, 4);
         updateTiming(i, 5);
         updateTiming(i, 6);
@@ -407,8 +427,8 @@ class PrimerMode {
         setArgs((5 * i) + 2, 0);
         setArgs((5 * i) + 3, 0);
         setArgs((5 * i) + 4, 0);
-        setTimings(i, 0, 5);
-        setTimings(i, 1, 8);
+        setTimings(i, 0, 10);
+        setTimings(i, 1, 16);
         setTimings(i, 2, 0);
         setTimings(i, 3, 0);
         setTimings(i, 4, 0);
@@ -418,13 +438,13 @@ class PrimerMode {
         break;
       case 1:
         setArgs((5 * i) + 0, 1);
-        setArgs((5 * i) + 1, 1);
-        setArgs((5 * i) + 2, 0);
+        setArgs((5 * i) + 1, 0);
+        setArgs((5 * i) + 2, 1);
         setArgs((5 * i) + 3, 0);
         setArgs((5 * i) + 4, 0);
-        setTimings(i, 0, 5);
-        setTimings(i, 1, 1);
-        setTimings(i, 2, 20);
+        setTimings(i, 0, 10);
+        setTimings(i, 1, 0);
+        setTimings(i, 2, 40);
         setTimings(i, 3, 0);
         setTimings(i, 4, 0);
         setTimings(i, 5, 0);
@@ -432,90 +452,120 @@ class PrimerMode {
         setTimings(i, 7, 0);
         break;
       case 2:
-        setArgs((5 * i) + 0, 0);
+        setArgs((5 * i) + 0, 16);
         setArgs((5 * i) + 1, 0);
         setArgs((5 * i) + 2, 0);
         setArgs((5 * i) + 3, 0);
         setArgs((5 * i) + 4, 0);
-        setTimings(i, 0, 2);
+        setTimings(i, 0, 200);
         setTimings(i, 1, 0);
-        setTimings(i, 2, 5);
-        setTimings(i, 3, 50);
+        setTimings(i, 2, 0);
+        setTimings(i, 3, 0);
         setTimings(i, 4, 0);
         setTimings(i, 5, 0);
         setTimings(i, 6, 0);
         setTimings(i, 7, 0);
         break;
       case 3:
-        setArgs((5 * i) + 0, 2);
-        setArgs((5 * i) + 1, 2);
+        setArgs((5 * i) + 0, 0);
+        setArgs((5 * i) + 1, 0);
         setArgs((5 * i) + 2, 0);
         setArgs((5 * i) + 3, 0);
         setArgs((5 * i) + 4, 0);
         setTimings(i, 0, 5);
-        setTimings(i, 1, 8);
-        setTimings(i, 2, 1);
-        setTimings(i, 3, 12);
-        setTimings(i, 4, 5);
+        setTimings(i, 1, 0);
+        setTimings(i, 2, 12);
+        setTimings(i, 3, 0);
+        setTimings(i, 4, 150);
         setTimings(i, 5, 0);
         setTimings(i, 6, 0);
         setTimings(i, 7, 0);
         break;
       case 4:
-        setArgs((5 * i) + 0, 0);
-        setArgs((5 * i) + 1, 0);
-        setArgs((5 * i) + 2, 5);
+        setArgs((5 * i) + 0, 32);
+        setArgs((5 * i) + 1, 2);
+        setArgs((5 * i) + 2, 1);
         setArgs((5 * i) + 3, 0);
         setArgs((5 * i) + 4, 0);
-        setTimings(i, 0, 5);
+        setTimings(i, 0, 3);
         setTimings(i, 1, 0);
         setTimings(i, 2, 1);
-        setTimings(i, 3, 12);
-        setTimings(i, 4, 12);
+        setTimings(i, 3, 0);
+        setTimings(i, 4, 0);
         setTimings(i, 5, 0);
         setTimings(i, 6, 0);
         setTimings(i, 7, 0);
         break;
       case 5:
-        setArgs((5 * i) + 0, 5);
+        setArgs((5 * i) + 0, 32);
         setArgs((5 * i) + 1, 0);
-        setArgs((5 * i) + 2, 0);
+        setArgs((5 * i) + 2, 1);
         setArgs((5 * i) + 3, 0);
         setArgs((5 * i) + 4, 0);
-        setTimings(i, 0, 10);
-        setTimings(i, 1, 2);
-        setTimings(i, 2, 4);
-        setTimings(i, 3, 6);
-        setTimings(i, 4, 8);
-        setTimings(i, 5, 10);
+        setTimings(i, 0, 0);
+        setTimings(i, 1, 0);
+        setTimings(i, 2, 2);
+        setTimings(i, 3, 0);
+        setTimings(i, 4, 0);
+        setTimings(i, 5, 0);
         setTimings(i, 6, 0);
         setTimings(i, 7, 0);
         break;
       case 6:
-        setArgs((5 * i) + 0, 1);
-        setArgs((5 * i) + 1, 4);
+        setArgs((5 * i) + 0, 5);
+        setArgs((5 * i) + 1, 1);
         setArgs((5 * i) + 2, 0);
         setArgs((5 * i) + 3, 0);
         setArgs((5 * i) + 4, 0);
-        setTimings(i, 0, 1);
-        setTimings(i, 1, 5);
-        setTimings(i, 2, 5);
-        setTimings(i, 3, 5);
+        setTimings(i, 0, 4);
+        setTimings(i, 1, 10);
+        setTimings(i, 2, 4);
+        setTimings(i, 3, 100);
         setTimings(i, 4, 0);
         setTimings(i, 5, 0);
         setTimings(i, 6, 0);
         setTimings(i, 7, 0);
         break;
       case 7:
-        setArgs((5 * i) + 0, 10);
-        setArgs((5 * i) + 1, 1);
+        setArgs((5 * i) + 0, 2);
+        setArgs((5 * i) + 1, 2);
         setArgs((5 * i) + 2, 2);
+        setArgs((5 * i) + 3, 1);
+        setArgs((5 * i) + 4, 1);
+        setTimings(i, 0, 10);
+        setTimings(i, 1, 15);
+        setTimings(i, 2, 6);
+        setTimings(i, 3, 19);
+        setTimings(i, 4, 3);
+        setTimings(i, 5, 22);
+        setTimings(i, 6, 25);
+        setTimings(i, 7, 0);
+        break;
+      case 8:
+        setArgs((5 * i) + 0, 7);
+        setArgs((5 * i) + 1, 0);
+        setArgs((5 * i) + 2, 0);
+        setArgs((5 * i) + 3, 0);
+        setArgs((5 * i) + 4, 0);
+        setTimings(i, 0, 25);
+        setTimings(i, 1, 3);
+        setTimings(i, 2, 6);
+        setTimings(i, 3, 9);
+        setTimings(i, 4, 12);
+        setTimings(i, 5, 15);
+        setTimings(i, 6, 18);
+        setTimings(i, 7, 21);
+        break;
+      case 9:
+        setArgs((5 * i) + 0, 0);
+        setArgs((5 * i) + 1, 10);
+        setArgs((5 * i) + 2, 0);
         setArgs((5 * i) + 3, 0);
         setArgs((5 * i) + 4, 0);
         setTimings(i, 0, 1);
-        setTimings(i, 1, 0);
+        setTimings(i, 1, 5);
         setTimings(i, 2, 1);
-        setTimings(i, 3, 0);
+        setTimings(i, 3, 1);
         setTimings(i, 4, 0);
         setTimings(i, 5, 0);
         setTimings(i, 6, 0);
@@ -607,7 +657,7 @@ class PrimerMode {
 
     timings[x][y] = val;
     if (use_gui) {
-      slTimings[x][y].setBroadcast(false).setValue(timings[x][y]).setBroadcast(true);
+      slTimings[x][y].setBroadcast(false).setValue(timings[x][y] * 0.5).setBroadcast(true);
     }
   }
 

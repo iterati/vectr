@@ -36,7 +36,6 @@ class VectrMode {
   Slider[][] slTimings = new Slider[3][8];
   Slider[] slNumColors = new Slider[3];
   Button[][] bColors = new Button[3][9];
-  /* Button[][] bColorBgs = new Button[3][9]; */
 
   Button bSelectedColor;
   int color_set = -1;
@@ -91,7 +90,7 @@ class VectrMode {
       .setGroup(gPatternArgs)
       .setId(ID_PATTERN)
       .setPosition(0, 20)
-      .setSize(80, 160)
+      .setSize(80, 220)
       .setItems(PATTERNS);
     style(dlPattern);
 
@@ -108,7 +107,7 @@ class VectrMode {
         .setId(ID_ARG + i)
         .setLabel("")
         .setPosition(150 + (137 * i), 20);
-      style(slArgs[i], 101, 0, 10);
+      style(slArgs[i], 125, 0, 10, false);
     }
 
     for (int j = 0; j < 8; j++) {
@@ -125,7 +124,7 @@ class VectrMode {
           .setId(ID_TIMING + (8 * i) + j)
           .setLabel("")
           .setPosition(150 + (225 * i), 30 * j);
-        style(slTimings[i][j], 201, 0, 200);
+        style(slTimings[i][j], 201, 0, 200, true);
       }
     }
 
@@ -135,18 +134,9 @@ class VectrMode {
         .setId(ID_NUMCOLORS + i)
         .setLabel("")
         .setPosition(0, 10 + (40 * i));
-      style(slNumColors[i], 90, 1, 9);
+      style(slNumColors[i], 90, 1, 9, false);
 
       for (int j = 0; j < 9; j++) {
-        /* bColorBgs[i][j] = cp5.addButton("VectrColorBgs" + i + "." + j) */
-        /*   .setGroup(gColors) */
-        /*   .setLabel("") */
-        /*   .setSize(34, 34) */
-        /*   .setPosition(113 + (40 * j), 3 + (40 * i)) */
-        /*   .setColorBackground(color(64)) */
-        /*   .setColorForeground(color(192)) */
-        /*   .setColorActive(color(240)); */
-
         bColors[i][j] = cp5.addButton("VectrColors" + i + "." + j)
           .setGroup(gColors)
           .setId(ID_COLORS + (i * 9) + j)
@@ -233,10 +223,11 @@ class VectrMode {
   }
 
   void updateArg(int i, String label, int _min, int _max) {
+    int ticks = _max - _min + 1;
     tlArgLabels[i].setValue(label).show();
     slArgs[i].setBroadcast(false)
       .setRange(_min, _max)
-      .setNumberOfTickMarks(_max - _min + 1)
+      .setNumberOfTickMarks(ticks)
       .showTickMarks(false)
       .setBroadcast(true)
       .show();
@@ -279,21 +270,36 @@ class VectrMode {
         updateTiming(7);
         break;
       case 1:
-        updateArg(0, "Repeat Strobe", 1, 100);
-        updateArg(1, "Repeat Tracer", 1, 100);
-        updateArg(2);
+        updateArg(0, "Group Size", 0, 9);
+        updateArg(1, "Skip After", 0, 9);
+        updateArg(2, "Repeat Tracer", 1, 100);
         updateArg(3);
         updateArg(4);
         updateTiming(0, "Strobe");
         updateTiming(1, "Blank");
         updateTiming(2, "Tracer Strobe");
         updateTiming(3, "Tracer Blank");
-        updateTiming(4, "Split Blank");
+        updateTiming(4, "Gap");
         updateTiming(5);
         updateTiming(6);
         updateTiming(7);
         break;
       case 2:
+        updateArg(0, "Morph Steps", 1, 100);
+        updateArg(1, "Morph/Fuse", 0, 1);
+        updateArg(2);
+        updateArg(3);
+        updateArg(4);
+        updateTiming(0, "Strobe");
+        updateTiming(1, "Blank");
+        updateTiming(2, "Solid Strobe");
+        updateTiming(3, "Gap");
+        updateTiming(4);
+        updateTiming(5);
+        updateTiming(6);
+        updateTiming(7);
+        break;
+      case 3:
         updateArg(0, "Group Size", 0, 9);
         updateArg(1);
         updateArg(2);
@@ -308,54 +314,84 @@ class VectrMode {
         updateTiming(6);
         updateTiming(7);
         break;
-      case 3:
-        updateArg(0, "Repeat First", 1, 100);
-        updateArg(1, "Repeat Second", 1, 100);
-        updateArg(2, "Repeat Third", 1, 100);
-        updateArg(3, "Skip Colors", 0, 8);
-        updateArg(4, "Use Third", 0, 1);
-        updateTiming(0, "First Strobe");
-        updateTiming(1, "First Blank");
-        updateTiming(2, "Second Strobe");
-        updateTiming(3, "Second Blank");
-        updateTiming(4, "Third Strobe");
-        updateTiming(5, "Third Blank");
-        updateTiming(6, "Separating Blank");
-        updateTiming(7);
-        break;
       case 4:
-        updateArg(0, "Group Size", 0, 9);
-        updateArg(1, "Skip Between", 0, 9);
-        updateArg(2, "Repeat Runner", 1, 100);
-        updateArg(3);
+        updateArg(0, "Flux Steps", 1, 100);
+        updateArg(1, "Up/Down/Both", 0, 2);
+        updateArg(2, "Color/Blank", 0, 1);
+        updateArg(3, "Strobe/Group", 0, 1);
         updateArg(4);
         updateTiming(0, "Strobe");
         updateTiming(1, "Blank");
-        updateTiming(2, "Runner Strobe");
-        updateTiming(3, "Runner Blank");
-        updateTiming(4, "Separating Blank");
+        updateTiming(2, "Chunk");
+        updateTiming(3);
+        updateTiming(4);
         updateTiming(5);
         updateTiming(6);
         updateTiming(7);
         break;
       case 5:
+        updateArg(0, "Dynamo Steps", 1, 100);
+        updateArg(1, "Up/Down/Both", 0, 2);
+        updateArg(2, "Strobe/Group", 0, 1);
+        updateArg(3);
+        updateArg(4);
+        updateTiming(0, "Strobe");
+        updateTiming(1, "Blank");
+        updateTiming(2, "Chunk");
+        updateTiming(3);
+        updateTiming(4);
+        updateTiming(5);
+        updateTiming(6);
+        updateTiming(7);
+        break;
+      case 6:
+        updateArg(0, "Shifter Steps", 1, 100);
+        updateArg(1, "Up/Down/Both", 0, 2);
+        updateArg(2);
+        updateArg(3);
+        updateArg(4);
+        updateTiming(0, "Strobe");
+        updateTiming(1, "Blank");
+        updateTiming(2, "Chunk");
+        updateTiming(3, "Gap");
+        updateTiming(4);
+        updateTiming(5);
+        updateTiming(6);
+        updateTiming(7);
+        break;
+      case 7:
+        updateArg(0, "Repeat A", 1, 100);
+        updateArg(1, "Repeat B", 1, 100);
+        updateArg(2, "Repeat C", 1, 100);
+        updateArg(3, "Use C", 0, 1);
+        updateArg(4);
+        updateTiming(0, "Strobe A");
+        updateTiming(1, "Blank A");
+        updateTiming(2, "Strobe B");
+        updateTiming(3, "Blank B");
+        updateTiming(4, "Strobe C");
+        updateTiming(5, "Blank C");
+        updateTiming(6, "Gap");
+        updateTiming(7);
+        break;
+      case 8:
         updateArg(0, "Use Steps", 1, 7);
-        updateArg(1, "Random Steps", 0, 1);
-        updateArg(2, "Random Colors", 0, 1);
+        updateArg(1, "Random Step", 0, 1);
+        updateArg(2, "Random Color", 0, 1);
         updateArg(3);
         updateArg(4);
         updateTiming(0, "Blank");
-        updateTiming(1, "Step 1");
-        updateTiming(2, "Step 2");
-        updateTiming(3, "Step 3");
-        updateTiming(4, "Step 4");
-        updateTiming(5, "Step 5");
-        updateTiming(6, "Step 6");
-        updateTiming(7, "Step 7");
+        updateTiming(1, "Strobe 1");
+        updateTiming(2, "Strobe 2");
+        updateTiming(3, "Strobe 3");
+        updateTiming(4, "Strobe 4");
+        updateTiming(5, "Strobe 5");
+        updateTiming(6, "Strobe 6");
+        updateTiming(7, "Strobe 7");
         break;
-      case 6:
-        updateArg(0, "Random Colors", 0, 1);
-        updateArg(1, "Time Multiplier", 1, 10);
+      case 9:
+        updateArg(0, "Random Color", 0, 1);
+        updateArg(1, "Multiplier", 1, 20);
         updateArg(2);
         updateArg(3);
         updateArg(4);
@@ -363,21 +399,6 @@ class VectrMode {
         updateTiming(1, "Strobe High");
         updateTiming(2, "Blank Low");
         updateTiming(3, "Blank High");
-        updateTiming(4);
-        updateTiming(5);
-        updateTiming(6);
-        updateTiming(7);
-        break;
-      case 7:
-        updateArg(0, "Steps", 0, 100);
-        updateArg(1, "Strobe/Blank", 0, 1);
-        updateArg(2, "Up/Down/Both", 0, 2);
-        updateArg(3);
-        updateArg(4);
-        updateTiming(0, "Strobe");
-        updateTiming(1, "Blank");
-        updateTiming(2, "Flux");
-        updateTiming(3);
         updateTiming(4);
         updateTiming(5);
         updateTiming(6);
@@ -395,8 +416,8 @@ class VectrMode {
         setArgs(3, 0);
         setArgs(4, 0);
         for (int i = 0; i < 3; i++) {
-          setTimings(i, 0, 5);
-          setTimings(i, 1, 8);
+          setTimings(i, 0, 10);
+          setTimings(i, 1, 16);
           setTimings(i, 2, 0);
           setTimings(i, 3, 0);
           setTimings(i, 4, 0);
@@ -407,14 +428,14 @@ class VectrMode {
         break;
       case 1:
         setArgs(0, 1);
-        setArgs(1, 1);
-        setArgs(2, 0);
+        setArgs(1, 0);
+        setArgs(2, 1);
         setArgs(3, 0);
         setArgs(4, 0);
         for (int i = 0; i < 3; i++) {
-          setTimings(i, 0, 5);
-          setTimings(i, 1, 1);
-          setTimings(i, 2, 20);
+          setTimings(i, 0, 10);
+          setTimings(i, 1, 0);
+          setTimings(i, 2, 40);
           setTimings(i, 3, 0);
           setTimings(i, 4, 0);
           setTimings(i, 5, 0);
@@ -423,16 +444,16 @@ class VectrMode {
         }
         break;
       case 2:
-        setArgs(0, 0);
+        setArgs(0, 16);
         setArgs(1, 0);
         setArgs(2, 0);
         setArgs(3, 0);
         setArgs(4, 0);
         for (int i = 0; i < 3; i++) {
-          setTimings(i, 0, 2);
+          setTimings(i, 0, 200);
           setTimings(i, 1, 0);
-          setTimings(i, 2, 5);
-          setTimings(i, 3, 50);
+          setTimings(i, 2, 0);
+          setTimings(i, 3, 0);
           setTimings(i, 4, 0);
           setTimings(i, 5, 0);
           setTimings(i, 6, 0);
@@ -440,67 +461,67 @@ class VectrMode {
         }
         break;
       case 3:
-        setArgs(0, 2);
-        setArgs(1, 2);
+        setArgs(0, 0);
+        setArgs(1, 0);
         setArgs(2, 0);
         setArgs(3, 0);
         setArgs(4, 0);
         for (int i = 0; i < 3; i++) {
           setTimings(i, 0, 5);
-          setTimings(i, 1, 8);
-          setTimings(i, 2, 1);
-          setTimings(i, 3, 12);
-          setTimings(i, 4, 5);
+          setTimings(i, 1, 0);
+          setTimings(i, 2, 12);
+          setTimings(i, 3, 0);
+          setTimings(i, 4, 150);
           setTimings(i, 5, 0);
           setTimings(i, 6, 0);
           setTimings(i, 7, 0);
         }
         break;
       case 4:
-        setArgs(0, 0);
-        setArgs(1, 0);
-        setArgs(2, 5);
+        setArgs(0, 32);
+        setArgs(1, 2);
+        setArgs(2, 1);
         setArgs(3, 0);
         setArgs(4, 0);
         for (int i = 0; i < 3; i++) {
-          setTimings(i, 0, 5);
+          setTimings(i, 0, 3);
           setTimings(i, 1, 0);
           setTimings(i, 2, 1);
-          setTimings(i, 3, 12);
-          setTimings(i, 4, 12);
+          setTimings(i, 3, 0);
+          setTimings(i, 4, 0);
           setTimings(i, 5, 0);
           setTimings(i, 6, 0);
           setTimings(i, 7, 0);
         }
         break;
       case 5:
-        setArgs(0, 5);
+        setArgs(0, 32);
         setArgs(1, 0);
-        setArgs(2, 0);
+        setArgs(2, 1);
         setArgs(3, 0);
         setArgs(4, 0);
         for (int i = 0; i < 3; i++) {
-          setTimings(i, 0, 10);
-          setTimings(i, 1, 2);
-          setTimings(i, 2, 4);
-          setTimings(i, 3, 6);
-          setTimings(i, 4, 8);
-          setTimings(i, 5, 10);
+          setTimings(i, 0, 0);
+          setTimings(i, 1, 0);
+          setTimings(i, 2, 2);
+          setTimings(i, 3, 0);
+          setTimings(i, 4, 0);
+          setTimings(i, 5, 0);
           setTimings(i, 6, 0);
           setTimings(i, 7, 0);
         }
         break;
       case 6:
-        setArgs(0, 1);
-        setArgs(1, 4);
+        setArgs(0, 5);
+        setArgs(1, 1);
         setArgs(2, 0);
         setArgs(3, 0);
         setArgs(4, 0);
         for (int i = 0; i < 3; i++) {
-          setTimings(i, 0, 1);
-          setTimings(i, 1, 5);
-          setTimings(i, 2, 5);
-          setTimings(i, 3, 5);
+          setTimings(i, 0, 4);
+          setTimings(i, 1, 10);
+          setTimings(i, 2, 4);
+          setTimings(i, 3, 100);
           setTimings(i, 4, 0);
           setTimings(i, 5, 0);
           setTimings(i, 6, 0);
@@ -508,16 +529,50 @@ class VectrMode {
         }
         break;
       case 7:
-        setArgs(0, 10);
-        setArgs(1, 1);
+        setArgs(0, 2);
+        setArgs(1, 2);
         setArgs(2, 2);
+        setArgs(3, 1);
+        setArgs(4, 1);
+        for (int i = 0; i < 3; i++) {
+          setTimings(i, 0, 10);
+          setTimings(i, 1, 15);
+          setTimings(i, 2, 6);
+          setTimings(i, 3, 19);
+          setTimings(i, 4, 3);
+          setTimings(i, 5, 22);
+          setTimings(i, 6, 25);
+          setTimings(i, 7, 0);
+        }
+        break;
+      case 8:
+        setArgs(0, 7);
+        setArgs(1, 0);
+        setArgs(2, 0);
+        setArgs(3, 0);
+        setArgs(4, 0);
+        for (int i = 0; i < 3; i++) {
+          setTimings(i, 0, 25);
+          setTimings(i, 1, 3);
+          setTimings(i, 2, 6);
+          setTimings(i, 3, 9);
+          setTimings(i, 4, 12);
+          setTimings(i, 5, 15);
+          setTimings(i, 6, 18);
+          setTimings(i, 7, 21);
+        }
+        break;
+      case 9:
+        setArgs(0, 0);
+        setArgs(1, 10);
+        setArgs(2, 0);
         setArgs(3, 0);
         setArgs(4, 0);
         for (int i = 0; i < 3; i++) {
           setTimings(i, 0, 1);
-          setTimings(i, 1, 0);
+          setTimings(i, 1, 5);
           setTimings(i, 2, 1);
-          setTimings(i, 3, 0);
+          setTimings(i, 3, 1);
           setTimings(i, 4, 0);
           setTimings(i, 5, 0);
           setTimings(i, 6, 0);
@@ -529,7 +584,7 @@ class VectrMode {
 
   // Pattern
   void setPattern(int val) {
-    if (oob(val, 0, 6)) { return; }
+    if (oob(val, 0, 9)) { return; }
     int old = pattern;
     pattern = val;
     if (use_gui) {
@@ -601,7 +656,7 @@ class VectrMode {
 
     timings[x][y] = val;
     if (use_gui) {
-      slTimings[x][y].setBroadcast(false).setValue(timings[x][y]).setBroadcast(true);
+      slTimings[x][y].setBroadcast(false).setValue(timings[x][y] * 0.5).setBroadcast(true);
     }
   }
 

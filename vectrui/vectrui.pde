@@ -28,16 +28,18 @@ static final int ID_TRIGGER_TRESH    = 2901;
 
 final static String[] PATTERNS = {
   "Strobe",
-  "Vexer",
-  "Edge",
+  "Tracer",
+  "Morph",
+  "Scimitar",
+  "Flux",
+  "Dynamo",
+  "Shifter",
   "Multi",
-  "Runner",
   "Stepper",
   "Random",
-  /* "Flux", */
 };
 final static String[] TRIGGERMODES = {"Off", "Velocity", "Tilt", "Roll", "Flip"};
-final static String[] MODETYPES = {"Vectr", "Primr"};
+final static String[] MODETYPES = {"Vectr", "Primer"};
 
 int COLOR_BANK[][] = {
   {208, 0, 0},      // red
@@ -90,24 +92,20 @@ int COLOR_BANK[][] = {
   {20, 0, 24},      // dim magenta
 };
 
-static final int SER_VERSION = 111;
-static final int SER_DUMP           = 10;
-static final int SER_DUMP_LIGHT     = 11;
-static final int SER_SAVE           = 20;
-static final int SER_READ           = 30;
-static final int SER_WRITE          = 40;
-static final int SER_WRITE_LIGHT    = 41;
-static final int SER_WRITE_MODE     = 42;
-static final int SER_WRITE_MODE_END = 43;
-static final int SER_CHANGE_MODE    = 50;
-static final int SER_RESET_MODE     = 51;
-static final int SER_VIEW_MODE      = 100;
-static final int SER_VIEW_COLOR     = 110;
-static final int SER_DUMP_START     = 200;
-static final int SER_DUMP_END       = 210;
-static final int SER_HANDSHAKE      = 250;
-static final int SER_HANDSHACK      = 251;
-static final int SER_DISCONNECT     = 254;
+static final int SER_VERSION     = 200;
+static final int SER_DUMP        = 10;
+static final int SER_DUMP_LIGHT  = 11;
+static final int SER_SAVE        = 20;
+static final int SER_RESET       = 30;
+static final int SER_WRITE       = 50;
+static final int SER_WRITE_LIGHT = 60;
+static final int SER_VIEW_MODE   = 100;
+static final int SER_VIEW_COLOR  = 110;
+static final int SER_DUMP_START  = 200;
+static final int SER_DUMP_END    = 210;
+static final int SER_HANDSHAKE   = 250;
+static final int SER_HANDSHACK   = 251;
+static final int SER_DISCONNECT  = 254;
 
 int num_ports = 0;
 int port_num = -1;
@@ -120,6 +118,7 @@ boolean initialized = false;
 boolean reading = false;
 boolean flashing = false;
 boolean view_mode = true;
+boolean is_mac = false;
 
 // Light variables
 int cur_mode = 0;
@@ -139,6 +138,7 @@ Mode[] modes = new Mode[7];
 
 
 void setup() {
+  if (System.getProperty("os.name").contains("Mac")) { is_mac = true; }
   surface.setTitle("VectR UI (Beta 1)");
   smooth(8);
   frameRate(120);
@@ -198,13 +198,16 @@ void draw() {
   background(16);
   if (!connected_serial) {
     for (String p: Serial.list()) {
-      if (num_ports < 4 && !p.contains("Bluetooth")) {
+      boolean tryit = true;
+      if (num_ports >= 4) { tryit = false; }
+      if (is_mac && !p.contains("SLAB")) { tryit = false; }
+      if (tryit) {
         try {
           int i = (port_num >= 0) ? port_num : num_ports;
           ports[i] = new Serial(this, p, 115200);
           sSerial[i] = p;
           bSerial[i].setCaptionLabel(p).show();
-          println("Found serial port " + p + " #" + i + ": " + ports[i]);
+          /* println("Found serial port " + p + " #" + i + ": " + ports[i]); */
           if (port_num > 0) { num_ports++; }
         } catch (Exception e) {
         }
@@ -244,7 +247,7 @@ void sendCommand(int cmd, int in0, int in1) {
 }
 
 void sendCommand(int cmd, int in0, int in1, int in2) {
-  println("send " + cmd + " " + in0 + " " + in1 + " " + in2);
+  /* println("send " + cmd + " " + in0 + " " + in1 + " " + in2); */
   if (initialized) {
     port.write(cmd);
     port.write(in0);
@@ -257,17 +260,17 @@ void readCommand() {
   int cmd = port.read();
   int addr = port.read();
   int val = port.read();
-  println("get " + cmd + " " + addr + " " + val);
+  /* println("get " + cmd + " " + addr + " " + val); */
 
   if (cmd == SER_HANDSHAKE) {
     if (addr == SER_VERSION && val == SER_VERSION) {
       initialized = true;
       reading = true;
-      sendCommand(SER_HANDSHAKE, SER_VERSION, SER_VERSION);
+      sendCommand(SER_HANDSHAKE, SER_VERSION, SER_VERSION, SER_VERSION);
     }
   } else if (cmd == SER_HANDSHACK) {
     cur_mode = addr;
-    sendCommand(SER_DUMP, 0, 0);
+    sendCommand(SER_DUMP);
   } else if (cmd == SER_DUMP_START) {
     mode.deselectColor();
     cur_mode = addr;
@@ -317,18 +320,32 @@ void style(DropdownList ddl) {
     .close();
 }
 
-void style(Slider sld, int _width, int _min, int _max) {
-  sld.setBroadcast(false)
-    .setTriggerEvent(ControlP5.RELEASE)
-    .setSize(_width, 20)
-    .setColorBackground(color(48))
-    .setColorActive(color(128))
-    .setRange(_min, _max)
-    .setNumberOfTickMarks(_max - _min + 1)
-    .showTickMarks(false)
-    .setDecimalPrecision(0)
-    .setValue(_min)
-    .setBroadcast(true);
+void style(Slider sld, int _width, int _min, int _max, boolean is_timing) {
+  if (is_timing) {
+    sld.setBroadcast(false)
+      .setTriggerEvent(ControlP5.RELEASE)
+      .setSize(_width, 20)
+      .setColorBackground(color(48))
+      .setColorActive(color(128))
+      .setRange(_min, _max / 2)
+      .setNumberOfTickMarks(_max - _min + 1)
+      .showTickMarks(false)
+      .setDecimalPrecision(1)
+      .setValue(_min)
+      .setBroadcast(true);
+  } else {
+    sld.setBroadcast(false)
+      .setTriggerEvent(ControlP5.RELEASE)
+      .setSize(_width, 20)
+      .setColorBackground(color(48))
+      .setColorActive(color(128))
+      .setRange(_min, _max)
+      .setNumberOfTickMarks(_max - _min + 1)
+      .showTickMarks(false)
+      .setDecimalPrecision(0)
+      .setValue(_min)
+      .setBroadcast(true);
+  }
 }
 
 int translateColor(int r, int g, int b) {
@@ -352,12 +369,12 @@ int getColorBankColor(int i, int s) {
 //********************************************************************************
 void prevMode(int v) {
   if (!view_mode) viewMode(0);
-  sendCommand(SER_CHANGE_MODE, 99);
+  sendCommand(SER_VIEW_MODE, 99);
 }
 
 void nextMode(int v) {
   if (!view_mode) viewMode(0);
-  sendCommand(SER_CHANGE_MODE, 101);
+  sendCommand(SER_VIEW_MODE, 101);
 }
 
 void loadColorBank() {
@@ -407,7 +424,7 @@ void _uploadLightFile(File file) {
           }
         }
       }
-      sendCommand(SER_CHANGE_MODE, cur_mode);
+      sendCommand(SER_VIEW_MODE, cur_mode);
       flashing = false;
     } catch (Exception ex) {
       println("Write light failed! " + ex);
@@ -485,7 +502,7 @@ void writeChanges(int v) {
 }
 
 void resetChanges(int v) {
-  sendCommand(SER_CHANGE_MODE, cur_mode);
+  sendCommand(SER_VIEW_MODE, cur_mode);
 }
 
 void disconnectLight(int v) {
@@ -502,7 +519,7 @@ void disconnectLight(int v) {
 
 void viewMode(int v) {
   view_mode = true;
-  sendCommand(SER_VIEW_MODE);
+  sendCommand(SER_VIEW_MODE, cur_mode);
   mode.bViewMode.setColorBackground(color(128));
   mode.bViewColor.setColorBackground(color(48));
 }
@@ -517,7 +534,7 @@ void viewColor(int v) {
 void controlEvent(CallbackEvent theEvent) {
   Controller eController = theEvent.getController();
   String eName = eController.getName();
-  int eVal = (int)eController.getValue();
+  int eVal = (int)(eController.getValue() + 0.5);
   int eId = eController.getId();
   int eAction = theEvent.getAction();
 
@@ -562,7 +579,7 @@ void controlEvent(CallbackEvent theEvent) {
     }
   } else if (eId >= ID_TIMING && eId < ID_TIMING + 24) {
     if (eAction == ControlP5.ACTION_BROADCAST) {
-      mode.setTimings(eId - ID_TIMING, eVal);
+      mode.setTimings(eId - ID_TIMING, (int)(eController.getValue() * 2));
       mode.sendTimings(eId - ID_TIMING);
     }
   } else if (eId >= ID_NUMCOLORS && eId < ID_NUMCOLORS + 3) {
@@ -592,7 +609,7 @@ void controlEvent(CallbackEvent theEvent) {
     }
   } else if (eName.startsWith("Serial")) {
     if (eAction == ControlP5.ACTION_BROADCAST) {
-      println("Connect to port " + (10 - eId));
+      /* println("Connect to port " + (10 - eId)); */
       port = ports[eId - 10];
       port_num = eId - 10;
       connected_serial = true;
