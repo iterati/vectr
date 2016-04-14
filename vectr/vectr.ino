@@ -4,16 +4,11 @@
 #include "LowPower.h"
 #include "elapsedMillis.h"
 
-
-#ifndef cbi
-#define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
-#endif
-#ifndef sbi
-#define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
-#endif
-
 const uint8_t EEPROM_VERSION[4] = {2, 3, 5, 8};
 const uint16_t ADDR_VERSION[4]  = {904, 936, 968, 1000};
+
+#define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
+#define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 
 #define ADDR_BRIGHTNESS   1019
 #define ADDR_CONJURE_MODE 1020
@@ -66,6 +61,25 @@ const uint16_t ADDR_VERSION[4]  = {904, 936, 968, 1000};
 #define S_GUI_MODE        4
 #define S_GUI_COLOR       5
 
+#define M_VECTR           0
+#define M_PRIMER          1
+
+#define P_STROBE          0
+#define P_TRACER          1
+#define P_MORPH           2
+#define P_SCIMITAR        3
+#define P_WAVE            4
+#define P_DYNAMO          5
+#define P_SHIFTER         6
+#define P_TRIPLE          7
+#define P_STEPPER         8
+#define P_RANDOM          9
+
+#define T_OFF             0
+#define T_VELOCITY        1
+#define T_PITCH           2
+#define T_ROLL            3
+#define T_FLIP            4
 
 typedef struct PatternState {
   // Track the arguments to the function
@@ -149,15 +163,59 @@ uint8_t gui_slot = 0;       // Which color slot to display for GUI
 
 PROGMEM const uint8_t factory[NUM_MODES][MODE_SIZE] = {
   {
-    0, 4, 64, 2, 1, 0, 0,
+    M_VECTR, P_WAVE, 64, 2, 1, 0, 0,
+    0, 32, 32, 32,
+    10, 0, 1, 0, 0, 0, 0, 0,
+    3, 0, 1, 0, 0, 0, 0, 0,
+    3, 0, 1, 0, 0, 0, 0, 0,
+    0, 32, 32, 32,
+    3, 3, 3,
+
+    0, 84, 150,     0, 28, 210,     26, 0, 210,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+
+    182, 0, 30,     182, 28, 0,     130, 84, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+
+    0, 0, 0, 0, 0},
+  {
+    M_VECTR, P_DYNAMO, 16, 1, 1, 0, 0,
+    0, 32, 32, 32,
+    4, 4, 4, 0, 0, 0, 0, 0,
+    1, 1, 1, 0, 0, 0, 0, 0,
+    1, 1, 1, 0, 0, 0, 0, 0,
     32, 32, 32, 32,
-    3, 0, 1, 0, 0, 0, 0, 0,
-    3, 0, 1, 0, 0, 0, 0, 0,
-    3, 0, 1, 0, 0, 0, 0, 0,
+    6, 6, 6,
+
+    0, 84, 150,     0, 28, 210,     26, 0, 210,
+    182, 0, 30,     182, 28, 0,     130, 84, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+
+    0, 0, 0, 0, 0},
+  {
+    M_VECTR, P_SHIFTER, 4, 2, 0, 0, 0,
+    0, 32, 32, 32,
+    5, 10, 5, 50, 0, 0, 0, 0,
+    5, 10, 5, 200, 0, 0, 0, 0,
+    5, 10, 5, 200, 0, 0, 0, 0,
     32, 32, 32, 32,
     3, 3, 3,
 
-    255, 0, 0,      0, 255, 0,      0, 0, 255,
+    0, 84, 150,     26, 0, 210,     182, 28, 0,
     0, 0, 0,        0, 0, 0,        0, 0, 0,
     0, 0, 0,        0, 0, 0,        0, 0, 0,
 
@@ -171,16 +229,60 @@ PROGMEM const uint8_t factory[NUM_MODES][MODE_SIZE] = {
 
     0, 0, 0, 0, 0},
   {
-    0, 0, 0, 0, 0, 0, 0,
+    M_VECTR, P_MORPH, 16, 0, 0, 0, 0,
     0, 32, 32, 32,
-    1, 0, 144, 0, 0, 0, 0, 0,
+    50, 0, 0, 0, 0, 0, 0, 0,
+    3, 47, 0, 0, 0, 0, 0, 0,
+    3, 47, 0, 0, 0, 0, 0, 0,
+    32, 32, 32, 32,
+    6, 6, 6,
+
+    208, 0, 0,      104, 112, 0,    0, 224, 0,
+    0, 112, 120,    0, 0, 240,      104, 0, 120,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+
+    0, 0, 0, 0, 0},
+  {
+    M_VECTR, P_TRACER, 2, 1, 5, 0, 0,
+    0, 32, 32, 32,
+    6, 44, 0, 25, 5, 0, 0, 0,
+    6, 44, 25, 0, 5, 0, 0, 0,
+    6, 44, 25, 0, 5, 0, 0, 0,
+    32, 32, 32, 32,
+    7, 7, 7,
+
+    4, 4, 4,        208, 0, 0,      104, 112, 0,
+    0, 224, 0,      0, 112, 120,    0, 0, 240,
+    104, 0, 120,    0, 0, 0,        0, 0, 0,
+
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+    0, 0, 0,        0, 0, 0,        0, 0, 0,
+
+    0, 0, 0, 0, 0},
+  {
+    M_VECTR, P_STROBE, 3, 1, 16, 0, 0,
+    0, 32, 32, 32,
+    6, 44, 0, 0, 0, 0, 0, 0,
     3, 22, 0, 0, 0, 0, 0, 0,
-    3, 50, 0, 0, 0, 0, 0, 0,
+    3, 22, 0, 0, 0, 0, 0, 0,
     32, 32, 32, 32,
     6, 6, 6,
 
-    255, 16, 16,    128, 128, 32,   16, 255, 16,
-    32, 128, 128,   16, 16, 255,    128, 32, 128,
+    208, 0, 0,      104, 112, 0,    0, 224, 0,
+    0, 112, 120,    0, 0, 240,      104, 0, 120,
     0, 0, 0,        0, 0, 0,        0, 0, 0,
 
     0, 0, 0,        0, 0, 0,        0, 0, 0,
@@ -193,104 +295,16 @@ PROGMEM const uint8_t factory[NUM_MODES][MODE_SIZE] = {
 
     0, 0, 0, 0, 0},
   {
-    0, 2, 16, 0, 0, 0, 0,
+    M_VECTR, P_STROBE, 0, 0, 0, 0, 0,
     0, 32, 32, 32,
-    50, 0, 0, 0, 0, 0, 0, 0,
-    3, 47, 0, 0, 0, 0, 0, 0,
-    3, 50, 0, 0, 0, 0, 0, 0,
+    2, 0, 200, 0, 0, 0, 0, 0,
+    6, 44, 0, 0, 0, 0, 0, 0,
+    6, 44, 0, 0, 0, 0, 0, 0,
     32, 32, 32, 32,
     6, 6, 6,
 
-    255, 16, 16,    128, 128, 32,   16, 255, 16,
-    32, 128, 128,   16, 16, 255,    128, 32, 128,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-
-    0, 0, 0, 0, 0},
-  {
-    0, 2, 16, 0, 0, 0, 0,
-    0, 32, 32, 32,
-    50, 0, 0, 0, 0, 0, 0, 0,
-    3, 47, 0, 0, 0, 0, 0, 0,
-    3, 50, 0, 0, 0, 0, 0, 0,
-    32, 32, 32, 32,
-    6, 6, 6,
-
-    255, 16, 16,    128, 128, 32,   16, 255, 16,
-    32, 128, 128,   16, 16, 255,    128, 32, 128,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-
-    0, 0, 0, 0, 0},
-  {
-    0, 2, 16, 0, 0, 0, 0,
-    0, 32, 32, 32,
-    50, 0, 0, 0, 0, 0, 0, 0,
-    3, 47, 0, 0, 0, 0, 0, 0,
-    3, 50, 0, 0, 0, 0, 0, 0,
-    32, 32, 32, 32,
-    6, 6, 6,
-
-    255, 16, 16,    128, 128, 32,   16, 255, 16,
-    32, 128, 128,   16, 16, 255,    128, 32, 128,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-
-    0, 0, 0, 0, 0},
-  {
-    0, 2, 16, 0, 0, 0, 0,
-    0, 32, 32, 32,
-    50, 0, 0, 0, 0, 0, 0, 0,
-    3, 47, 0, 0, 0, 0, 0, 0,
-    3, 50, 0, 0, 0, 0, 0, 0,
-    32, 32, 32, 32,
-    6, 6, 6,
-
-    255, 16, 16,    128, 128, 32,   16, 255, 16,
-    32, 128, 128,   16, 16, 255,    128, 32, 128,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-    0, 0, 0,        0, 0, 0,        0, 0, 0,
-
-    0, 0, 0, 0, 0},
-  {
-    0, 2, 16, 0, 0, 0, 0,
-    0, 32, 32, 32,
-    50, 0, 0, 0, 0, 0, 0, 0,
-    3, 47, 0, 0, 0, 0, 0, 0,
-    3, 50, 0, 0, 0, 0, 0, 0,
-    32, 32, 32, 32,
-    6, 6, 6,
-
-    255, 16, 16,    128, 128, 32,   16, 255, 16,
-    32, 128, 128,   16, 16, 255,    128, 32, 128,
+    208, 0, 0,      104, 112, 0,    0, 224, 0,
+    0, 112, 120,    0, 0, 240,      104, 0, 120,
     0, 0, 0,        0, 0, 0,        0, 0, 0,
 
     0, 0, 0,        0, 0, 0,        0, 0, 0,
@@ -854,7 +868,7 @@ void pattern_scimitar(PatternState *state, uint8_t *r, uint8_t *g, uint8_t *b, b
   state->trip--;
 }
 
-void pattern_flux(PatternState *state, uint8_t *r, uint8_t *g, uint8_t *b, bool rend) {
+void pattern_wave(PatternState *state, uint8_t *r, uint8_t *g, uint8_t *b, bool rend) {
   uint8_t numc = constrain(state->numc, 1, 9);
 
   uint8_t steps = constrain(state->args[0], 1, MAX_REPEATS);
@@ -1254,7 +1268,7 @@ void init_mode() {
   gui_set = gui_slot = 0;
   active_pattern = 0;
 
-  if (mode.data[0] == 0) {
+  if (mode.data[0] == M_VECTR) {
     patterns[0].numc = mode.vm.numc[0];
     patterns[1].numc = mode.vm.numc[0];
     for (uint8_t i = 0; i < 9; i++) {
@@ -1442,12 +1456,12 @@ void accel_velocity() {
 }
 
 void accel_variant() {
-  if (mode.data[0] == 1) {
+  if (mode.data[0] == M_PRIMER) {
     uint8_t value = 0;
-    if (mode.pm.trigger_mode == 1) value = adata.velocity;
-    if (mode.pm.trigger_mode == 2) value = adata.pitch;
-    if (mode.pm.trigger_mode == 3) value = adata.roll;
-    if (mode.pm.trigger_mode == 4) value = adata.flip;
+    if (mode.pm.trigger_mode == T_VELOCITY)   value = adata.velocity;
+    else if (mode.pm.trigger_mode == T_PITCH) value = adata.pitch;
+    else if (mode.pm.trigger_mode == T_ROLL)  value = adata.roll;
+    else if (mode.pm.trigger_mode == T_FLIP)  value = adata.flip;
 
     if ((active_pattern == 0 && value > mode.pm.trigger_thresh[0]) ||
         (active_pattern == 1 && value < mode.pm.trigger_thresh[1])) {
@@ -1471,7 +1485,7 @@ void accel_variant() {
 }
 
 void accel_timings() {
-  if (mode.data[0] == 0) {
+  if (mode.data[0] == M_VECTR) {
     uint8_t update_pattern = !active_pattern;
     uint8_t mg, mv, md, ms;
     uint8_t fg, fv, fd, fs;
@@ -1661,7 +1675,7 @@ void handle_button() {
 void render_mode() {
   // For Vectr modes we only render the active pattern
   // For Primer modes, we run both patterns to increment state but only render the active
-  if (mode.data[0] == 0) {
+  if (mode.data[0] == M_VECTR) {
     pattern_funcs[mode.vm.pattern](&patterns[active_pattern], &rgb_r, &rgb_g, &rgb_b, true);
   } else {
     pattern_funcs[mode.pm.pattern[0]](&patterns[0], &rgb_r, &rgb_g, &rgb_b, active_pattern == 0);
@@ -1689,7 +1703,7 @@ void handle_render() {
   } else if (op_state == S_GUI_MODE) {
     render_mode();
   } else if (op_state == S_GUI_COLOR) {
-    if (mode.data[0] == 0) {
+    if (mode.data[0] == M_VECTR) {
       rgb_r = mode.vm.colors[gui_set][gui_slot][0];
       rgb_g = mode.vm.colors[gui_set][gui_slot][1];
       rgb_b = mode.vm.colors[gui_set][gui_slot][2];
@@ -1743,16 +1757,16 @@ void setup() {
   brightness = ee_read(ADDR_BRIGHTNESS);
   if (conjure) cur_mode = ee_read(ADDR_CONJURE_MODE);
 
-  pattern_funcs[0] = &pattern_strobe;     // Assign function pointers for patterns
-  pattern_funcs[1] = &pattern_tracer;
-  pattern_funcs[2] = &pattern_morph;
-  pattern_funcs[3] = &pattern_scimitar;
-  pattern_funcs[4] = &pattern_flux;
-  pattern_funcs[5] = &pattern_dynamo;
-  pattern_funcs[6] = &pattern_shifter;
-  pattern_funcs[7] = &pattern_triple;
-  pattern_funcs[8] = &pattern_stepper;
-  pattern_funcs[9] = &pattern_random;
+  pattern_funcs[P_STROBE]   = &pattern_strobe;
+  pattern_funcs[P_TRACER]   = &pattern_tracer;
+  pattern_funcs[P_MORPH]    = &pattern_morph;
+  pattern_funcs[P_SCIMITAR] = &pattern_scimitar;
+  pattern_funcs[P_WAVE]     = &pattern_wave;
+  pattern_funcs[P_DYNAMO]   = &pattern_dynamo;
+  pattern_funcs[P_SHIFTER]  = &pattern_shifter;
+  pattern_funcs[P_TRIPLE]   = &pattern_triple;
+  pattern_funcs[P_STEPPER]  = &pattern_stepper;
+  pattern_funcs[P_RANDOM]   = &pattern_random;
 
   accel_init();                           // initialize the accelerometer
   change_mode(cur_mode);                  // initialize current mode
