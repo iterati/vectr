@@ -99,6 +99,7 @@ static final int SER_SAVE        = 20;
 static final int SER_RESET       = 30;
 static final int SER_WRITE       = 50;
 static final int SER_WRITE_LIGHT = 60;
+static final int SER_CHANGE_MODE = 90;
 static final int SER_VIEW_MODE   = 100;
 static final int SER_VIEW_COLOR  = 110;
 static final int SER_DUMP_START  = 200;
@@ -369,12 +370,12 @@ int getColorBankColor(int i, int s) {
 //********************************************************************************
 void prevMode(int v) {
   if (!view_mode) viewMode(0);
-  sendCommand(SER_VIEW_MODE, 99);
+  sendCommand(SER_CHANGE_MODE, 99);
 }
 
 void nextMode(int v) {
   if (!view_mode) viewMode(0);
-  sendCommand(SER_VIEW_MODE, 101);
+  sendCommand(SER_CHANGE_MODE, 101);
 }
 
 void loadColorBank() {

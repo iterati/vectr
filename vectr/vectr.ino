@@ -4,7 +4,7 @@
 #include "LowPower.h"
 #include "elapsedMillis.h"
 
-const uint8_t EEPROM_VERSION[4] = {2, 3, 5, 8};
+const uint8_t EEPROM_VERSION[4] = {3, 3, 5, 8};
 const uint16_t ADDR_VERSION[4]  = {904, 936, 968, 1000};
 
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
@@ -46,6 +46,7 @@ const uint16_t ADDR_VERSION[4]  = {904, 936, 968, 1000};
 #define SER_RESET         30
 #define SER_WRITE         50
 #define SER_WRITE_LIGHT   60
+#define SER_CHANGE_MODE   90
 #define SER_VIEW_MODE     100
 #define SER_VIEW_COLOR    110
 #define SER_DUMP_START    200
@@ -1226,13 +1227,13 @@ void pattern_random(PatternState *state, uint8_t *r, uint8_t *g, uint8_t *b, boo
 
   if (rend) {
     if (state->segm == 0) {
-      *r = 0;
-      *g = 0;
-      *b = 0;
-    } else {
       *r = state->colors[state->cidx][0];
       *g = state->colors[state->cidx][1];
       *b = state->colors[state->cidx][2];
+    } else {
+      *r = 0;
+      *g = 0;
+      *b = 0;
     }
   }
 
@@ -1306,13 +1307,11 @@ void init_mode() {
 
 void change_mode(uint8_t i) {
   if (i < NUM_MODES) cur_mode = i;
-  else if (i == 99)  cur_mode += NUM_MODES - 1;
-  else if (i == 101) cur_mode++;
-  cur_mode %= NUM_MODES;
+  else if (i == 99)  cur_mode = (cur_mode + NUM_MODES - 1) % NUM_MODES;
+  else if (i == 101) cur_mode = (cur_mode + 1) % NUM_MODES;
 
   for (uint8_t b = 0; b < MODE_SIZE; b++) {
-    mode.data[b] = pgm_read_byte(&factory[cur_mode][b]);
-    /* mode.data[b] = ee_read((cur_mode * MODE_SIZE) + b); */
+    mode.data[b] = ee_read((cur_mode * MODE_SIZE) + b);
   }
 
   init_mode();
@@ -1347,6 +1346,14 @@ void enter_sleep() {
 }
 
 
+void dump_mode() {
+  Serial.write(SER_DUMP_START); Serial.write(cur_mode); Serial.write(SER_DUMP);
+  for (uint8_t b = 0; b < MODE_SIZE; b++) {
+    Serial.write(cur_mode); Serial.write(b); Serial.write(mode.data[b]);
+  }
+  Serial.write(SER_DUMP_END); Serial.write(cur_mode); Serial.write(SER_DUMP);
+}
+
 void handle_serial() {
   uint8_t cmd, in0, in1, in2;
   while (Serial.available() >= 4) {
@@ -1363,11 +1370,7 @@ void handle_serial() {
       }
     } else if (comm_link) {
       if (cmd == SER_DUMP) {
-        Serial.write(SER_DUMP_START); Serial.write(cur_mode); Serial.write(SER_DUMP);
-        for (uint8_t b = 0; b < MODE_SIZE; b++) {
-          Serial.write(cur_mode); Serial.write(b); Serial.write(mode.data[b]);
-        }
-        Serial.write(SER_DUMP_END); Serial.write(cur_mode); Serial.write(SER_DUMP);
+        dump_mode();
       } else if (cmd == SER_DUMP_LIGHT) {
         Serial.write(SER_DUMP_START); Serial.write(cur_mode); Serial.write(SER_DUMP_LIGHT);
         for (uint8_t m = 0; m < NUM_MODES; m++) {
@@ -1392,8 +1395,10 @@ void handle_serial() {
         if (in0 < NUM_MODES && in1 < MODE_SIZE) {
           ee_update((in0 * MODE_SIZE) + in1, in2);
         }
-      } else if (cmd == SER_VIEW_MODE) {
+      } else if (cmd == SER_CHANGE_MODE) {
         change_mode(in0);
+        dump_mode();
+      } else if (cmd == SER_VIEW_MODE) {
         op_state = S_GUI_MODE;
       } else if (cmd == SER_VIEW_COLOR) {
         gui_set = in0;
