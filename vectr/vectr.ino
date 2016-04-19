@@ -1,8 +1,6 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <avr/wdt.h>
-#include "LowPower.h"
-#include "elapsedMillis.h"
 
 const uint8_t EEPROM_VERSION[4] = {3, 3, 5, 8};
 const uint16_t ADDR_VERSION[4]  = {904, 936, 968, 1000};
@@ -145,7 +143,7 @@ AccelData adata;
 PatternState patterns[2];
 
 uint32_t limiter_us = 500;  // Frame time in us
-elapsedMicros limiter = 0;
+uint32_t last_write = 0;
 uint8_t rgb_r = 0;
 uint8_t rgb_g = 0;
 uint8_t rgb_b = 0;
@@ -569,8 +567,9 @@ void TWADC_send(uint8_t dev_addr, uint8_t addr, uint8_t data) {
 
 
 void write_frame() {
-  while (limiter < limiter_us) {}
-  limiter = 0;
+  uint32_t cus = micros();
+  while (cus - last_write < limiter_us) cus = micros();
+  last_write = cus;
 
   analogWrite(PIN_R, rgb_r >> brightness);
   analogWrite(PIN_G, rgb_g >> brightness);
@@ -1722,12 +1721,25 @@ void handle_render() {
 }
 
 
+void power_down() {
+  ADCSRA &= ~(1 << ADEN);
+  set_sleep_mode(SLEEP_FOREVER);
+  cli();
+  sleep_enable();
+  sleep_bod_disable();
+  sei();
+  sleep_cpu();
+  sleep_disable();
+  sei();
+  ADCSRA |= (1 << ADEN);
+}
+
 void setup() {
   // Check the sleeping bit, if it's set, go into low power mode until button press
   attachInterrupt(0, _push_interrupt, FALLING);
   if (ee_read(ADDR_SLEEPING)) {
     ee_update(ADDR_SLEEPING, 0);
-    LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_ON);
+    power_down();
     op_state = S_WAKE;
   } else {
     op_state = S_PLAY;
@@ -1780,7 +1792,7 @@ void setup() {
   Serial.write(SER_VERSION);
   Serial.write(SER_VERSION);
 
-  limiter = 0;                            // Reset the limiter
+  last_write = micros();                  // Reset the limiter
 }
 
 void loop() {
