@@ -22,10 +22,9 @@
 #define SER_VERSION     121
 #define SER_WRITE       100
 #define SER_HANDSHAKE   200
-#define SER_HANDSHACK   201
 #define SER_DISCONNECT  210
 #define SER_VIEW_MODE   220
-#define SER_VIEW_COLOR  221
+#define SER_VIEW_COLOR  230
 
 #define S_PLAY      0
 #define S_WAKE      1
@@ -1290,14 +1289,6 @@ void render_mode(uint8_t *r, uint8_t *g, uint8_t *b) {
 }
 
 
-void send_command(uint8_t out0, uint8_t out1, uint8_t out2, uint8_t out3) {
-  Serial.write(out0);
-  Serial.write(out1);
-  Serial.write(out2);
-  Serial.write(out3);
-}
-
-
 void handle_serial() {
   uint8_t cmd, in0, in1, in2;
   while (Serial.available() >= 4) {
@@ -1311,7 +1302,7 @@ void handle_serial() {
         cur_bundle = 0;
         cur_mode = 0;
         op_state = S_GUI_MODE;
-        send_command(SER_HANDSHACK, NUM_BUNDLES, NUM_MODES, MODE_SIZE);
+        Serial.write(SER_HANDSHAKE, NUM_BUNDLES, NUM_MODES, MODE_SIZE);
       }
     } else if (cmd == SER_DISCONNECT) {
       op_state = S_PLAY;
@@ -1527,8 +1518,6 @@ void setup() {
 
   Serial.begin(115200);
   randomSeed(analogRead(0));
-  send_command(SER_HANDSHAKE, NUM_BUNDLES, NUM_MODES, MODE_SIZE);
-
   last_write = micros();                  // Reset the limiter
 }
 

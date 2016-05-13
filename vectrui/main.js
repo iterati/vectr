@@ -248,7 +248,6 @@ var data = [
 
 var read_listeners = {};
 var send_listeners = {};
-var vectrui = $('#vectr');
 var version = "0.1";
 var vectr_opts = {};
 var vectr_obj = {};
@@ -268,8 +267,8 @@ function sendData(a, b) {
   for (var i = 0; i < send_listeners[a].length; i++) {
     send_listeners[a][i](b);
   }
-  // console.log("send " + a + ": " + b);
-  // TODO: send b to a
+  console.log("send " + a + ": " + b);
+  sendCommand([100, a, b, 0]);
 };
 
 function sendCommand(cmd) {
@@ -283,10 +282,8 @@ function sendCommand(cmd) {
 };
 
 function handleCommand(cmd) {
-  if (cmd[0] == 100) { // Write
-    readData(cmd[1], cmd[2]);
-  } else if (cmd[0] == 200) { // Handshake
-  } else if (cmd[0] == 201) { // Handshack
+  if (cmd[0] == 200) {
+    // TODO: We're connected - send current mode to light
   }
 };
 
@@ -384,11 +381,11 @@ function makeUpdateVectrPattern(send_data) {
   return function (val) {
     var pattern = patterns[val];
 
-    vectrui.children('.pattern').find('.dropdown').each(function(i, dropdown) {
+    $('div#vectr').children('.pattern').find('.dropdown').each(function(i, dropdown) {
       $(dropdown).val(pattern.name);
     });
 
-    vectrui.children('.pattern').find('.arg').each(function(i, column) {
+    $('div#vectr').children('.pattern').find('.arg').each(function(i, column) {
       if (i >= pattern.args.length) {
         $(column).hide();
       } else {
@@ -402,7 +399,7 @@ function makeUpdateVectrPattern(send_data) {
       }
     });
 
-    vectrui.children('.timings').find('.row').each(function(i, row) {
+    $('div#vectr').children('.timings').find('.row').each(function(i, row) {
       if (i >= pattern.timings.length) {
         $(row).hide();
       } else {
@@ -422,6 +419,40 @@ function makeUpdateVectrPattern(send_data) {
     }
   };
 };
+
+makeGetColor = function(color, set, slot, channel) {
+  return function(val) {
+    var rgb = hex2rgb(getColor(set, slot));
+    color.spectrum("set", getColor(set, slot));
+    if (channel == 0) {
+      sendData((27 * set) + (3 * slot) + 38, rgb.r);
+    } else if (channel == 1) {
+      sendData((27 * set) + (3 * slot) + 39, rgb.g);
+    } else if (channel == 2) {
+      sendData((27 * set) + (3 * slot) + 40, rgb.b);
+    }
+  };
+};
+
+makeSendColor = function(addr) {
+  return function(color)  {
+    var rgb = hex2rgb(color.toHexString());
+    sendData(addr + 0, rgb.r);
+    sendData(addr + 1, rgb.g);
+    sendData(addr + 2, rgb.b);
+  };
+};
+
+makeShowHideColor = function(idx) {
+  return function(val) {
+    if (idx >= val) {
+      $(".color." +  this.attr("id")).hide();
+    } else {
+      $(".color." +  this.attr("id")).show();
+    }
+  };
+};
+
 
 function arrayToMode(arr) {
   return {
@@ -476,7 +507,7 @@ function arrayToMode(arr) {
     tr_flux: [arr[123], arr[124], arr[125], arr[126]],
     trigger: arr[127]
   };
-}
+};
 
 function modeToArray(m) {
   return [
@@ -541,7 +572,6 @@ function onReceiveCallback(info) {
   }
 };
 
-
 function getSerialPorts() {
   chrome.serial.getDevices(function(devices) {
     for (var i = 0; i < devices.length; i++) {
@@ -549,40 +579,33 @@ function getSerialPorts() {
     }
   });
 };
-getSerialPorts();
+
+
+function makeSliderField(min, max, value, step, slider_width, addr) {
+  var container = $('<div class="container inline"></div>')
+    .css("width", (slider_width + 58) + "px")
+    .css("padding", "2px 5px");
+
+  var field = $('<input class="inline value" type="text">')
+    .appendTo(container);
+
+  var slider = $('<div class="inline slider"></div>').slider({
+    min: min, max: max, step: step, value: value,
+    slide: makeSliderChange(field, addr),
+    change: makeSliderChange(field, addr)
+  }).css("width", slider_width + "px")
+  .appendTo(container);
+
+  field.change(makeFieldChange(slider, addr));
+  read_listeners[addr].push(makeSliderListener(field, addr).bind(slider));
+  return container;
+}
+
 
 for (var i = 0; i < 128; i++) {
-  readData(i, data[i]);
   read_listeners[i] = [];
   send_listeners[i] = [];
 }
-
-chrome.storage.local.get("vectr", function(data) {
-  if (!data.vectr) {
-    data.vectr = {};
-  }
-  if (data.vectr.version != version) {
-    data.vectr.version = version;
-  }
-  if (!data.vectr.dir_id) {
-    chrome.fileSystem.chooseEntry({type: "openDirectory"}, function(entry) {
-      data.vectr.dir_id = chrome.fileSystem.retainEntry(entry);
-      vectr_obj.dir_root = entry;
-      entry.getDirectory('firmwares', {create: true}, function(entry) {
-        vectr_obj.dir_firmwares = entry;
-      });
-      entry.getDirectory('modes', {create: true}, function(entry) {
-        vectr_obj.dir_modes = entry;
-      });
-    });
-  } else {
-    chrome.fileSystem.restoreEntry(data.vectr.dir_id, function(entry) {
-      vectr_dir_entry = entry;
-    });
-  }
-  vectr_ops = data;
-  chrome.storage.local.set(data);
-});
 
 $('button#refresh').click(function() {
   getSerialPorts();
@@ -597,17 +620,54 @@ $('button#connect').click(function() {
       connection_id = info.connectionId;
       $("button#open").html("Disconnect");
       chrome.serial.onReceive.addListener(onReceiveCallback);
+      // We're connected - send the handshake
+      sendCommand([200, 121, 42, 42]);
     });
   } else {
+    // Send disconnect before disconnecting
+    sendCommand([210, 0, 0, 0]);
     chrome.serial.disconnect(connection_id, function(result) {
       $("button#open").html("Connect");
+
     });
   }
 
   $(this).data("clicks", !clicks);
 });
 
-vectrui.children('.pattern').each(function(index, item) {
+
+function makeColorSet(elem, prefix, idx) {
+  var row = $('<div class="container span"></div>').appendTo(elem);
+  makeSliderField(1, 9, 1, 1, 100, 35 + idx).appendTo(row);
+  for (var j = 0; j < 9; j++) {
+    var addr = (27 * idx) + (3 * j) + 38;
+    var color = $('<input type="text" id="' + prefix + 'Color' + addr + '">').appendTo(row).hide();
+    $('#' + prefix + 'Color' + addr)
+      .spectrum({
+        addr: addr,
+        prefix: prefix,
+        showPalette: true,
+        palette: palette,
+        showButtons: false,
+        showInput: true,
+        localStorageKey: "spectrum.colors",
+        maxSelectionSize: 24,
+        preferredFormat: "rgb",
+        change: makeSendColor(addr),
+        move: makeSendColor(addr)
+      });
+
+    read_listeners[addr + 0].push(makeGetColor(color, idx, j, 0));
+    read_listeners[addr + 1].push(makeGetColor(color, idx, j, 1));
+    read_listeners[addr + 2].push(makeGetColor(color, idx, j, 2));
+
+    read_listeners[35 + idx].push(makeShowHideColor(j).bind(color));
+    send_listeners[35 + idx].push(makeShowHideColor(j).bind(color));
+  }
+}
+
+
+$('div#vectr').children('.pattern').each(function(index, item) {
   var elem = $(item);
 
   var column = $('<div class="container inline pattern"></div>')
@@ -635,24 +695,11 @@ vectrui.children('.pattern').each(function(index, item) {
       .appendTo(elem);
 
     label = $('<div class="span label">Arg ' + i + '</div>').appendTo(column);
-
-    var slider_container = $('<div class="container"></div>').appendTo(column);
-    var field = $('<input class="inline value" type="text" idx="' + i + '">')
-      .appendTo(slider_container);
-
-    var slider = $('<div class="inline slider"></div>').slider({
-      min: 0, max: 100, value: 0,
-      slide: makeSliderChange(field, 3 + i),
-      change: makeSliderChange(field, 3 + i)
-    }).css("width", "107px")
-    .appendTo(slider_container);
-
-    field.change(makeFieldChange(slider, 3 + i));
-    read_listeners[3 + i].push(makeSliderListener(field, 3 + i).bind(slider));
+    makeSliderField(0, 100, 0, 1, 107, 3 + i).appendTo(column);
   }
 });
 
-vectrui.children('.timings').each(function(index, item) {
+$('div#vectr').children('.timings').each(function(index, item) {
   var elem = $(item);
   for (var i = 0; i < 8; i++) {
     var container = $('<div class="container span"></div>')
@@ -665,29 +712,12 @@ vectrui.children('.timings').each(function(index, item) {
       .appendTo(row);
 
     for (var j = 0; j < 3; j++) {
-      var addr = (8 * j) + i + 11;
-      var container = $('<div class="container inline"></div>')
-        .css("width", "220px")
-        .css("padding", "2px 5px")
-        .appendTo(row);
-
-      var field = $('<input class="inline value" type="text">')
-        .appendTo(container);
-
-      var slider = $('<div class="inline slider"></div>').slider({
-        min: 0, max: 125, step: 0.5, value: 0,
-        slide: makeSliderChange(field, addr),
-        change: makeSliderChange(field, addr)
-      }).css("width", "162px")
-      .appendTo(container);
-
-      field.change(makeFieldChange(slider, addr));
-      read_listeners[addr].push(makeSliderListener(field, addr).bind(slider));
+      makeSliderField(0, 125, 0, 0.5, 162, (8 * j) + i + 11).appendTo(row);
     }
   }
 });
 
-vectrui.children('.thresh').each(function(index, item) {
+$('div#vectr').children('.thresh').each(function(index, item) {
   var elem = $(item).addClass("span");
   var target = item.getAttribute("target");
   var addr = (target == "pattern") ? 119 : 123;
@@ -733,84 +763,106 @@ vectrui.children('.thresh').each(function(index, item) {
   read_listeners[addr + 3].push(makeThreshSliderListener(values.children()[3], addr, 3).bind(slider));
 });
 
-vectrui.children('.colors').each(function(idx, div) {
-  makeGetColor = function(color, set, slot, channel) {
-    return function(val) {
-      var rgb = hex2rgb(getColor(set, slot));
-      color.spectrum("set", getColor(set, slot));
-      if (channel == 0) {
-        sendData((27 * set) + (3 * slot) + 38, rgb.r);
-      } else if (channel == 1) {
-        sendData((27 * set) + (3 * slot) + 39, rgb.g);
-      } else if (channel == 2) {
-        sendData((27 * set) + (3 * slot) + 40, rgb.b);
-      }
-    };
-  };
-
-  makeSendColor = function(addr) {
-    return function(color)  {
-      var rgb = hex2rgb(color.toHexString());
-      sendData(addr + 0, rgb.r);
-      sendData(addr + 1, rgb.g);
-      sendData(addr + 2, rgb.b);
-    };
-  };
-
-  makeShowHideColor = function(idx) {
-    return function(val) {
-      if (idx >= val) {
-        $(".color." +  this.attr("id")).hide();
-        // this.hide();
-      } else {
-        $(".color." +  this.attr("id")).show();
-        // this.show();
-      }
-    };
-  };
-
+$('div#vectr').children('.colors').each(function(idx, div) {
   var elem = $(div);
   for (var i = 0; i < 3; i++) {
-    var row = $('<div class="container span"></div>').appendTo(elem);
+    makeColorSet(elem, "vectr", i);
+  }
+});
 
-    for (var j = 0; j < 9; j++) {
-      var color_addr = (27 * i) + (3 * j) + 38;
-      var color = $('<input type="text" id="color' + color_addr + '">').appendTo(row).hide();
-      $('#color' + color_addr)
-        .spectrum({
-          addr: color_addr,
-          showPalette: true,
-          palette: palette,
-          showButtons: false,
-          showInput: true,
-          localStorageKey: "spectrum.colors",
-          maxSelectionSize: 24,
-          preferredFormat: "rgb",
-          change: makeSendColor(color_addr),
-          move: makeSendColor(color_addr)
-        });
-      // var color = $('.color.color' + color_addr);
 
-      read_listeners[color_addr + 0].push(makeGetColor(color, i, j, 0));
-      read_listeners[color_addr + 1].push(makeGetColor(color, i, j, 1));
-      read_listeners[color_addr + 2].push(makeGetColor(color, i, j, 2));
+$('div#primer').children('.pattern').each(function(index, item) {
+  var elem = $(item);
 
-      read_listeners[35 + i].push(makeShowHideColor(j).bind(color));
-      send_listeners[35 + i].push(makeShowHideColor(j).bind(color));
-    }
+  var column = $('<div class="container inline pattern"></div>')
+    .css("width", "90px")
+    .css("padding", "5px")
+    .appendTo(elem);
 
-    var slider_container = $('<div class="container inline"></div>').prependTo(row);
+  var label = $('<div class="span">Pattern ' + ((index == 0) ? 'A' : 'B') + '</div>').appendTo(column);
+  // TODO
+  // var updateVectrPattern = makeUpdateVectrPattern(true);
+  var dropdown = $('<select class="span dropdown"></select>')
+    .change(function() {
+      // TODO
+      // updateVectrPattern($('option:selected', $(this)).index());
+    }).appendTo(column);
+
+  for (var p in patterns) {
+    $('<option>' + patterns[p].name + '</option>').appendTo(dropdown);
+  }
+
+  // TODO
+  // read_listeners[1].push(makeUpdateVectrPattern(false));
+
+  for (var i = 0; i < 4; i++) {
+    var addr = (4 * index) + 3 + i;
+    column = $('<div class="container inline arg"></div>')
+      .css("width", "165px")
+      .css("padding", "5px")
+      .appendTo(elem);
+
+    label = $('<div class="span label">Arg ' + i + '</div>').appendTo(column);
+
+    var slider_container = $('<div class="container"></div>').appendTo(column);
     var field = $('<input class="inline value" type="text">')
       .appendTo(slider_container);
 
     var slider = $('<div class="inline slider"></div>').slider({
-      min: 1, max: 9, value: 1,
-      slide: makeSliderChange(field, 35 + i),
-      change: makeSliderChange(field, 35 + i)
-    }).css("width", "100px")
+      min: 0, max: 100, value: 0,
+      slide: makeSliderChange(field, addr),
+      change: makeSliderChange(field, addr)
+    }).css("width", "107px")
     .appendTo(slider_container);
 
-    field.change(makeFieldChange(slider, 35 + i));
-    read_listeners[35 + i].push(makeSliderListener(field, 35 + i).bind(slider));
+    field.change(makeFieldChange(slider, addr));
+    read_listeners[addr].push(makeSliderListener(field, addr).bind(slider));
   }
+  makeColorSet(elem, "primer", index);
 });
+
+$('div#primer').children('.timings').each(function(index, item) {
+  // TODO
+});
+
+$('div#primer').children('.trigger').each(function(index, item) {
+  // TODO
+});
+
+
+chrome.storage.local.get("vectr", function(data) {
+  if (!data.vectr) {
+    data.vectr = {};
+  }
+  if (data.vectr.version != version) {
+    data.vectr.version = version;
+    chrome.storage.local.set(data);
+  }
+  if (!data.vectr.dir_id) {
+    chrome.fileSystem.chooseEntry({type: "openDirectory"}, function(entry) {
+      data.vectr.dir_id = chrome.fileSystem.retainEntry(entry);
+      chrome.storage.local.set(data);
+      vectr_obj.dir_root = entry;
+      entry.getDirectory('firmwares', {create: true}, function(entry) {
+        vectr_obj.dir_firmwares = entry;
+      });
+      entry.getDirectory('modes', {create: true}, function(entry) {
+        vectr_obj.dir_modes = entry;
+      });
+    });
+  } else {
+    chrome.fileSystem.restoreEntry(data.vectr.dir_id, function(entry) {
+      vectr_dir_entry = entry;
+    });
+  }
+  vectr_opts = data;
+});
+
+for (var i = 0; i < 128; i++) {
+  readData(i, data[i]);
+}
+
+// $('div#vectr').hide();
+$('div#primer').hide();
+
+getSerialPorts();
