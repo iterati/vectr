@@ -20,16 +20,12 @@
 #define I2CADC_L    150   // Analog read low threshold
 
 #define SER_VERSION     121
-#define SER_HANDSHAKE   10
-#define SER_HANDSHACK   20
-#define SER_DISCONNECT  90
-#define SER_DUMP        100
-#define SER_WRITE       110
-#define SER_CHANGE_MODE 120
-#define SER_VIEW_MODE   150
-#define SER_VIEW_COLOR  160
-#define SER_DUMP_START  200
-#define SER_DUMP_END    201
+#define SER_WRITE       100
+#define SER_HANDSHAKE   200
+#define SER_HANDSHACK   201
+#define SER_DISCONNECT  210
+#define SER_VIEW_MODE   220
+#define SER_VIEW_COLOR  221
 
 #define S_PLAY      0
 #define S_WAKE      1
@@ -1301,15 +1297,6 @@ void send_command(uint8_t out0, uint8_t out1, uint8_t out2, uint8_t out3) {
   Serial.write(out3);
 }
 
-void dump_mode(uint8_t b, uint8_t s) {
-  send_command(SER_DUMP_START, b, s, MODE_SIZE);
-  for (uint8_t i = 0; i < MODE_SIZE; i++) {
-    send_command(b, s, i, pgm_read_byte(&modes[b][s][i]));
-  }
-  send_command(SER_DUMP_END, b, s, MODE_SIZE);
-}
-
-
 
 void handle_serial() {
   uint8_t cmd, in0, in1, in2;
@@ -1328,13 +1315,8 @@ void handle_serial() {
       }
     } else if (cmd == SER_DISCONNECT) {
       op_state = S_PLAY;
-    } else if (cmd == SER_DUMP) {
-      dump_mode(in0, in1);
     } else if (cmd == SER_WRITE) {
       mode.data[in0] = in1;
-    } else if (cmd == SER_CHANGE_MODE) {
-      change_mode(in0, in1);
-      dump_mode(in0, in1);
     } else if (cmd == SER_VIEW_MODE) {
       op_state = S_GUI_MODE;
     } else if (cmd == SER_VIEW_COLOR) {

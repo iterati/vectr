@@ -1,0 +1,106 @@
+
+.thresh-slider {
+}
+
+.thresh-value {
+  width: 30px;
+  margin-left: 75px;
+  margin-right: 75px;
+  text-align: center;
+}
+
+.row {
+  width: 100%;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.column {
+  display: inline-block;
+}
+
+.container {
+  margin: 0 auto;
+  width: 100%;
+}
+
+.pattern-column {
+  width: 80px;
+}
+
+.arg-column {
+  width: 150px;
+  margin-right: 10px;
+  margin-left: 10px;
+}
+
+.arg-container {
+  margin: 0 auto;
+}
+
+.arg-value {
+  width: 25px;
+  text-align: center;
+  display: inline-block;
+  margin-right: 10px;
+}
+
+.arg-slider {
+  width: 100px;
+  display: inline-block;
+}
+
+.timings {
+  min-height: 200px;
+}
+
+.timing-label {
+  width: 100px;
+}
+
+.timing-container {
+  margin: 0 auto;
+}
+
+.timing-slider {
+  width: 180px;
+  display: inline-block;
+}
+
+.timing-value {
+  width: 25px;
+  display: inline-block;
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-top: 5px;
+  text-align: center;
+}
+
+.numc-value {
+  width: 25px;
+  text-align: center;
+  margin-right: 10px;
+}
+
+.numc-slider {
+  width: 100px;
+  margin-right: 25px;
+}
+
+.numc-container {
+  min-width: 24px;
+  min-height: 24px;
+  margin-right: 10px;
+}
+
+.numc-color {
+  min-width: 20px;
+  min-height: 20px;
+  background: rgb(0, 0, 0);
+  border: 2px solid #fff;
+}
+
+.numc-color.selected {
+  border: 2px solid #888;
+}
+
