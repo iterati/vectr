@@ -30,144 +30,144 @@ var patterns = [
 {
   "name": "Strobe",
   "args": [
-    {"min": 0, "max": 9,   "name": "Group Size"},
-    {"min": 0, "max": 9,   "name": "Skip After"},
-    {"min": 1, "max": 100, "name": "Repeat Group"}
+    {"min": 0, "max": 9,   "name": "Group Size", "default": 0},
+    {"min": 0, "max": 9,   "name": "Skip After", "default": 0},
+    {"min": 1, "max": 100, "name": "Repeat Group", "default": 1}
   ],
   "timings": [
-    "Strobe",
-    "Blank",
-    "Gap",
+    {"name": "Strobe", "default": 10},
+    {"name": "Blank", "default": 16},
+    {"name": "Gap", "default": 0}
   ]
 },
 {
   "name": "Tracer",
   "args": [
-    {"min": 0, "max": 9,   "name": "Group Size"},
-    {"min": 0, "max": 9,   "name": "Skip After"},
-    {"min": 1, "max": 100, "name": "Repeat Tracer"}
+    {"min": 0, "max": 9,   "name": "Group Size", "default": 1},
+    {"min": 0, "max": 9,   "name": "Skip After", "default": 0},
+    {"min": 1, "max": 100, "name": "Repeat Tracer", "default": 1}
   ],
   "timings": [
-    "Color Strobe",
-    "Color Blank",
-    "Tracer Strobe",
-    "Tracer Blank",
-    "Gap"
+    {"name": "Color Strobe", "default": 10},
+    {"name": "Color Blank", "default": 0},
+    {"name": "Tracer Strobe", "default": 40},
+    {"name": "Tracer Blank", "default": 0},
+    {"name": "Gap", "default": 0}
   ]
 },
 {
   "name": "Morph",
   "args": [
-    {"min": 1, "max": 100, "name": "Morph Steps"},
-    {"min": 0, "max": 9,   "name": "Smooth or Fused"},
+    {"min": 1, "max": 100, "name": "Morph Steps", "default": 16},
+    {"min": 0, "max": 1,   "name": "Smooth or Fused", "default": 0},
   ],
   "timings": [
-    "Morph Strobe",
-    "Morph Blank",
-    "Solid Color",
-    "Gap"
+    {"name": "Morph Strobe", "default": 6},
+    {"name": "Morph Blank", "default": 44},
+    {"name": "Solid Color", "default": 0},
+    {"name": "Solid Blank", "default": 0}
   ]
 },
 {
   "name": "Sword",
   "args": [
-    {"min": 0, "max": 9,   "name": "Group Size"},
+    {"min": 0, "max": 9,   "name": "Group Size", "default": 0},
   ],
   "timings": [
-    "Outer Strobe",
-    "Outer Blank",
-    "Inner Strobe",
-    "Gap"
+    {"name": "Outer Strobe", "default": 3},
+    {"name": "Outer Blank", "default": 0},
+    {"name": "Inner Strobe", "default": 15},
+    {"name": "Gap", "default": 140}
   ]
 },
 {
   "name": "Wave",
   "args": [
-    {"min": 1, "max": 100, "name": "Steps"},
-    {"min": 0, "max": 2,   "name": "Up, Down, or Both"},
-    {"min": 0, "max": 1,   "name": "Color or Blank"},
-    {"min": 0, "max": 1,   "name": "Change on Cycle or Step"}
+    {"min": 1, "max": 100, "name": "Steps", "default": 32},
+    {"min": 0, "max": 2,   "name": "Up, Down, or Both", "default": 2},
+    {"min": 0, "max": 1,   "name": "Color or Blank", "default": 1},
+    {"min": 0, "max": 1,   "name": "Change on Cycle or Step", "default": 1}
   ],
   "timings": [
-    "Base Strobe",
-    "Base Blank",
-    "Step Length"
+    {"name": "Base Strobe", "default": 3},
+    {"name": "Base Blank", "default": 0},
+    {"name": "Step Length", "default": 2}
   ]
 },
 {
   "name": "Stretch",
   "args": [
-    {"min": 1, "max": 100, "name": "Steps"},
-    {"min": 0, "max": 2,   "name": "Up, Down, or Both"},
-    {"min": 0, "max": 1,   "name": "Color on Cycle or Step"}
+    {"min": 1, "max": 100, "name": "Steps", "default": 20},
+    {"min": 0, "max": 2,   "name": "Up, Down, or Both", "default": 2},
+    {"min": 0, "max": 1,   "name": "Color on Cycle or Step", "default": 1}
   ],
   "timings": [
-    "Base Strobe",
-    "Base Blank",
-    "Step Length"
+    {"name": "Base Strobe", "default": 0},
+    {"name": "Base Blank", "default": 0},
+    {"name": "Step Length", "default": 5}
   ]
 },
 {
   "name": "Shift",
   "args": [
-    {"min": 1, "max": 100, "name": "Steps"},
-    {"min": 0, "max": 2,   "name": "Up, Down, or Both"}
+    {"min": 1, "max": 100, "name": "Steps", "default": 4},
+    {"min": 0, "max": 2,   "name": "Up, Down, or Both", "default": 2}
   ],
   "timings": [
-    "Base Strobe",
-    "Base Blank",
-    "Step Length",
-    "Gap"
+    {"name": "Base Strobe", "default": 5},
+    {"name": "Base Blank", "default": 25},
+    {"name": "Step Length", "default": 5},
+    {"name": "Gap", "default": 100}
   ]
 },
 {
   "name": "Triple",
   "args": [
-    {"min": 1, "max": 100, "name": "Repeat A"},
-    {"min": 1, "max": 100, "name": "Repeat B"},
-    {"min": 0, "max": 100, "name": "Repeat C"},
-    {"min": 0, "max": 8,   "name": "Skip Colors"}
+    {"min": 1, "max": 100, "name": "Repeat A", "default": 2},
+    {"min": 1, "max": 100, "name": "Repeat B", "default": 2},
+    {"min": 0, "max": 100, "name": "Repeat C", "default": 2},
+    {"min": 0, "max": 8,   "name": "Skip Colors", "default": 1}
   ],
   "timings": [
-    "A Strobe",
-    "A Blank",
-    "B Strobe",
-    "B Blank",
-    "C Strobe",
-    "C Blank",
-    "Gap"
+    {"name": "A Strobe", "default": 25},
+    {"name": "A Blank", "default": 25},
+    {"name": "B Strobe", "default": 10},
+    {"name": "B Blank", "default": 40},
+    {"name": "C Strobe", "default": 3},
+    {"name": "C Blank", "default": 47},
+    {"name": "Gap", "default": 25}
   ]
 },
 {
   "name": "Stepper",
   "args": [
-    {"min": 1, "max": 7,   "name": "Steps"},
-    {"min": 0, "max": 1,   "name": "Random Step?"},
-    {"min": 0, "max": 1,   "name": "Random Color?"},
-    {"min": 0, "max": 1,   "name": "Step Color or Blank"}
+    {"min": 1, "max": 7,   "name": "Steps", "default": 7},
+    {"min": 0, "max": 1,   "name": "Random Step?", "default": 0},
+    {"min": 0, "max": 1,   "name": "Random Color?", "default": 0},
+    {"min": 0, "max": 1,   "name": "Step Color or Blank", "default": 0}
   ],
   "timings": [
-    "Gap",
-    "Step 1",
-    "Step 2",
-    "Step 3",
-    "Step 4",
-    "Step 5",
-    "Step 6",
-    "Step 7"
+    {"name": "Gap", "default": 25},
+    {"name": "Step 1", "default": 5},
+    {"name": "Step 2", "default": 10},
+    {"name": "Step 3", "default": 15},
+    {"name": "Step 4", "default": 20},
+    {"name": "Step 5", "default": 25},
+    {"name": "Step 6", "default": 30},
+    {"name": "Step 7", "default": 35}
   ]
 },
 {
   "name": "Random",
   "args": [
-    {"min": 0, "max": 1,   "name": "Random Color?"},
-    {"min": 1, "max": 25,  "name": "Multiplier"}
+    {"min": 0, "max": 1,   "name": "Random Color?", "default": 0},
+    {"min": 1, "max": 25,  "name": "Multiplier", "default": 1}
   ],
   "timings": [
-    "Strobe Low",
-    "Strobe High",
-    "Blank Low",
-    "Blank High"
+    {"name": "Strobe Low", "default": 5},
+    {"name": "Strobe High", "default": 25},
+    {"name": "Blank Low", "default": 5},
+    {"name": "Blank High", "default": 25}
   ]
 }
 ];
@@ -395,7 +395,7 @@ function makeUpdateVectrPattern(send_data) {
           .slider("option", "min", pattern.args[i].min)
           .slider("option", "max", pattern.args[i].max)
           .slider("value", pattern.args[i].min);
-        $(column).children('.container').children('.value').val(pattern.args[i].min);
+        $(column).children('.container').children('.value').val(pattern.args[i].default);
       }
     });
 
@@ -405,8 +405,9 @@ function makeUpdateVectrPattern(send_data) {
       } else {
         $(row).show();
         $(row).find('.label').each(function(j, label) {
-          $(label).text(pattern.timings[i]);
+          $(label).text(pattern.timings[i].name);
         });
+        $(row).find('.value').val(pattern.timings[i].default);
       }
     });
 
