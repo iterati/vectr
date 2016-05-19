@@ -1,38 +1,70 @@
 var VectrUI = function() {
   'use strict';
 
-  jQuery.colorpicker.swatches.custom_array = [
-    {name: 'red',         r: 208, g: 0, b: 0},
-    {name: 'sunrise',     r: 182, g: 28, b: 0},
-    {name: 'orange',      r: 156, g: 56, b: 0},
-    {name: 'gold',        r: 130, g: 84, b: 0},
-    {name: 'yellow',      r: 104, g: 112, b: 0},
-    {name: 'lemon',       r: 78, g: 140, b: 0},
-    {name: 'lime',        r: 52, g: 168, b: 0},
-    {name: 'virus',       r: 26, g: 196, b: 0},
-    {name: 'green',       r: 0, g: 224, b: 0},
-    {name: 'sea',         r: 0, g: 196, b: 30},
-    {name: 'aqua',        r: 0, g: 168, b: 60},
-    {name: 'turqoise',    r: 0, g: 140, b: 90},
-    {name: 'cyan',        r: 0, g: 112, b: 120},
-    {name: 'baby blue',   r: 0, g: 84, b: 150},
-    {name: 'sky',         r: 0, g: 56, b: 180},
-    {name: 'royal blue',  r: 0, g: 28, b: 210},
-    {name: 'blue',        r: 0, g: 0, b: 240},
-    {name: 'indigo',      r: 26, g: 0, b: 210},
-    {name: 'purple',      r: 52, g: 0, b: 180},
-    {name: 'violet',      r: 78, g: 0, b: 150},
-    {name: 'magenta',     r: 104, g: 0, b: 120},
-    {name: 'blush',       r: 130, g: 0, b: 90},
-    {name: 'pink',        r: 156, g: 0, b: 60},
-    {name: 'sunset',      r: 182, g: 0, b: 30},
-    {name: 'black',       r: 0, g: 0, b: 0}
-  ];
+  var version = "0.2";
+  var dir_root;
+  var dir_firmwares;
+  var dir_modes;
+  var connection_id;
+  var connected = false;
+  var readListeners = [];
+  var updateListeners = [];
 
   var main = document.querySelector("#main");
   var editor = document.querySelector("#editor");
   var bundles = document.querySelector("#bundles");
-  var modes = document.querySelector("#modes");
+  var bundle0 = document.querySelector("#bundle0");
+  var bundle1 = document.querySelector("#bundle1");
+  var modes = document.querySelector("#mode-list");
+
+  var triggers = ["Off", "Velocity", "Pitch", "Roll", "Flip"];
+
+  jQuery.colorpicker.swatches.custom_array = [
+    {name: 'red',         r: 208 / 255, g:   0 / 255, b:   0 / 255},
+    {name: 'sunrise',     r: 182 / 255, g:  28 / 255, b:   0 / 255},
+    {name: 'orange',      r: 156 / 255, g:  56 / 255, b:   0 / 255},
+    {name: 'gold',        r: 130 / 255, g:  84 / 255, b:   0 / 255},
+    {name: 'yellow',      r: 104 / 255, g: 112 / 255, b:   0 / 255},
+    {name: 'lemon',       r:  78 / 255, g: 140 / 255, b:   0 / 255},
+    {name: 'lime',        r:  52 / 255, g: 168 / 255, b:   0 / 255},
+    {name: 'virus',       r:  26 / 255, g: 196 / 255, b:   0 / 255},
+    {name: 'green',       r:   0 / 255, g: 224 / 255, b:   0 / 255},
+    {name: 'sea',         r:   0 / 255, g: 196 / 255, b:  30 / 255},
+    {name: 'aqua',        r:   0 / 255, g: 168 / 255, b:  60 / 255},
+    {name: 'turqoise',    r:   0 / 255, g: 140 / 255, b:  90 / 255},
+    {name: 'cyan',        r:   0 / 255, g: 112 / 255, b: 120 / 255},
+    {name: 'baby blue',   r:   0 / 255, g:  84 / 255, b: 150 / 255},
+    {name: 'sky',         r:   0 / 255, g:  56 / 255, b: 180 / 255},
+    {name: 'royal blue',  r:   0 / 255, g:  28 / 255, b: 210 / 255},
+    {name: 'blue',        r:   0 / 255, g:   0 / 255, b: 240 / 255},
+    {name: 'indigo',      r:  26 / 255, g:   0 / 255, b: 210 / 255},
+    {name: 'purple',      r:  52 / 255, g:   0 / 255, b: 180 / 255},
+    {name: 'violet',      r:  78 / 255, g:   0 / 255, b: 150 / 255},
+    {name: 'magenta',     r: 104 / 255, g:   0 / 255, b: 120 / 255},
+    {name: 'blush',       r: 130 / 255, g:   0 / 255, b:  90 / 255},
+    {name: 'pink',        r: 156 / 255, g:   0 / 255, b:  60 / 255},
+    {name: 'sunset',      r: 182 / 255, g:   0 / 255, b:  30 / 255},
+    {name: 'black',       r:   0 / 255, g:   0 / 255, b:   0 / 255}
+  ];
+
+  dragula([modes, bundle0, bundle1], {
+    copy: true,
+    removeOnSpill: true,
+    accepts: function(el, target, source, sibling) {
+      if (target === modes) {
+        return false;
+      } else if (target.childElementCount > 8) {
+        return false;
+      }
+      return true;
+    }
+  }).on("drop", function(el, target, source, sibling) {
+    el.setAttribute("id", "mode-item-" + Math.floor(Math.random() * Math.pow(2, 16)));
+  }).on("cancel", function(el, container, source) {
+    if (source === bundle0 || source === bundle1) {
+      $(source).find("#" + el.getAttribute('id')).remove()
+    }
+  });
 
   var data = [
     0,                                // type
@@ -57,15 +89,43 @@ var VectrUI = function() {
     0
   ];
 
-  var readListeners = [];
-  var updateListeners = [];
   for (var i = 0; i < 128; i++) {
     readListeners[i] = [];
     updateListeners[i] = [];
   }
 
   function sendCommand(cmd) {
-    // TODO
+    if (connected) {
+      var buf = new ArrayBuffer(4);
+      var view = new DataView(buf);
+      view.setInt8(0, cmd[0]);
+      view.setInt8(1, cmd[1]);
+      view.setInt8(2, cmd[2]);
+      view.setInt8(3, cmd[3]);
+      chrome.serial.send(connection_id, buf, function() {});
+    }
+    // console.log("send: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
+  };
+
+  function handleCommand(cmd) {
+    if (cmd[0] == 200) {
+      connected = true;
+      sendCommand([200, 121, 42, 42]);
+      // TODO: send current mode to light
+    }
+  };
+
+  function onReceiveCallback(info) {
+    if (info.connectionId == connection_id && info.data) {
+      var view = new Uint8Array(info.data);
+      for (var i = 0; i < view.length; i++) {
+        input_buffer.push(view[i]);
+      }
+
+      while (input_buffer.length >= 4) {
+        handleCommand(input_buffer.splice(0, 4));
+      }
+    }
   };
 
   function sendData(addr, val) {
@@ -88,6 +148,113 @@ var VectrUI = function() {
     for (var i = 0; i < readListeners[addr].length; i++) {
       readListeners[addr][i](val);
     }
+  };
+
+  function arrayToMode(arr) {
+    // array to json mode
+    return {
+      type: arr[0],
+      pattern: [arr[1], arr[2]],
+      args: [
+        [arr[3], arr[4], arr[5], arr[6]],
+        [arr[7], arr[8], arr[9], arr[10]]
+      ],
+      timings: [
+        [arr[11], arr[12], arr[13], arr[14], arr[15], arr[16], arr[17], arr[18]],
+        [arr[19], arr[20], arr[21], arr[22], arr[23], arr[24], arr[25], arr[26]],
+        [arr[27], arr[28], arr[29], arr[30], arr[31], arr[32], arr[33], arr[34]]
+      ],
+      numc: [arr[35], arr[36], arr[37]],
+      colors: [
+        [
+          [arr[38], arr[39], arr[40]],
+          [arr[41], arr[42], arr[43]],
+          [arr[44], arr[45], arr[46]],
+          [arr[47], arr[48], arr[49]],
+          [arr[50], arr[51], arr[52]],
+          [arr[53], arr[54], arr[55]],
+          [arr[56], arr[57], arr[58]],
+          [arr[59], arr[60], arr[61]],
+          [arr[62], arr[63], arr[64]]
+        ],
+        [
+          [arr[65], arr[66], arr[67]],
+          [arr[68], arr[69], arr[70]],
+          [arr[71], arr[72], arr[73]],
+          [arr[74], arr[75], arr[76]],
+          [arr[77], arr[78], arr[79]],
+          [arr[80], arr[81], arr[82]],
+          [arr[83], arr[84], arr[85]],
+          [arr[86], arr[87], arr[88]],
+          [arr[89], arr[90], arr[91]]
+        ],
+        [
+          [arr[92], arr[93], arr[94]],
+          [arr[95], arr[96], arr[97]],
+          [arr[98], arr[99], arr[100]],
+          [arr[101], arr[102], arr[103]],
+          [arr[104], arr[105], arr[106]],
+          [arr[107], arr[108], arr[109]],
+          [arr[110], arr[111], arr[112]],
+          [arr[113], arr[114], arr[115]],
+          [arr[116], arr[117], arr[118]]
+        ]
+      ],
+      tr_meta: [arr[119], arr[120], arr[121], arr[122]],
+      tr_flux: [arr[123], arr[124], arr[125], arr[126]],
+      trigger: arr[127]
+    };
+  };
+
+  function modeToArray(m) {
+    // json mode to array
+    return [
+      m.type,
+      m.pattern[0], m.pattern[1],
+
+      m.args[0][0], m.args[0][1], m.args[0][2], m.args[0][3],
+      m.args[1][0], m.args[1][1], m.args[1][2], m.args[1][3],
+
+      m.timings[0][0], m.timings[0][1], m.timings[0][2], m.timings[0][3], m.timings[0][4], m.timings[0][5], m.timings[0][6], m.timings[0][7],
+      m.timings[1][0], m.timings[1][1], m.timings[1][2], m.timings[1][3], m.timings[1][4], m.timings[1][5], m.timings[1][6], m.timings[1][7],
+      m.timings[2][0], m.timings[2][1], m.timings[2][2], m.timings[2][3], m.timings[2][4], m.timings[2][5], m.timings[2][6], m.timings[2][7],
+
+      m.numc[0], m.numc[1], m.numc[2],
+
+      m.colors[0][0][0], m.colors[0][0][1], m.colors[0][0][2],
+      m.colors[0][1][0], m.colors[0][1][1], m.colors[0][1][2],
+      m.colors[0][2][0], m.colors[0][2][1], m.colors[0][2][2],
+      m.colors[0][3][0], m.colors[0][3][1], m.colors[0][3][2],
+      m.colors[0][4][0], m.colors[0][4][1], m.colors[0][4][2],
+      m.colors[0][5][0], m.colors[0][5][1], m.colors[0][5][2],
+      m.colors[0][6][0], m.colors[0][6][1], m.colors[0][6][2],
+      m.colors[0][7][0], m.colors[0][7][1], m.colors[0][7][2],
+      m.colors[0][8][0], m.colors[0][8][1], m.colors[0][8][2],
+
+      m.colors[1][0][0], m.colors[1][0][1], m.colors[1][0][2],
+      m.colors[1][1][0], m.colors[1][1][1], m.colors[1][1][2],
+      m.colors[1][2][0], m.colors[1][2][1], m.colors[1][2][2],
+      m.colors[1][3][0], m.colors[1][3][1], m.colors[1][3][2],
+      m.colors[1][4][0], m.colors[1][4][1], m.colors[1][4][2],
+      m.colors[1][5][0], m.colors[1][5][1], m.colors[1][5][2],
+      m.colors[1][6][0], m.colors[1][6][1], m.colors[1][6][2],
+      m.colors[1][7][0], m.colors[1][7][1], m.colors[1][7][2],
+      m.colors[1][8][0], m.colors[1][8][1], m.colors[1][8][2],
+
+      m.colors[2][0][0], m.colors[2][0][1], m.colors[2][0][2],
+      m.colors[2][1][0], m.colors[2][1][1], m.colors[2][1][2],
+      m.colors[2][2][0], m.colors[2][2][1], m.colors[2][2][2],
+      m.colors[2][3][0], m.colors[2][3][1], m.colors[2][3][2],
+      m.colors[2][4][0], m.colors[2][4][1], m.colors[2][4][2],
+      m.colors[2][5][0], m.colors[2][5][1], m.colors[2][5][2],
+      m.colors[2][6][0], m.colors[2][6][1], m.colors[2][6][2],
+      m.colors[2][7][0], m.colors[2][7][1], m.colors[2][7][2],
+      m.colors[2][8][0], m.colors[2][8][1], m.colors[2][8][2],
+
+      m.tr_meta[0], m.tr_meta[1], m.tr_meta[2], m.tr_meta[3],
+      m.tr_flux[0], m.tr_flux[1], m.tr_flux[2], m.tr_flux[3],
+      m.trigger
+    ];
   };
 
   function getColorHex(set, slot) {
@@ -412,8 +579,7 @@ var VectrUI = function() {
         if (val == 0) {
           elem.style.display = null;
           if (send_data) {
-            // TODO
-            // send defaults
+            // TODO: send defaults
           }
         } else {
           elem.style.display = 'none';
@@ -470,8 +636,7 @@ var VectrUI = function() {
         if (val == 1) {
           elem.style.display = null;
           if (send_data) {
-            // TODO
-            // send defaults
+            // TODO: send defaults
           }
         } else {
           elem.style.display = 'none';
@@ -718,27 +883,76 @@ var VectrUI = function() {
     });
   };
 
-  // TODO Make serial control
-  // TODO settings handling
+  function writeFile(dir, filename, content) {
+    dir.getFile(filename, {create: true}, function(entry) {
+      writer.onwriteend = function(e) {
+        if (writer.length === 0) {
+          writer.write(blob);
+        }
+      };
+
+      writer.onerror = function(e) {
+        console.log("Write failed: " + e.toString());
+      };
+
+      writer.truncate(0);
+      var blob = new Blob([content], {type: 'text/plain'});
+    },
+    function(e) {
+      console.log(e);
+    });
+  };
+
+  function writeSource(name) {
+    var content = getSource(num_modes, bundle_a, bundle_b);
+    dir_firmwares.getDirectory(name, {create: true}, function(entry) {
+      writeFile(entry, name + ".ino", content);
+    });
+  };
+
+  function initSettings() {
+    chrome.storage.local.get("vectr", function(data) {
+      if (!data.vectr) {
+        data.vectr = {};
+      }
+      if (data.vectr.version != version) {
+        data.vectr = {};
+        data.vectr.version = version;
+        chrome.storage.local.set(data);
+      }
+      if (!data.vectr.dir_id) {
+        chrome.fileSystem.chooseEntry({type: "openDirectory"}, function(entry) {
+          data.vectr.dir_id = chrome.fileSystem.retainEntry(entry);
+          dir_root = entry;
+          chrome.storage.local.set(data);
+          dir_root.getDirectory("firmwares", {create: true}, function(entry) { dir_firmwares = entry; });
+          dir_root.getDirectory("modes",     {create: true}, function(entry) { dir_modes = entry; });
+        });
+      } else {
+        chrome.fileSystem.restoreEntry(data.vectr.dir_id, function(entry) {
+          dir_root = entry;
+          dir_root.getDirectory("firmwares", {create: true}, function(entry) { dir_firmwares = entry; });
+          dir_root.getDirectory("modes",     {create: true}, function(entry) { dir_modes = entry; });
+        });
+      }
+    });
+  };
+
+  // TODO make type dropdown
+  // TODO make serial dropdown/button
   // TODO mode saving/loading
-  // TODO modes library
-  // TODO bundles
-  // TODO generate source UI
+  // TODO modes library/hook up mode div to file
+  // TODO save source button
+
+  initSettings();
+  VectrEditor(editor);
+  PrimerEditor(editor);
+  readData(0, 0);
 
   return {
     VectrEditor: VectrEditor,
     PrimerEditor: PrimerEditor,
-
-    PatternRow: PatternRow,
-    TimingColumn: TimingColumn,
-    ColorSetRow: ColorSetRow,
-    ThreshRow: ThreshRow,
-
     updateData: updateData,
-    readData: readData,
-    sendData: sendData,
-
-    readListeners: readListeners,
-    updateListeners: updateListeners
+    readData: readData
   };
 }();

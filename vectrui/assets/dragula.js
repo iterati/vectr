@@ -70,6 +70,7 @@ function dragula (initialContainers, options) {
   if (o.containers === void 0) { o.containers = initialContainers || []; }
   if (o.isContainer === void 0) { o.isContainer = never; }
   if (o.copy === void 0) { o.copy = false; }
+  if (o.copyFrom === void 0) { o.copyFrom = null; }
   if (o.copySortSource === void 0) { o.copySortSource = false; }
   if (o.revertOnSpill === void 0) { o.revertOnSpill = false; }
   if (o.removeOnSpill === void 0) { o.removeOnSpill = false; }

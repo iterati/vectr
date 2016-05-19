@@ -38,19 +38,61 @@ body, html {
 #bundles {
   position: fixed;
   height: 580px;
-  width: 180px;
+  width: 170px;
   bottom: 20px;
-  right: 180px;
+  right: 190px;
   background: #fdd;
+}
+
+#bundle0 {
+  position: absolute;
+  top: 0px;
+  height: 245px;
+  width: 100%;
+  background: #ffd;
+}
+
+#bundle1 {
+  position: absolute;
+  top: 255px;
+  height: 245px;
+  width: 100%;
+  background: #dff;
+}
+
+#bundle-controls {
+  position: absolute;
+  top: 510px;
+  height: 70px;
+  width: 100%;
+  background: #9bf;
 }
 
 #modes {
   position: fixed;
   height: 580px;
-  width: 180px;
+  width: 190px;
   bottom: 20px;
   right: 0;
   background: #ddf;
+}
+
+#mode-list {
+  position: absolute;
+  top: 0px;
+  height: 500px;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  background: #fb9;
+}
+
+#mode-controls {
+  position: absolute;
+  top: 510px;
+  height: 70px;
+  width: 100%;
+  background: #f9b;
 }
 
 .range-0  { background: #ff0000; }
@@ -71,3 +113,11 @@ body, html {
   background: #000;
 }
 
+.mode {
+  min-height: 20px;
+  min-width: 160px;
+  padding-top: 5px;
+  margin: 5px;
+  text-align: center;
+  background: #aaa;
+}

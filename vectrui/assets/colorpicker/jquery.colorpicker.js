@@ -1471,7 +1471,7 @@
 						var html = '';
 
 						inst._eachSwatch(function (name, color) {
-							var c = new $.colorpicker.Color(color.r / 255, color.g / 255, color.b / 255),
+							var c = new $.colorpicker.Color(color.r, color.g, color.b),
 								css = c.toCSS();
 							html += '<div class="ui-colorpicker-swatch" style="background-color:' + css + '" title="' + name + '"></div>';
 						});
@@ -2155,7 +2155,7 @@
 			autoOpen:			false,		// Open dialog automatically upon creation
 			buttonClass:		null,		// If set, the button will get this/these classname(s).
 			buttonColorize:		false,
-			buttonImage:		'assets/images/ui-colorpicker.png',
+			buttonImage:		'images/ui-colorpicker.png',
 			buttonImageOnly:	false,
 			buttonText:			null,		// Text on the button and/or title of button image.
 			closeOnEscape:		true,		// Close the dialog when the escape key is pressed.
@@ -2904,7 +2904,7 @@
 			});
 
 			return swatch;
-    },
+        },
 		
 		_parseFormat: function(format, text) {
 			var that = this,

@@ -1537,31 +1537,3 @@ void loop() {
 `;
   };
 }();
-
-
-var data = [
-  0,                                // type
-  1, 0,                             // pattern
-  1, 1, 5, 0,                       // args1
-  0, 0, 0, 0,                       // args2
-  5, 5, 5, 5, 5, 0, 0, 0,           // timings1
-  6, 6, 6, 6, 6, 0, 0, 0,           // timings2
-  7, 7, 7, 7, 7, 0, 0, 0,           // timings3
-  1, 3, 1,
-  255, 0, 0, 0, 0, 0, 0, 0, 0,      // colors1
-  0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0,
-  255, 0, 0, 0, 255, 0, 0, 0, 255,  // colors2
-  0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 255, 0, 0, 0, 0, 0, 0,      // colors3
-  0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0,
-  4, 14, 18, 28,                    // pattern thresh
-  8, 8, 20, 20,                     // color thresh
-  0
-];
-
-var num_modes = [7, 7];
-var bundle_a = [data, data, data, data, data, data, data];
-var bundle_b = [data, data, data, data, data, data, data];
