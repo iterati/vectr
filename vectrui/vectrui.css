@@ -1,0 +1,73 @@
+body, html {
+  margin: 0px;
+  padding: 0px;
+}
+
+#main {
+  height: 720px;
+  width: 1280px;
+}
+
+#header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 120px;
+  width: 1280px;
+  background: #ddd;
+}
+
+#footer {
+  position: fixed;
+  height: 20px;
+  width: 1280px;
+  bottom: 0;
+  left: 0;
+  background: #ddd;
+}
+
+#editor {
+  position: fixed;
+  height: 580px;
+  width: 920px;
+  bottom: 20px;
+  left: 0;
+  background: #fdf;
+}
+
+#bundles {
+  position: fixed;
+  height: 580px;
+  width: 180px;
+  bottom: 20px;
+  right: 180px;
+  background: #fdd;
+}
+
+#modes {
+  position: fixed;
+  height: 580px;
+  width: 180px;
+  bottom: 20px;
+  right: 0;
+  background: #ddf;
+}
+
+.range-0  { background: #ff0000; }
+.range-01 { background: -webkit-linear-gradient(left, #ff0000 0%, #ff00ff 50%, #0000ff 100%); }
+.range-1  { background: #0000ff; }
+.range-12 { background: -webkit-linear-gradient(left, #0000ff 0%, #00ffff 50%, #00ff00 100%); }
+.range-2  { background: #00ff00; }
+
+.trigger-0  { background: #ff0000; }
+.trigger-01 { background: #ff00ff; }
+.trigger-1  { background: #0000ff; }
+
+.color {
+  width: 25px;
+  height: 25px;
+  margin: 5px 5px 0px 5px;
+  padding: 0px;
+  background: #000;
+}
+
