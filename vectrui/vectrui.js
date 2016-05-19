@@ -1,12 +1,20 @@
 var VectrUI = function() {
   'use strict';
 
+  var SER_VERSION    = 121;
+  var SER_WRITE      = 100;
+  var SER_HANDSHAKE  = 200;
+  var SER_DISCONNECT = 210;
+  var SER_VIEW_MODE  = 220;
+  var SER_VIEW_COLOR = 230;
+
   var version = "0.2";
   var dir_root;
   var dir_firmwares;
   var dir_modes;
   var connection_id;
   var connected = false;
+  var input_buffer = [];
   var readListeners = [];
   var updateListeners = [];
 
@@ -108,9 +116,9 @@ var VectrUI = function() {
   };
 
   function handleCommand(cmd) {
-    if (cmd[0] == 200) {
+    if (cmd[0] == SER_HANDSHAKE && cmd[1] == SER_VERSION && cmd[2] == cmd[3]) {
       connected = true;
-      sendCommand([200, 121, 42, 42]);
+      sendCommand([SER_HANDSHAKE, SER_VERSION, 42, 42]);
       // TODO: send current mode to light
     }
   };
@@ -128,10 +136,37 @@ var VectrUI = function() {
     }
   };
 
+  function getSerialPorts() {
+    var ports = [];
+    chrome.serial.getDevices(function(devices) {
+      for (var i = 0; i < devices.length; i++) {
+        ports.push(devices[i].path);
+      }
+    });
+    return ports;
+  };
+
+  function connectSerial(port) {
+    chrome.serial.connect(port, {bitrate: 115200}, function(info) {
+      connection_id = info.connectionId;
+      chrome.serial.onReceive.addListener(onReceiveCallback);
+      // TODO - let the button know to change to "disconnect"
+    });
+  };
+
+  function disconnectSerial() {
+    sendCommand([SER_DISCONNECT, 0, 0, 0]);
+    chrome.serial.disconnect(connection_id, function(result) {
+      // TODO - let the button know to change to "connect"
+    });
+    connection_id = null;
+  };
+
   function sendData(addr, val) {
     // Updates in-memory array and sends value to light
     data[addr] = val;
     console.log(addr + ": " + val);
+    // sendCommand([SER_WRITE, addr, val, 0]);
   };
 
   function updateData(addr, val) {

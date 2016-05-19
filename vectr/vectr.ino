@@ -405,26 +405,6 @@ void TWADC_send(uint8_t addr, uint8_t data) {
 
 
 void pattern_strobe(PatternState *state, bool rend) {
-  /* Serial.print(state->numc); */
-  /* Serial.print("\t"); */
-  /* Serial.print(state->args[0]); */
-  /* Serial.print("\t"); */
-  /* Serial.print(state->args[1]); */
-  /* Serial.print("\t"); */
-  /* Serial.print(state->args[2]); */
-  /* Serial.print("\t"); */
-  /* Serial.print(state->timings[0]); */
-  /* Serial.print("\t"); */
-  /* Serial.print(state->timings[1]); */
-  /* Serial.print("\t"); */
-  /* Serial.print(state->timings[2]); */
-  /* Serial.print("\t"); */
-  /* Serial.print(state->timings[0]); */
-  /* Serial.print("\t"); */
-  /* Serial.print(state->timings[1]); */
-  /* Serial.print("\t"); */
-  /* Serial.print(state->timings[2]); */
-  /* Serial.print("\t"); */
   uint8_t numc = constrain(state->numc, 1, 9);
 
   uint8_t pick = constrain((state->args[0] == 0) ? numc : state->args[0], 1, numc);
@@ -477,11 +457,6 @@ void pattern_strobe(PatternState *state, bool rend) {
       ledg = state->colors[color][1];
       ledb = state->colors[color][2];
     }
-    /* Serial.print(show_blank); */
-    /* Serial.print(F("\t")); */
-    /* Serial.print(ledg); */
-    /* Serial.print(F("\t")); */
-    /* Serial.println(ledb); */
   }
 
   state->trip--;
@@ -1532,16 +1507,16 @@ void setup() {
   change_mode(cur_bundle, cur_mode);                  // initialize current mode
 
   randomSeed(analogRead(0));
-  /* Serial.write(SER_HANDSHAKE); */
-  /* Serial.write(NUM_BUNDLES); */
-  /* Serial.write(NUM_MODES); */
-  /* Serial.write(MODE_SIZE); */
+  Serial.write(SER_HANDSHAKE);
+  Serial.write(SER_VERSION);
+  Serial.write(42);
+  Serial.write(42);
   last_write = micros();                  // Reset the limiter
 }
 
 void loop() {
-  /* handle_serial(); */
-  /* handle_button(); */
-  /* handle_accel(); */
+  handle_serial();
+  handle_button();
+  handle_accel();
   handle_render();
 }
