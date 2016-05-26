@@ -1,7 +1,15 @@
 var getSource = function() {
   arrayToModeString = function(arr) {
+    if (arr === undefined) {
+      arr = [];
+      for (var i = 0; i < 128; i++) {
+        arr[i] = 0;
+      }
+    }
     var str = "{";
     for (var i = 0; i < 127; i++) {
+      if (arr[i] === null) {
+      }
       str += arr[i] + ", ";
     }
     str += arr[127] + "}";
@@ -9,15 +17,17 @@ var getSource = function() {
   };
 
   return function(num_modes, bundle_a, bundle_b) {
+    if (num_modes[0] === 0) { num_modes[0] = 1; }
+    if (num_modes[1] === 0) { num_modes[1] = 1; }
     var num_modes_str = num_modes[0] + ", " + num_modes[1];
     var bundle_a_str = "";
     var bundle_b_str = "";
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < 7; i++) {
       bundle_a_str += "    " + arrayToModeString(bundle_a[i]) + ",\n";
       bundle_b_str += "    " + arrayToModeString(bundle_b[i]) + ",\n";
     }
-    bundle_a_str += "    " + arrayToModeString(bundle_a[6]);
-    bundle_b_str += "    " + arrayToModeString(bundle_b[6]);
+    bundle_a_str += "    " + arrayToModeString(bundle_a[7]);
+    bundle_b_str += "    " + arrayToModeString(bundle_b[7]);
 
     return `
 #include <Arduino.h>
@@ -29,7 +39,7 @@ var getSource = function() {
 
 /* BEGIN MODE CONFIG */
 #define NUM_BUNDLES 2
-#define NUM_MODES   7
+#define NUM_MODES   8
 #define MODE_SIZE   128
 
 PROGMEM const uint8_t num_modes[NUM_BUNDLES] = {${num_modes_str}};

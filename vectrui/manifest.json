@@ -16,6 +16,6 @@
         "alert",
         "serial",
         "storage",
-        {"fileSystem": ["write", "directory", "retainEntries"]}
+        {"fileSystem": ["write", "directory", "retainEntries", "requestFileSystem"]}
     ]
 }

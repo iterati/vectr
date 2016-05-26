@@ -14,56 +14,28 @@
 </head>
 <body>
   <div id="main">
-    <div id="header"><h1>Vectr!</h1></div>
-    <div id="footer"><span>by iterati</span></div>
+    <div id="header"><h1 style="margin: 20px; padding: 0px; font-size: 60px">Vectr Beta 2</h1></div>
+    <div id="footer">
+      <span style="margin-left: 15px; float: left; font-weight: bold;">A John "iterati" Miller project</span>
+      <a href="http://iterati.github.io" target="_blank" style="color: black; text-decoration: none; margin-right: 15px; float: right; font-weight: bold;">Blog Link</a>
+    </div>
     <div id="editor"></div>
     <div id="bundles">
+      <span style="position: absolute; top: 5px; font-weight: bold; margin-left: 15px;">Bundle 1</span>
       <div id="bundle0"></div>
+      <span style="position: absolute; top: 270px; font-weight: bold; margin-left: 15px;">Bundle 2</span>
       <div id="bundle1"></div>
-      <div id="bundle-controls">
-        <input type="text" />
-      </div>
+      <div id="bundle-controls"></div>
     </div>
     <div id="modes">
-      <div id="mode-list">
-        <div class="mode">Mode 00</div>
-        <div class="mode">Mode 01</div>
-        <div class="mode">Mode 02</div>
-        <div class="mode">Mode 03</div>
-        <div class="mode">Mode 04</div>
-        <div class="mode">Mode 05</div>
-        <div class="mode">Mode 06</div>
-        <div class="mode">Mode 07</div>
-        <div class="mode">Mode 08</div>
-        <div class="mode">Mode 09</div>
-        <div class="mode">Mode 10</div>
-        <div class="mode">Mode 11</div>
-        <div class="mode">Mode 12</div>
-        <div class="mode">Mode 13</div>
-        <div class="mode">Mode 14</div>
-        <div class="mode">Mode 15</div>
-        <div class="mode">Mode 16</div>
-        <div class="mode">Mode 17</div>
-        <div class="mode">Mode 18</div>
-        <div class="mode">Mode 19</div>
-        <div class="mode">Mode 20</div>
-        <div class="mode">Mode 21</div>
-        <div class="mode">Mode 22</div>
-        <div class="mode">Mode 23</div>
-        <div class="mode">Mode 24</div>
-        <div class="mode">Mode 25</div>
-        <div class="mode">Mode 26</div>
-        <div class="mode">Mode 27</div>
-        <div class="mode">Mode 28</div>
-        <div class="mode">Mode 29</div>
-      </div>
-      <div id="mode-controls">
-        <input type="text" />
-      </div>
+      <span style="position: absolute; top: 5px; font-weight: bold; margin-left: 15px;">Mode Library</span>
+      <div id="mode-list"></div>
+      <div id="mode-controls"></div>
     </div>
   </div>
 
   <script src="patterns.js"></script>
   <script src="source.js"></script>
+  <script src="default_modes.js"></script>
   <script src="vectrui.js"></script>
 </body>

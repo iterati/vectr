@@ -14,7 +14,7 @@ body, html {
   left: 0;
   height: 120px;
   width: 1280px;
-  background: #ddd;
+  text-align: center;
 }
 
 #footer {
@@ -23,7 +23,6 @@ body, html {
   width: 1280px;
   bottom: 0;
   left: 0;
-  background: #ddd;
 }
 
 #editor {
@@ -32,7 +31,6 @@ body, html {
   width: 920px;
   bottom: 20px;
   left: 0;
-  background: #fdf;
 }
 
 #bundles {
@@ -41,31 +39,29 @@ body, html {
   width: 170px;
   bottom: 20px;
   right: 190px;
-  background: #fdd;
 }
 
 #bundle0 {
   position: absolute;
-  top: 0px;
+  top: 20px;
   height: 245px;
-  width: 100%;
-  background: #ffd;
+  width: 168px;
+  border: 2px solid black;
 }
 
 #bundle1 {
   position: absolute;
-  top: 255px;
+  top: 285px;
   height: 245px;
-  width: 100%;
-  background: #dff;
+  width: 168px;
+  border: 2px solid black;
 }
 
 #bundle-controls {
   position: absolute;
-  top: 510px;
-  height: 70px;
+  bottom: 0px;
+  height: 50px;
   width: 100%;
-  background: #9bf;
 }
 
 #modes {
@@ -74,25 +70,23 @@ body, html {
   width: 190px;
   bottom: 20px;
   right: 0;
-  background: #ddf;
 }
 
 #mode-list {
   position: absolute;
-  top: 0px;
-  height: 500px;
-  width: 100%;
+  top: 20px;
+  height: 510px;
+  width: 186px;
+  border: 2px solid black;
   overflow-x: hidden;
   overflow-y: scroll;
-  background: #fb9;
 }
 
 #mode-controls {
   position: absolute;
-  top: 510px;
-  height: 70px;
+  bottom: 0px;
+  height: 50px;
   width: 100%;
-  background: #f9b;
 }
 
 .range-0  { background: #ff0000; }

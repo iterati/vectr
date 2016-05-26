@@ -1,3 +1,4 @@
+var _e;
 var VectrUI = function() {
   'use strict';
 
@@ -17,6 +18,7 @@ var VectrUI = function() {
   var input_buffer = [];
   var readListeners = [];
   var updateListeners = [];
+  var modelib = {};
 
   var main = document.querySelector("#main");
   var editor = document.querySelector("#editor");
@@ -25,6 +27,7 @@ var VectrUI = function() {
   var bundle1 = document.querySelector("#bundle1");
   var modes = document.querySelector("#mode-list");
 
+  var modetypes = ["Vectr", "Primer"];
   var triggers = ["Off", "Velocity", "Pitch", "Roll", "Flip"];
 
   jQuery.colorpicker.swatches.custom_array = [
@@ -67,6 +70,8 @@ var VectrUI = function() {
       return true;
     }
   }).on("drop", function(el, target, source, sibling) {
+    el.data = {};
+    el.data.id = el.id;
     el.setAttribute("id", "mode-item-" + Math.floor(Math.random() * Math.pow(2, 16)));
   }).on("cancel", function(el, container, source) {
     if (source === bundle0 || source === bundle1) {
@@ -123,50 +128,11 @@ var VectrUI = function() {
     }
   };
 
-  function onReceiveCallback(info) {
-    if (info.connectionId == connection_id && info.data) {
-      var view = new Uint8Array(info.data);
-      for (var i = 0; i < view.length; i++) {
-        input_buffer.push(view[i]);
-      }
-
-      while (input_buffer.length >= 4) {
-        handleCommand(input_buffer.splice(0, 4));
-      }
-    }
-  };
-
-  function getSerialPorts() {
-    var ports = [];
-    chrome.serial.getDevices(function(devices) {
-      for (var i = 0; i < devices.length; i++) {
-        ports.push(devices[i].path);
-      }
-    });
-    return ports;
-  };
-
-  function connectSerial(port) {
-    chrome.serial.connect(port, {bitrate: 115200}, function(info) {
-      connection_id = info.connectionId;
-      chrome.serial.onReceive.addListener(onReceiveCallback);
-      // TODO - let the button know to change to "disconnect"
-    });
-  };
-
-  function disconnectSerial() {
-    sendCommand([SER_DISCONNECT, 0, 0, 0]);
-    chrome.serial.disconnect(connection_id, function(result) {
-      // TODO - let the button know to change to "connect"
-    });
-    connection_id = null;
-  };
-
   function sendData(addr, val) {
     // Updates in-memory array and sends value to light
     data[addr] = val;
-    console.log(addr + ": " + val);
-    // sendCommand([SER_WRITE, addr, val, 0]);
+    // console.log(addr + ": " + val);
+    sendCommand([SER_WRITE, addr, val, 0]);
   };
 
   function updateData(addr, val) {
@@ -235,8 +201,8 @@ var VectrUI = function() {
           [arr[116], arr[117], arr[118]]
         ]
       ],
-      tr_meta: [arr[119], arr[120], arr[121], arr[122]],
-      tr_flux: [arr[123], arr[124], arr[125], arr[126]],
+      thresh0: [arr[119], arr[120], arr[121], arr[122]],
+      thresh1: [arr[123], arr[124], arr[125], arr[126]],
       trigger: arr[127]
     };
   };
@@ -286,18 +252,17 @@ var VectrUI = function() {
       m.colors[2][7][0], m.colors[2][7][1], m.colors[2][7][2],
       m.colors[2][8][0], m.colors[2][8][1], m.colors[2][8][2],
 
-      m.tr_meta[0], m.tr_meta[1], m.tr_meta[2], m.tr_meta[3],
-      m.tr_flux[0], m.tr_flux[1], m.tr_flux[2], m.tr_flux[3],
+      m.thresh0[0], m.thresh0[1], m.thresh0[2], m.thresh0[3],
+      m.thresh1[0], m.thresh1[1], m.thresh1[2], m.thresh1[3],
       m.trigger
     ];
   };
 
-  function getColorHex(set, slot) {
-    var r = ("0" + parseInt(data[(27 * set) + (3 * slot) + 38], 10).toString(16)).slice(-2);
-    var g = ("0" + parseInt(data[(27 * set) + (3 * slot) + 39], 10).toString(16)).slice(-2);
-    var b = ("0" + parseInt(data[(27 * set) + (3 * slot) + 40], 10).toString(16)).slice(-2);
-    var hex = "#" + r + g + b;
-    return hex;
+  function rgb2hex(rgb) {
+    var r = ("0" + rgb.r.toString(16)).slice(-2);
+    var g = ("0" + rgb.g.toString(16)).slice(-2);
+    var b = ("0" + rgb.b.toString(16)).slice(-2);
+    return "#" + r + g + b;
   };
 
   function hex2rgb(hex) {
@@ -306,8 +271,30 @@ var VectrUI = function() {
       g: parseInt(hex.substr(2, 2), 16),
       b: parseInt(hex.substr(4, 2), 16)
     };
-  }
+  };
 
+  function getColorHex(set, slot) {
+    var rgb = {
+      r: data[(27 * set) + (3 * slot) + 38],
+      g: data[(27 * set) + (3 * slot) + 39],
+      b: data[(27 * set) + (3 * slot) + 40]
+    };
+    return rgb2hex(rgb);
+  };
+
+  function normColor(hex) {
+    var rgb = hex2rgb(hex);
+    if (rgb.r > 0) {
+      rgb.r = Math.round(64 + ((rgb.r * 3) / 4));
+    }
+    if (rgb.g > 0) {
+      rgb.g = Math.round(64 + ((rgb.g * 3) / 4));
+    }
+    if (rgb.b > 0) {
+      rgb.b = Math.round(64 + ((rgb.b * 3) / 4));
+    }
+    return rgb2hex(rgb);
+  };
 
   function SliderField(parent, opts) {
     var opts = opts || {};
@@ -317,7 +304,7 @@ var VectrUI = function() {
     if (opts.step === void 0) { opts.step = 1; }
     if (opts.addr === void 0) { opts.addr = 0; }
     if (opts.multiplier === void 0) { opts.multiplier = 1; }
-    if (opts.width === void 0) { opts.size = 100; }
+    if (opts.width === void 0) { opts.size = 200; }
 
     var sliderChange = function () {
       return function(event, ui) {
@@ -362,9 +349,8 @@ var VectrUI = function() {
     elem.appendChild(field);
 
     var slider = document.createElement("div");
-    slider.style.float = "right";
     slider.style.width = (opts.width - 60) + "px";
-    slider.style.marginLeft = "15px";
+    slider.style.float = "right";
     $(slider).slider({
       min: opts.min,
       max: opts.max,
@@ -575,9 +561,9 @@ var VectrUI = function() {
     var colors = document.createElement("div");
     elem.appendChild(colors);
 
-    new ColorSetRow(colors, 0);
-    new ColorSetRow(colors, 1);
-    new ColorSetRow(colors, 2);
+    new ColorSetRow(colors, 0, "vectr");
+    new ColorSetRow(colors, 1, "vectr");
+    new ColorSetRow(colors, 2, "vectr");
 
     var spacer = document.createElement("div");
     spacer.style.minHeight = "30px";
@@ -614,7 +600,7 @@ var VectrUI = function() {
         if (val == 0) {
           elem.style.display = null;
           if (send_data) {
-            // TODO: send defaults
+            readData(1, 0);
           }
         } else {
           elem.style.display = 'none';
@@ -630,22 +616,25 @@ var VectrUI = function() {
     var elem = document.createElement("div");
     parent.appendChild(elem);
 
-    new PatternRow(elem, 0);
-    new ColorSetRow(elem, 0);
-
-    var spacer = document.createElement("div");
-    spacer.style.minHeight = "30px";
-    elem.appendChild(spacer);
-
-    // TODO: Trigger
     new ThreshRow(elem, 0, 2);
 
     var spacer = document.createElement("div");
     spacer.style.minHeight = "10px";
     elem.appendChild(spacer);
 
-    new PatternRow(elem, 1);
-    new ColorSetRow(elem, 1);
+    var container0 = document.createElement("div");
+    elem.appendChild(container0);
+    var pattern0 = new PatternRow(container0, 0);
+    var colors0 = new ColorSetRow(container0, 0, "primer");
+
+    var spacer = document.createElement("div");
+    spacer.style.minHeight = "30px";
+    elem.appendChild(spacer);
+
+    var container1 = document.createElement("div");
+    elem.appendChild(container1);
+    var pattern1 = new PatternRow(container1, 1);
+    var colors1 = new ColorSetRow(container1, 1, "primer");
 
     var spacer = document.createElement("div");
     spacer.style.minHeight = "40px";
@@ -671,13 +660,30 @@ var VectrUI = function() {
         if (val == 1) {
           elem.style.display = null;
           if (send_data) {
-            // TODO: send defaults
+            updateData(1, 0);
+            updateData(2, 0);
+            updateData(127, 0);
           }
         } else {
           elem.style.display = 'none';
         }
       };
     };
+
+    var triggerListener = function(send_data) {
+      return function(val) {
+        if (val == 0) {
+          container1.style.visibility = 'hidden';
+          timing1.style.display = 'none';
+        } else {
+          container1.style.visibility = 'visible';
+          timing1.style.display = 'inline-block';
+        }
+      };
+    };
+
+    readListeners[127].push(triggerListener(false));
+    updateListeners[127].push(triggerListener(false));
 
     readListeners[0].push(typeListener(false));
     updateListeners[0].push(typeListener(true));
@@ -710,12 +716,14 @@ var VectrUI = function() {
 
       var sendColor = function() {
         return function(event, color) {
-          if (color.colorPicker.generated) {
+          if (color.formatted && color.colorPicker.generated) {
             var rgb = hex2rgb(color.formatted);
             sendData(addr + 0, rgb.r);
             sendData(addr + 1, rgb.g);
             sendData(addr + 2, rgb.b);
-            color_target.style.background = "#" + color.formatted;
+            console.log(color.formatted);
+            console.log(normColor(color.formatted));
+            color_target.style.background = normColor(color.formatted);
           }
         };
       }();
@@ -763,7 +771,7 @@ var VectrUI = function() {
 
       var updateColor = function(channel) {
         return function(val) {
-          $(color_input).colorpicker("setColor", getColorHex(set_idx, slot_idx));
+          color_target.style.background = getColorHex(set_idx, slot_idx);
         };
       };
 
@@ -827,6 +835,7 @@ var VectrUI = function() {
 
     var value_elems = [];
 
+    var slider = document.createElement("div");
     var ranges;
     var def_values;
     if (thresh_vals == 2) {
@@ -836,6 +845,49 @@ var VectrUI = function() {
         {styleClass: 'trigger-1'}
       ];
       def_values = [4, 28];
+
+      var dropdown_container = document.createElement("div");
+      elem.appendChild(dropdown_container);
+
+      var label = document.createElement("span");
+      label.textContent = "Trigger Type";
+      label.style.display = "inline-block";
+      label.style.margin = "5px";
+      dropdown_container.appendChild(label);
+
+      var dropdown = document.createElement("select");
+      dropdown.style.display = "inline-block";
+      dropdown.onchange = function() {
+        return function(event) {
+          if (this.value == 0) {
+            $(slider).limitslider("disable");
+          } else {
+            $(slider).limitslider("enable");
+          }
+          updateData(127, this.value);
+        };
+      }();
+      dropdown_container.appendChild(dropdown);
+
+      for (var i = 0; i < triggers.length; i++) {
+        var trigger = document.createElement("option");
+        trigger.value = i;
+        trigger.textContent = triggers[i];
+        dropdown.appendChild(trigger);
+      }
+
+      var listener = function() {
+        return function(val) {
+          dropdown.value = val;
+          if (val == 0) {
+            $(slider).limitslider("disable");
+          } else {
+            $(slider).limitslider("enable");
+          }
+        };
+      }();
+
+      readListeners[127].push(listener);
     } else {
       ranges = [
         {styleClass: 'range-0'},
@@ -847,7 +899,6 @@ var VectrUI = function() {
       def_values = [4, 12, 20, 28];
     }
 
-    var slider = document.createElement("div");
     elem.appendChild(slider);
 
     var values_container = document.createElement("div");
@@ -857,9 +908,9 @@ var VectrUI = function() {
     elem.appendChild(values_container);
 
     for (var i = 0; i < thresh_vals; i++) {
+      var value_addr = 119 + (4 * thresh_idx) + i;
       var valueChange = function(idx) {
         return function(event) {
-          var value_addr = 119 + (4 * thresh_idx) + idx;
           var val = Number(event.target.value);
           var values = $(slider).limitslider("values");
           var checks = [$(slider).limitslider("option", "min")]
@@ -888,20 +939,21 @@ var VectrUI = function() {
       value_elems.push(value);
       values_container.appendChild(value);
 
-      var valueListener = function() {
+      var valueListener = function(idx) {
         return function(val) {
           var values = $(slider).limitslider("values");
+          values[idx] = val;
+          value_elems[idx].value = val;
           $(slider).limitslider("values", values);
         }
-      }();
+      }(i);
 
-      readListeners[addr].push(valueListener);
+      readListeners[value_addr].push(valueListener);
     }
 
     var threshChange = function() {
       return function(event, ui) {
         if (event.originalEvent) {
-          _e = ui;
           var idx = $(ui.handle).data("ui-slider-handle-index");
           value_elems[idx].value = ui.values[idx];
           sendData(addr, ui.values[idx]);
@@ -920,29 +972,81 @@ var VectrUI = function() {
 
   function writeFile(dir, filename, content) {
     dir.getFile(filename, {create: true}, function(entry) {
-      writer.onwriteend = function(e) {
-        if (writer.length === 0) {
-          writer.write(blob);
-        }
-      };
+      entry.createWriter(function(writer) {
+        writer.onwriteend = function(e) {
+          if (writer.length === 0) {
+            writer.write(blob);
+          }
+        };
 
-      writer.onerror = function(e) {
-        console.log("Write failed: " + e.toString());
-      };
+        writer.onerror = function(e) {
+          console.log("Write failed: " + e.toString());
+        };
 
-      writer.truncate(0);
-      var blob = new Blob([content], {type: 'text/plain'});
-    },
-    function(e) {
-      console.log(e);
+        writer.truncate(0);
+        var blob = new Blob([content], {type: 'text/plain'});
+        writer.write(blob);
+      });
     });
   };
 
-  function writeSource(name) {
+  function writeMode(mode) {
+    var modecopy = JSON.parse(JSON.stringify(mode));
+    delete modecopy.id;
+    var content = JSON.stringify(modecopy, null, 2);
+    writeFile(dir_modes, modecopy.name + ".mode", content);
+  };
+
+  function writeSource(name, num_modes, bundle_a, bundle_b) {
     var content = getSource(num_modes, bundle_a, bundle_b);
     dir_firmwares.getDirectory(name, {create: true}, function(entry) {
       writeFile(entry, name + ".ino", content);
     });
+  };
+
+  function makeModeItem(modeobj) {
+    var modeitem = document.createElement("div");
+    modeitem.className = "mode";
+    modeitem.id = modeobj.id;
+    modeitem.textContent = modeobj.name;
+    modeitem.data = modeobj;
+    modeitem.data.filename = modeobj.name;
+    modeitem.onclick = function(e) {
+      var field = document.querySelector("#mode-save");
+      field.value = this.data.filename;
+      var arr = modeToArray(this.data);
+      for (var i = 0; i < 128; i++) {
+        readData(i, arr[i]);
+      }
+    };
+
+    modes.appendChild(modeitem);
+  };
+
+  function readModeFile(file) {
+    file.file(function(file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var contents = e.target.result;
+        var modeobj = JSON.parse(contents);
+        modeobj.name = file.name.replace(".mode", "");
+        modeobj.id = modeobj.name.replace(/\s/g, "-").toLowerCase();
+        modelib[modeobj.id] = modeobj;
+        makeModeItem(modeobj);
+      };
+      reader.readAsText(file);
+    });
+  };
+
+  function initUI() {
+    var serialElement = new SerialElement(editor);
+    var typeDropdown = new TypeDropdown(editor);
+    var vectrUi = new VectrEditor(editor);
+    var primerUi = new PrimerEditor(editor);
+
+    var modeControls = new ModeControls(document.querySelector("#mode-controls"));
+    var bundleControls = new BundleControls(document.querySelector("#bundle-controls"));
+    serialElement.updatePorts();
   };
 
   function initSettings() {
@@ -961,33 +1065,227 @@ var VectrUI = function() {
           dir_root = entry;
           chrome.storage.local.set(data);
           dir_root.getDirectory("firmwares", {create: true}, function(entry) { dir_firmwares = entry; });
-          dir_root.getDirectory("modes",     {create: true}, function(entry) { dir_modes = entry; });
+          dir_root.getDirectory("modes",     {create: true}, function(entry) {
+            dir_modes = entry;
+            var default_modes = DefaultModes.getModes();
+            for (var i = 0; i < default_modes.length; i++) {
+              modelib[default_modes[i].id] = default_modes[i];
+              makeModeItem(default_modes[i]);
+              writeMode(default_modes[i]);
+            }
+          });
         });
       } else {
         chrome.fileSystem.restoreEntry(data.vectr.dir_id, function(entry) {
           dir_root = entry;
-          dir_root.getDirectory("firmwares", {create: true}, function(entry) { dir_firmwares = entry; });
-          dir_root.getDirectory("modes",     {create: true}, function(entry) { dir_modes = entry; });
+          dir_root.getDirectory("firmwares", {create: false}, function(entry) { dir_firmwares = entry; });
+          dir_root.getDirectory("modes",     {create: false}, function(entry) {
+            dir_modes = entry;
+            var reader = entry.createReader();
+            reader.readEntries(function(entries) {
+              for (var i = 0; i < entries.length; i++) {
+                readModeFile(entries[i]);
+              }
+            },
+            function(e) {
+              console.log(e);
+            });
+          });
         });
       }
     });
   };
 
-  // TODO make type dropdown
-  // TODO make serial dropdown/button
-  // TODO mode saving/loading
-  // TODO modes library/hook up mode div to file
-  // TODO save source button
+  function TypeDropdown(parent) {
+    var elem = document.createElement("div");
+    elem.style.margin = "5px";
+    parent.appendChild(elem);
+
+    var dropdown = document.createElement("select");
+    dropdown.onchange = function() {
+      return function(event) {
+        updateData(0, this.value);
+      };
+    }();
+    elem.appendChild(dropdown);
+
+    for (var i = 0; i < modetypes.length; i++) {
+      var modetype = document.createElement("option");
+      modetype.value = i;
+      modetype.textContent = modetypes[i];
+      dropdown.appendChild(modetype);
+    }
+
+    var listener = function() {
+      return function(val) {
+        dropdown.value = val;
+      };
+    }();
+
+    readListeners[0].push(listener);
+  };
+
+  function SerialElement(parent) {
+    var elem = document.createElement("div");
+    elem.style.margin = "5px";
+    parent.appendChild(elem);
+
+    var dropdown = document.createElement("select");
+    elem.appendChild(dropdown);
+
+    function onReceiveCallback(info) {
+      if (info.connectionId == connection_id && info.data) {
+        var view = new Uint8Array(info.data);
+        for (var i = 0; i < view.length; i++) {
+          input_buffer.push(view[i]);
+        }
+
+        while (input_buffer.length >= 4) {
+          handleCommand(input_buffer.splice(0, 4));
+        }
+      }
+    };
+
+    var connect_button = document.createElement("input");
+    connect_button.type = "button";
+    connect_button.value = "Connect";
+    connect_button.style.width = "120px";
+    connect_button.onclick = function() {
+      return function(event) {
+        if (this.value === "Connect") {
+          var port = dropdown.childNodes[dropdown.value].textContent;
+          chrome.serial.connect(port, {bitrate: 115200}, function(info) {
+            connection_id = info.connectionId;
+            chrome.serial.onReceive.addListener(onReceiveCallback);
+          });
+          this.value = "Disconnect";
+        } else {
+          sendCommand([SER_DISCONNECT, 0, 0, 0]);
+          chrome.serial.disconnect(connection_id, function(result) {});
+          connection_id = null;
+          this.value = "Connect";
+        }
+      };
+    }();
+    elem.appendChild(connect_button);
+
+    var refresh_button = document.createElement("input");
+    refresh_button.type = "button";
+    refresh_button.value = "Refresh Ports";
+    refresh_button.style.width = "120px";
+    refresh_button.onclick = function() {
+      return function(event) {
+        this.updatePorts();
+      };
+    }().bind(this);
+    elem.appendChild(refresh_button);
+
+    this.updatePorts = function() {
+      return function() {
+        dropdown.innerHTML = "";
+        chrome.serial.getDevices(function(devices) {
+          for (var i = 0; i < devices.length; i++) {
+            var port = document.createElement("option");
+            port.value = i;
+            port.textContent = devices[i].path;
+            dropdown.appendChild(port);
+          }
+        });
+      };
+    }();
+  };
+
+  function ModeControls(parent) {
+    var elem = document.createElement("div");
+    elem.style.margin = "5px";
+    elem.style.textAlign = "center";
+    parent.appendChild(elem);
+
+    var field = document.createElement("input");
+    field.id = "mode-save";
+    field.type = "text";
+    field.style.display = "block";
+    field.style.width =  "170px";
+    elem.appendChild(field);
+
+    var button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "Save Mode";
+    button.style.width =  "100px";
+    button.style.display = "block";
+    button.style.margin = "0 auto";
+    elem.appendChild(button);
+
+    button.onclick = function(e) {
+      // Save mode
+      var name = field.value.replace(/\s/g, "-").toLowerCase();
+      var modeobj = arrayToMode(data);
+      modeobj.name = field.value;
+      modeobj.id = name;
+
+      // Update modelib with new mode data
+      modelib[modeobj.id] = modeobj;
+
+      // If no existing modeitem, create a new one!
+      var elem = document.querySelector("#" + name);
+      if (elem === null) {
+        makeModeItem(modeobj);
+      }
+
+      // Write the file
+      writeMode(modeobj);
+    };
+  };
+
+  function BundleControls(parent) {
+    var elem = document.createElement("div");
+    elem.style.margin = "5px";
+    elem.style.textAlign = "center";
+    parent.appendChild(elem);
+
+    var field = document.createElement("input");
+    field.type = "text";
+    field.style.display = "block";
+    field.style.width =  "150px";
+    elem.appendChild(field);
+
+    var button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "Save Firmware";
+    button.style.width =  "100px";
+    button.style.display = "block";
+    button.style.margin = "0 auto";
+    elem.appendChild(button);
+
+    button.onclick = function(e) {
+      var num_modes = [bundle0.children.length, bundle1.children.length];
+
+      var bundle_a = [];
+      for (var i = 0; i < bundle0.children.length; i++) {
+        var modeitem = bundle0.children[i];
+        var modeobj = modelib[modeitem.data.id];
+        bundle_a.push(modeToArray(modeobj));
+      }
+
+      var bundle_b = [];
+      for (var i = 0; i < bundle1.children.length; i++) {
+        var modeitem = bundle1.children[i];
+        var modeobj = modelib[modeitem.data.id];
+        bundle_b.push(modeToArray(modeobj));
+      }
+
+      writeSource(field.value, num_modes, bundle_a, bundle_b);
+    };
+  };
+
+  // TODO defaults
 
   initSettings();
-  VectrEditor(editor);
-  PrimerEditor(editor);
+  initUI();
   readData(0, 0);
 
   return {
-    VectrEditor: VectrEditor,
-    PrimerEditor: PrimerEditor,
-    updateData: updateData,
-    readData: readData
+    writeMode: writeMode,
+    writeSource: writeSource
   };
 }();
