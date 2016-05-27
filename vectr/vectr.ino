@@ -7,154 +7,161 @@
 
 /* BEGIN MODE CONFIG */
 #define NUM_BUNDLES 2
-#define NUM_MODES   7
+#define NUM_MODES   8
 #define MODE_SIZE   128
 
-PROGMEM const uint8_t num_modes[NUM_BUNDLES] = {7, 7};
+PROGMEM const uint8_t num_modes[NUM_BUNDLES] = {8, 8};
 PROGMEM const uint8_t modes[NUM_BUNDLES][NUM_MODES][MODE_SIZE] = {
-  0, 0, 0, 3, 1, 64, 0, 0, 0, 0, 0, 1, 19, 0, 0, 0, 0, 0, 0, 5, 45, 0, 0, 0, 0, 0, 0, 1, 24, 0, 0, 0, 0, 0, 0, 9, 1, 1, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 85, 0, 171, 171, 0, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 16, 32, 32, 32, 32, 32, 0,
-  0, 0, 0, 3, 1, 64, 0, 0, 0, 0, 0, 10, 15, 0, 0, 0, 0, 0, 0, 5, 45, 0, 0, 0, 0, 0, 0, 1, 24, 0, 0, 0, 0, 0, 0, 9, 1, 1, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 85, 0, 171, 171, 0, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 16, 32, 32, 32, 32, 32, 0,
-  0, 0, 0, 3, 1, 64, 0, 0, 0, 0, 0, 10, 15, 0, 0, 0, 0, 0, 0, 5, 45, 0, 0, 0, 0, 0, 0, 1, 24, 0, 0, 0, 0, 0, 0, 9, 1, 1, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 85, 0, 171, 171, 0, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 16, 32, 32, 32, 32, 32, 0,
-  0, 0, 0, 3, 1, 64, 0, 0, 0, 0, 0, 10, 15, 0, 0, 0, 0, 0, 0, 5, 45, 0, 0, 0, 0, 0, 0, 1, 24, 0, 0, 0, 0, 0, 0, 9, 1, 1, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 85, 0, 171, 171, 0, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 16, 32, 32, 32, 32, 32, 0,
-  0, 0, 0, 3, 1, 64, 0, 0, 0, 0, 0, 10, 15, 0, 0, 0, 0, 0, 0, 5, 45, 0, 0, 0, 0, 0, 0, 1, 24, 0, 0, 0, 0, 0, 0, 9, 1, 1, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 85, 0, 171, 171, 0, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 16, 32, 32, 32, 32, 32, 0,
-  0, 0, 0, 3, 1, 64, 0, 0, 0, 0, 0, 10, 15, 0, 0, 0, 0, 0, 0, 5, 45, 0, 0, 0, 0, 0, 0, 1, 24, 0, 0, 0, 0, 0, 0, 9, 1, 1, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 85, 0, 171, 171, 0, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 16, 32, 32, 32, 32, 32, 0,
-  0, 0, 0, 3, 1, 64, 0, 0, 0, 0, 0, 10, 15, 0, 0, 0, 0, 0, 0, 5, 45, 0, 0, 0, 0, 0, 0, 1, 24, 0, 0, 0, 0, 0, 0, 9, 1, 1, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 85, 0, 171, 171, 0, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 16, 32, 32, 32, 32, 32, 0,
-  0, 0, 0, 3, 1, 64, 0, 0, 0, 0, 0, 10, 15, 0, 0, 0, 0, 0, 0, 5, 45, 0, 0, 0, 0, 0, 0, 1, 24, 0, 0, 0, 0, 0, 0, 9, 1, 1, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 85, 0, 171, 171, 0, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 16, 32, 32, 32, 32, 32, 0,
-  0, 0, 0, 3, 1, 64, 0, 0, 0, 0, 0, 10, 15, 0, 0, 0, 0, 0, 0, 5, 45, 0, 0, 0, 0, 0, 0, 1, 24, 0, 0, 0, 0, 0, 0, 9, 1, 1, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 85, 0, 171, 171, 0, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 16, 32, 32, 32, 32, 32, 0,
-  0, 0, 0, 3, 1, 64, 0, 0, 0, 0, 0, 10, 15, 0, 0, 0, 0, 0, 0, 5, 45, 0, 0, 0, 0, 0, 0, 1, 24, 0, 0, 0, 0, 0, 0, 9, 1, 1, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 85, 0, 171, 171, 0, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 16, 32, 32, 32, 32, 32, 0,
-  0, 0, 0, 3, 1, 64, 0, 0, 0, 0, 0, 10, 15, 0, 0, 0, 0, 0, 0, 5, 45, 0, 0, 0, 0, 0, 0, 1, 24, 0, 0, 0, 0, 0, 0, 9, 1, 1, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 85, 0, 171, 171, 0, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 16, 32, 32, 32, 32, 32, 0,
-  0, 0, 0, 3, 1, 64, 0, 0, 0, 0, 0, 10, 15, 0, 0, 0, 0, 0, 0, 5, 45, 0, 0, 0, 0, 0, 0, 1, 24, 0, 0, 0, 0, 0, 0, 9, 1, 1, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 85, 0, 171, 171, 0, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 16, 32, 32, 32, 32, 32, 0,
-  0, 0, 0, 3, 1, 64, 0, 0, 0, 0, 0, 10, 15, 0, 0, 0, 0, 0, 0, 5, 45, 0, 0, 0, 0, 0, 0, 1, 24, 0, 0, 0, 0, 0, 0, 9, 1, 1, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 85, 0, 171, 171, 0, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 16, 32, 32, 32, 32, 32, 0,
-  0, 0, 0, 3, 1, 64, 0, 0, 0, 0, 0, 10, 15, 0, 0, 0, 0, 0, 0, 5, 45, 0, 0, 0, 0, 0, 0, 1, 24, 0, 0, 0, 0, 0, 0, 9, 1, 1, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 0, 0, 171, 85, 0, 85, 171, 0, 0, 255, 85, 0, 171, 171, 0, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 16, 32, 32, 32, 32, 32, 0,
+  {
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  },
+  {
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  },
 };
 /* END MODE CONFIG */
 
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
 #define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 
-#define PIN_R       9     // Red pin - timer 0
-#define PIN_G       6     // Green pin - timer 1
-#define PIN_B       5     // Blue pin - timer 1
-#define PIN_BUTTON  2     // Pin for the button
-#define PIN_LDO     A3    // Low voltage dropoff pin
-#define ACCEL_ADDR  0x1D  // I2C address of accelerometer
-#define SCL_PIN     A5    // Clock pin
-#define SDA_PIN     A4    // Data pin
-#define I2CADC_H    315   // Analog read high threshold
-#define I2CADC_L    150   // Analog read low threshold
+#define ADDR_SETTINGS     99    // Address for saved settings
 
-#define SER_VERSION     121
-#define SER_WRITE       100
-#define SER_HANDSHAKE   200
-#define SER_DISCONNECT  210
-#define SER_VIEW_MODE   220
-#define SER_VIEW_COLOR  230
+#define PIN_R             9     // Red pin - timer 0
+#define PIN_G             6     // Green pin - timer 1
+#define PIN_B             5     // Blue pin - timer 1
+#define PIN_BUTTON        2     // Pin for the button
+#define PIN_LDO           A3    // Low voltage dropoff pin
+#define ACCEL_ADDR        0x1D  // I2C address of accelerometer
+#define SCL_PIN           A5    // Clock pin
+#define SDA_PIN           A4    // Data pin
+#define I2CADC_H          315   // Analog read high threshold
+#define I2CADC_L          150   // Analog read low threshold
 
-#define S_PLAY      0
-#define S_WAKE      1
-#define S_GUI_MODE  2
-#define S_GUI_COLOR 3
+#define SER_VERSION       121   // Current serial version for UI
+#define SER_WRITE         100   // Write command: addr, value
+#define SER_HANDSHAKE     200   // Handshake command: SER_VERSION, value, value (values must be equal)
+#define SER_DISCONNECT    210   // Disconnect command
+#define SER_VIEW_MODE     220   // View in-memory mode command
+#define SER_VIEW_COLOR    230   // View in-memory color command: color set, color slot
 
-#define ACCEL_BINS      32    // 32 bins gives 33 velocity states
-#define ACCEL_BIN_SIZE  40    // approx 0.1g
-#define ACCEL_COUNTS    40    // 20 frames between accel reads (50hz)
-#define ACCEL_ONEG      512   // +- 4g range
-#define ACCEL_FALLOFF   10    // 10 cycle falloff / 200ms
-#define ACCEL_TARGET    2     // 2 cycle target / 40ms
-#define ACCEL_COEF      11.82 // For normalizing pitch and roll
+#define STATE_PLAY        0     // Normal operation
+#define STATE_WAKE        1     // Waking from sleep
+#define STATE_GUI_MODE    2     // Viewing in-memory mode
+#define STATE_GUI_COLOR   3     // Viewing in-memory color
 
-#define ADDR_BUNDLE       101
-#define ADDR_CONJURE_MODE 102
-#define ADDR_CONJURE      103
-#define ADDR_LOCKED       104
-#define ADDR_SLEEPING     105
+#define ACCEL_BINS        32    // 32 bins gives 33 velocity states
+#define ACCEL_BIN_SIZE    40    // approx 0.1g
+#define ACCEL_COUNTS      40    // 20 frames between accel reads (50hz)
+#define ACCEL_ONEG        512   // +- 4g range
+#define ACCEL_FALLOFF     10    // 10 cycle falloff / 200ms
+#define ACCEL_TARGET      2     // 2 cycle target / 40ms
+#define ACCEL_COEF        11.82 // For normalizing pitch and roll to 0-32
 
-#define M_VECTR     0
-#define M_PRIMER    1
+#define TYPE_VECTR        0     // Vectr mode type
+#define TYPE_PRIMER       1     // Primer mode type
 
-#define P_STROBE    0
-#define P_TRACER    1
-#define P_MORPH     2
-#define P_SWORD     3
-#define P_WAVE      4
-#define P_DYNAMO    5
-#define P_SHIFTER   6
-#define P_TRIPLE    7
-#define P_STEPPER   8
-#define P_RANDOM    9
+#define PATTERN_STROBE    0     // Strobe pattern
+#define PATTERN_TRACER    1     // Tracer patterrn
+#define PATTERN_MORPH     2     // Morph pattern
+#define PATTERN_SWORD     3     // Sword pattern
+#define PATTERN_WAVE      4     // Wave pattern
+#define PATTERN_DYNAMO    5     // Dynamo pattern
+#define PATTERN_SHIFTER   6     // Shifter pattern
+#define PATTERN_TRIPLE    7     // Triple pattern
+#define PATTERN_STEPPER   8     // Stepper pattern
+#define PATTERN_RANDOM    9     // Random pattern
 
-#define T_OFF       0
-#define T_VELOCITY  1
-#define T_PITCH     2
-#define T_ROLL      3
-#define T_FLIP      4
+#define TRIGGER_OFF       0     // Primer trigger off
+#define TRIGGER_VELOCITY  1     // Primer trigger on velocity
+#define TRIGGER_PITCH     2     // Primer trigger on pitch (x-axis)
+#define TRIGGER_ROLL      3     // Primer trigger on roll (y-axis)
+#define TRIGGER_FLIP      4     // Primer trigger on flip (z-axis)
 
 
-typedef struct AccelData {
-  uint8_t vectr_falloff[ACCEL_BINS];
-  uint8_t vectr_trigger[ACCEL_BINS];
-  uint8_t prime_falloff;
-  uint8_t prime_trigger;
-  uint8_t velocity, pitch, roll, flip;
-  uint16_t magnitude;
-  int16_t axis_x, axis_y, axis_z;
-  uint32_t axis_x2, axis_y2, axis_z2;
-  float fpitch, froll;
-} AccelData;
-
-typedef struct PatternState {
-  uint8_t args[4];
-  uint8_t timings[8];
-  uint8_t numc;
-  uint8_t colors[9][3];
-
-  uint16_t trip;
-  uint8_t cidx;
-  uint8_t cntr;
-  uint8_t segm;
-} PatternState;
+typedef union Settings {
+  struct {
+    uint8_t sleeping: 1;        // Should the light go to sleep?
+    uint8_t locked: 1;          // Is the light locked?
+    uint8_t conjure: 1;         // Are we  conjuring?
+    uint8_t bundle: 1;          // Which bundle?
+    uint8_t mode: 3;            // Current mode
+  };
+  uint8_t settings;             // for saving/loading
+} Settings;
 
 typedef union Mode {
   struct {
-    uint8_t type;               // 0
-    uint8_t pattern[2];         // 1 - 2
-    uint8_t args[2][4];         // 3 - 10
-    uint8_t timings[3][8];      // 11 - 34
-    uint8_t numc[3];            // 35 - 37
-    uint8_t colors[3][9][3];    // 38 - 118
-    uint8_t tr_meta[4];         // 119 - 122
-    uint8_t tr_flux[4];         // 123 - 126
-    uint8_t trigger;            // 127
+    uint8_t type;             // 0              Vectr or Primer mode
+    uint8_t pattern[2];       // 1 - 2          Base patterns
+    uint8_t args[2][4];       // 3 - 10         Base pattern arguments
+    uint8_t timings[3][8];    // 11 - 34        Base pattern timings
+    uint8_t numc[3];          // 35 - 37        Number of active colors
+    uint8_t colors[3][9][3];  // 38 - 118       RGB values of the colors
+    uint8_t tr_meta[4];       // 119 - 122      Thresholds for vectr color blending
+    uint8_t tr_flux[4];       // 123 - 126      Thresholds for vectr timing blending
+    uint8_t trigger;          // 127            Primer trigger type
   };
-  uint8_t data[MODE_SIZE];
+  uint8_t data[MODE_SIZE];    // 128 bytes      Wraps the anonymous struct
 } Mode;
 
-uint8_t ledr, ledg, ledb;
-uint32_t limiter_us = 500;
-uint32_t last_write = 0;
-uint8_t accel_tick = 0;
-uint8_t cur_mode = 0;
-uint8_t cur_bundle = 0;
-uint64_t frame_count = 0;
+typedef struct PatternState {
+  uint8_t args[4];                            // Pattern arguments
+  uint8_t timings[8];                         // Pattern timings
+  uint8_t numc;                               // Number of active colors
+  uint8_t colors[9][3];                       // RGB values for colors
+
+  uint16_t trip;                              // Frames until next segment
+  uint8_t cidx;                               // Current color index
+  uint8_t cntr;                               // Counter for tracking pattern segment state
+  uint8_t segm;                               // Current pattern segment
+} PatternState;
+
+typedef struct AccelData {
+  uint8_t vectr_falloff[ACCEL_BINS];          // Falloff values for vectr
+  uint8_t vectr_trigger[ACCEL_BINS];          // Trigger values (how many frames have we seen a signal this strong) for vectr
+  uint8_t prime_falloff;                      // Falloff value for primer
+  uint8_t prime_trigger;                      // Trigger value (how many frames have we seen a signal this strong) for primer
+  uint8_t velocity, pitch, roll, flip;        // 0-32 values for velocity, pitch, roll, and flip
+  uint16_t magnitude;                         // magnitude of acceleration (sqrt(x^2 + y^2 + z^2)
+  int16_t axis_x, axis_y, axis_z;             // raw accel values from the accelerometer
+  uint32_t axis_x2, axis_y2, axis_z2;         // accel values from accelerometer squared
+  float fpitch, froll;                        // pitch and roll values in radians
+} AccelData;
+
+void (*patterns[10]) (PatternState*, bool);   // Array of pattern functions
+Settings settings;                            // Settings to be read from and written to EEPROM
+Mode mode;                                    // In-memory mode data
+PatternState states[2];                       // Tracks state of animation
+AccelData accel;                              // Tracks accelerometer data
+
+uint8_t ledr, ledg, ledb;                     // Color values to be written to LED
+uint32_t limiter_us = 500;                    // us per frame
+uint32_t last_write = 0;                      // Tracks us of last write
+uint32_t since_press = 0;                     // Tracks how long since last button press
+bool was_pressed = false;                     // Tracks if the button was pressed in previous frame
+uint8_t op_state = STATE_PLAY;                // Current state of the light
+uint8_t accel_tick = 0;                       // Tracks which part of the accel loop should be computed
+uint8_t active_pattern = 0;                   // Which pattern is currently being used
+
+uint8_t color_set = 0;                        // What color set to display when in STATE_VIEW_COLOR
+uint8_t color_slot = 0;                       // What color slot to display when in STATE_VIEW_COLOR
 
 
-void (*pattern_funcs[10]) (PatternState*, bool);
-PatternState states[2];
-Mode mode;
-AccelData accel;
-
-uint8_t op_state = S_PLAY;
-uint8_t active_pattern = 0;
-bool locked = false;
-bool conjure = false;
-
-uint32_t since_press = 0;
-bool was_pressed = false;
-
-uint8_t color_set = 0;
-uint8_t color_slot = 0;
-
-
+/* UTILITY FUNCTIONS */
 const uint16_t _reciprocals[] = {
   0x0000, 0xFFFF, 0x8000, 0x5555, 0x4000, 0x3333, 0x2AAA, 0x2492,
   0x2000, 0x1C71, 0x1999, 0x1745, 0x1555, 0x13B1, 0x1249, 0x1111,
@@ -312,19 +319,19 @@ uint8_t TWADC_read(bool ack) {
   }
 
   if (ack) {
-    I2CADC_SCL_L_INPUT();  __asm__("nop");
+    I2CADC_SCL_L_INPUT();  __asm__("nop\n\t");
     I2CADC_SDA_L_INPUT();
-    I2CADC_SCL_H_OUTPUT(); __asm__("nop");
-    I2CADC_SCL_L_INPUT();  __asm__("nop");
+    I2CADC_SCL_H_OUTPUT(); __asm__("nop\n\t");
+    I2CADC_SCL_L_INPUT();  __asm__("nop\n\t");
   } else {
 AckThis:
-    I2CADC_SCL_L_INPUT();  __asm__("nop");
-    I2CADC_SCL_H_OUTPUT(); __asm__("nop");
+    I2CADC_SCL_L_INPUT();  __asm__("nop\n\t");
+    I2CADC_SCL_H_OUTPUT(); __asm__("nop\n\t");
     int result = analogRead(SCL_PIN);
     if (result < I2CADC_L) {
       goto AckThis;
     }
-    I2CADC_SCL_L_INPUT();  __asm__("nop");
+    I2CADC_SCL_L_INPUT();  __asm__("nop\n\t");
 
   }
   return data;
@@ -403,7 +410,23 @@ void TWADC_send(uint8_t addr, uint8_t data) {
   delay(1);
 }
 
+void accel_init() {
+  TWADC_begin();
+  delay(1);
+  TWADC_send(0x2A, B00000000); // Standby to accept new settings
+  TWADC_send(0x0E, B00000001); // Set +-4g range
+  TWADC_send(0x2B, B00011011); // Low Power SLEEP
+  TWADC_send(0x2C, B00111000);
+  TWADC_send(0x2D, B00000000);
+  TWADC_send(0x2A, B00100001); // Set 50 samples/sec (every 40 frames) and active
+}
 
+void accel_standby() {
+  TWADC_send(0x2A, 0x00);
+}
+
+
+/* PATTERN FUNCTIONS */
 void pattern_strobe(PatternState *state, bool rend) {
   uint8_t numc = constrain(state->numc, 1, 9);
 
@@ -1050,6 +1073,7 @@ void pattern_random(PatternState *state, bool rend) {
 }
 
 
+/* MODE AND STATE CHANGING FUNCTIONS */
 void init_state(uint8_t dst, uint8_t src) {
   states[dst].numc = mode.numc[src];
   for (uint8_t i = 0; i < 9; i++) {
@@ -1067,7 +1091,7 @@ void init_state(uint8_t dst, uint8_t src) {
 
 void init_mode() {
   active_pattern = 0;
-  if (mode.type == M_VECTR) {
+  if (mode.type == TYPE_VECTR) {
     init_state(0, 0);
     init_state(1, 0);
   } else {
@@ -1076,40 +1100,24 @@ void init_mode() {
   }
 }
 
-void change_mode(uint8_t b, uint8_t s) {
-  cur_bundle = b;
-  cur_mode = s;
+void change_mode(uint8_t s) {
+  settings.mode = s;
   for (uint8_t i = 0; i < MODE_SIZE; i++) {
-    mode.data[i] = pgm_read_byte(&modes[cur_bundle][cur_mode][i]);
+    mode.data[i] = pgm_read_byte(&modes[settings.bundle][settings.mode][i]);
   }
   init_mode();
 }
 
 void next_mode() {
-  cur_mode = (cur_mode + 1) % num_modes[cur_bundle];
+  settings.mode = (settings.mode + 1) % num_modes[settings.bundle];
   for (uint8_t i = 0; i < MODE_SIZE; i++) {
-    mode.data[i] = pgm_read_byte(&modes[cur_bundle][cur_mode][i]);
+    mode.data[i] = pgm_read_byte(&modes[settings.bundle][settings.mode][i]);
   }
   init_mode();
 }
 
 
-void accel_init() {
-  TWADC_begin();
-  delay(1);
-  TWADC_send(0x2A, B00000000); // Standby to accept new settings
-  TWADC_send(0x0E, B00000001); // Set +-4g range
-  TWADC_send(0x2B, B00011011); // Low Power SLEEP
-  TWADC_send(0x2C, B00111000);
-  TWADC_send(0x2D, B00000000);
-  TWADC_send(0x2A, B00100001); // Set 50 samples/sec (every 40 frames) and active
-}
-
-void accel_standby() {
-  TWADC_send(0x2A, 0x00);
-}
-
-
+/* LED OUTPUT FUNCTIONS */
 void write_frame(uint8_t r, uint8_t g, uint8_t b) {
   uint32_t cus = micros();
   while (cus - last_write < limiter_us) cus = micros();
@@ -1118,7 +1126,6 @@ void write_frame(uint8_t r, uint8_t g, uint8_t b) {
   analogWrite(PIN_R, r);
   analogWrite(PIN_G, g);
   analogWrite(PIN_B, b);
-  frame_count++;
 }
 
 void flash(uint8_t r, uint8_t g, uint8_t b) {
@@ -1132,6 +1139,7 @@ void flash(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 
+/* SLEEP FUNCTIONS */
 void _push_interrupt() {}
 
 void power_down() {
@@ -1148,16 +1156,17 @@ void power_down() {
 }
 
 void enter_sleep() {
-  wdt_enable(WDTO_15MS);        // Enable the watchdog
-  write_frame(0, 0, 0);         // Blank the LED
-  ee_update(ADDR_SLEEPING, 1);  // Set the sleeping bit
-  accel_standby();              // Standby the acceleromater
-  digitalWrite(PIN_LDO, LOW);   // Deactivate the LDO
-  while (true) {}               // Loop until watchdog bites
+  settings.sleeping = 1;                        // Set sleeping bit
+  ee_update(ADDR_SETTINGS, settings.settings);  // Save settings
+  write_frame(0, 0, 0);                         // Blank the LED
+  accel_standby();                              // Standby the acceleromater
+  digitalWrite(PIN_LDO, LOW);                   // Deactivate the LDO
+  wdt_enable(WDTO_15MS);                        // Enable the watchdog
+  while (true) {}                               // Loop until watchdog bites
 }
 
 
-
+/* ACCEL FUNCTIONS */
 void get_vectr_vals(uint8_t thresh[4], uint8_t *g, uint8_t *v, uint8_t *d, uint8_t *s) {
   if (accel.velocity <= thresh[0]) {
     *g = 0; *s = 0; *v = 0; *d = 1;
@@ -1173,345 +1182,341 @@ void get_vectr_vals(uint8_t thresh[4], uint8_t *g, uint8_t *v, uint8_t *d, uint8
 }
 
 void accel_velocity() {
-  uint16_t bin_thresh = ACCEL_ONEG;
-  uint8_t velocity = 0;
-  uint8_t i = 0;
+  uint16_t bin_thresh = ACCEL_ONEG;             // Threshold starts at 1g
+  uint8_t prev_velocity = accel.velocity;       // Track previous velocity
+  accel.velocity = 0;                           // Reset velocity to 0
+  uint8_t i = 0;                                // Counter
 
   while (i < ACCEL_BINS) {
-    bin_thresh += ACCEL_BIN_SIZE;
-    // Smooth out velocity curve
-    bin_thresh += ACCEL_BINS - i;
+    bin_thresh += ACCEL_BIN_SIZE;               // Increase thresh for next level
+    bin_thresh += ACCEL_BINS - i;               // Smooth out velocity curve
 
     // Enlarge bin for current velocity
-    if (i == accel.velocity - 3) bin_thresh -= 4;
-    if (i == accel.velocity - 2) bin_thresh -= 12;
-    if (i == accel.velocity - 1) bin_thresh -= 28;
-    if (i == accel.velocity)     bin_thresh += 28;
-    if (i == accel.velocity + 1) bin_thresh += 12;
-    if (i == accel.velocity + 2) bin_thresh += 4;
+    /* if (i == prev_velocity - 3) bin_thresh -= 4; */
+    /* if (i == prev_velocity - 2) bin_thresh -= 12; */
+    /* if (i == prev_velocity - 1) bin_thresh -= 28; */
+    /* if (i == prev_velocity)     bin_thresh += 28; */
+    /* if (i == prev_velocity + 1) bin_thresh += 12; */
+    /* if (i == prev_velocity + 2) bin_thresh += 4; */
 
+    // If velocity is over thresh, reset falloff and increment trigger (capped at 128 to prevent overflow)
     if (accel.magnitude > bin_thresh) {
       accel.vectr_falloff[i] = 0;
       accel.vectr_trigger[i] = min(accel.vectr_trigger[i] + 1, 128);
     }
 
+    // If falloff is over falloff thresh, reset trigger (been too long since we had a signal)
     if (accel.vectr_falloff[i] > ACCEL_FALLOFF) accel.vectr_trigger[i] = 0;
-    if (accel.vectr_trigger[i] > ACCEL_TARGET)  velocity = i + 1;
 
+    // If the trigger is over the trigger tresh, we have a strong signal
+    if (accel.vectr_trigger[i] > ACCEL_TARGET) accel.velocity = i + 1;
+
+    // Increment falloff and counter
     accel.vectr_falloff[i]++;
     i++;
   }
-
-  accel.velocity = velocity;
 }
 
 void accel_variant() {
-  if (mode.type == M_PRIMER) {
-    uint8_t value = 0;
-    if (mode.trigger == T_VELOCITY)   value = accel.velocity;
-    else if (mode.trigger == T_PITCH) value = accel.pitch;
-    else if (mode.trigger == T_ROLL)  value = accel.roll;
-    else if (mode.trigger == T_FLIP)  value = accel.flip;
+  // For primer, this is where we check triggers to see if we switch active patterns
+  // For vectr, this is where we switch patterns so that we can read in new data from accel incrementally
 
-    if ((active_pattern == 0 && value > mode.tr_meta[0]) ||
-        (active_pattern == 1 && value < mode.tr_meta[1])) {
-      accel.prime_falloff = 0;
-      accel.prime_trigger = min(accel.prime_trigger + 1, 128);
+  if (mode.type == TYPE_PRIMER) {
+    uint8_t value = 0;                                                // Trigger value to test, stays 0 if OFF
+    if (mode.trigger == TRIGGER_VELOCITY)   value = accel.velocity;
+    else if (mode.trigger == TRIGGER_PITCH) value = accel.pitch;
+    else if (mode.trigger == TRIGGER_ROLL)  value = accel.roll;
+    else if (mode.trigger == TRIGGER_FLIP)  value = accel.flip;
+
+    if ((active_pattern == 0 && value > mode.tr_meta[0]) ||           // If we're A and qualify for B
+        (active_pattern == 1 && value < mode.tr_meta[1])) {           // Or if we're B and qualify for A
+      accel.prime_falloff = 0;                                          // Reset falloff
+      accel.prime_trigger = min(accel.prime_trigger + 1, 128);          // Increment trigger (capped at 128)
     }
 
-    if (accel.prime_falloff > ACCEL_FALLOFF) accel.prime_trigger = 0;
-    if (accel.prime_trigger > ACCEL_TARGET) {
-      accel.prime_falloff = 0;
-      accel.prime_trigger = 0;
-      active_pattern = !active_pattern;
+    if (accel.prime_falloff > ACCEL_FALLOFF) accel.prime_trigger = 0; // If too long since signal, reset trigger
+    if (accel.prime_trigger > ACCEL_TARGET) {                         // If signal has been around long enough
+      accel.prime_falloff = 0;                                          // Reset falloff
+      accel.prime_trigger = 0;                                          // Reset trigger
+      active_pattern = (active_pattern == 0) ? 1 : 0;                   // Change active pattern
     }
   } else {
-    active_pattern = !active_pattern;
-    states[active_pattern].trip = states[!active_pattern].trip;
+    active_pattern = (active_pattern == 0) ? 1 : 0;                   // Change active pattern
+    states[active_pattern].trip = states[!active_pattern].trip;       // Copy over pattern tracking variables
     states[active_pattern].cidx = states[!active_pattern].cidx;
     states[active_pattern].cntr = states[!active_pattern].cntr;
     states[active_pattern].segm = states[!active_pattern].segm;
   }
 }
 
-void accel_timings() {
-  if (mode.data[0] == M_VECTR) {
-    uint8_t update_pattern = !active_pattern;
-    uint8_t mg, mv, md, ms;
+void accel_blend() {
+  if (mode.data[0] == TYPE_VECTR) {
+    uint8_t update_pattern = !active_pattern;                         // Update the inactive pattern
+
+    uint8_t mg, mv, md, ms;                                           // Get blend values
     uint8_t fg, fv, fd, fs;
     get_vectr_vals(mode.tr_meta, &mg, &mv, &md, &ms);
     get_vectr_vals(mode.tr_flux, &fg, &fv, &fd, &fs);
 
-    if (fg == 0) {
-      states[update_pattern].numc = mode.numc[0];
-    } else if (fg == 1) {
-      states[update_pattern].numc = min(mode.numc[0], mode.numc[1]);
-    } else if (fg == 2) {
-      states[update_pattern].numc = mode.numc[1];
-    } else if (fg == 3) {
-      states[update_pattern].numc = min(mode.numc[1], mode.numc[2]);
-    } else {
-      states[update_pattern].numc = mode.numc[2];
-    }
+    // Numc is always the lowest of the two when blending
+    if (fg == 0)      states[update_pattern].numc = mode.numc[0];
+    else if (fg == 1) states[update_pattern].numc = min(mode.numc[0], mode.numc[1]);
+    else if (fg == 2) states[update_pattern].numc = mode.numc[1];
+    else if (fg == 3) states[update_pattern].numc = min(mode.numc[1], mode.numc[2]);
+    else              states[update_pattern].numc = mode.numc[2];
 
+    // Interp colors and timings
     for (uint8_t i = 0; i < 9; i++) {
-      states[update_pattern].colors[i][0] = fast_interp(
-        mode.colors[fs][i][0], mode.colors[fs + 1][i][0], fv, fd);
-      states[update_pattern].colors[i][1] = fast_interp(
-        mode.colors[fs][i][1], mode.colors[fs + 1][i][1], fv, fd);
-      states[update_pattern].colors[i][2] = fast_interp(
-        mode.colors[fs][i][2], mode.colors[fs + 1][i][2], fv, fd);
-      if (i < 8) states[update_pattern].timings[i] = fast_interp(
-          mode.timings[ms][i], mode.timings[ms + 1][i], mv, md);
+      states[update_pattern].colors[i][0] = fast_interp(mode.colors[fs][i][0], mode.colors[fs + 1][i][0], fv, fd);
+      states[update_pattern].colors[i][1] = fast_interp(mode.colors[fs][i][1], mode.colors[fs + 1][i][1], fv, fd);
+      states[update_pattern].colors[i][2] = fast_interp(mode.colors[fs][i][2], mode.colors[fs + 1][i][2], fv, fd);
+      if (i < 8) states[update_pattern].timings[i] = fast_interp(mode.timings[ms][i], mode.timings[ms + 1][i], mv, md);
     }
   }
 }
 
-
 void render_mode() {
   // For Vectr modes we only render the active pattern
   // For Primer modes, we run both states to increment state but only render the active
-  if (mode.type == M_VECTR) {
-    pattern_funcs[mode.pattern[0]](&states[active_pattern], true);
+  if (mode.type == TYPE_VECTR) {
+    patterns[mode.pattern[0]](&states[active_pattern], true);
   } else {
-    pattern_funcs[mode.pattern[0]](&states[0], active_pattern == 0);
-    pattern_funcs[mode.pattern[1]](&states[1], active_pattern == 1);
+    patterns[mode.pattern[0]](&states[0], active_pattern == 0);
+    patterns[mode.pattern[1]](&states[1], active_pattern == 1);
   }
 }
 
 
 void handle_serial() {
-  uint8_t cmd, in0, in1, in2;
-  while (Serial.available() >= 4) {
-    cmd = Serial.read();
+  uint8_t cmd, in0, in1, in2;                   // Tracks incomming bytes
+  while (Serial.available() >= 4) {             // Commands are 4 bytes, so as long as we have 4 in queue...
+    cmd = Serial.read();                          // Read in bytes
     in0 = Serial.read();
     in1 = Serial.read();
     in2 = Serial.read();
 
-    if (cmd == SER_HANDSHAKE) {
+    if (cmd == SER_HANDSHAKE) {                 // If handshake, we need to verify a valid handshake
       if (in0 == SER_VERSION && in1 == in2) {
-        cur_bundle = 0;
-        cur_mode = 0;
-        op_state = S_GUI_MODE;
+        settings.bundle = 0;                      // Reset bundle
+        settings.mode = 0;                        // Reset mode
+        op_state = STATE_GUI_MODE;                // View mode
       }
-    } else if (cmd == SER_DISCONNECT) {
-      op_state = S_PLAY;
-    } else if (cmd == SER_WRITE) {
+    } else if (cmd == SER_DISCONNECT) {         // If disconnecting, just go into play state
+      op_state = STATE_PLAY;
+    } else if (cmd == SER_WRITE) {              // If writing, set in-memory mode's addr (in0) to value (in1)
       mode.data[in0] = in1;
-    } else if (cmd == SER_VIEW_MODE) {
-      op_state = S_GUI_MODE;
-    } else if (cmd == SER_VIEW_COLOR) {
+    } else if (cmd == SER_VIEW_MODE) {          // If view mode, view mode
+      op_state = STATE_GUI_MODE;
+    } else if (cmd == SER_VIEW_COLOR) {         // If view color, update color set (in0) and slot (in1) then view color
       color_set = in0;
       color_slot = in1;
-      op_state = S_GUI_COLOR;
+      op_state = STATE_GUI_COLOR;
     }
   }
 }
 
 void handle_button() {
-  bool pressed = digitalRead(PIN_BUTTON) == LOW;
-  bool changed = pressed != was_pressed;
-  was_pressed  = pressed;
+  bool pressed = digitalRead(PIN_BUTTON) == LOW;              // Button is pressed when pin is low
+  bool changed = pressed != was_pressed;                      // If pressed state has changed, we might need to act
 
-  if (op_state == S_PLAY) {
-    if (pressed) {
-      if (since_press == 1000)      flash(255, 255, 255);
-      else if (since_press == 4000) flash(0, 0, 255);
-      else if (since_press == 6000) flash(255, 0, 0);
-    } else if (changed) {
-      if (since_press < 1000) {
-        if (conjure) {
-          enter_sleep();
-        } else {
-          next_mode();
-        }
-      } else if (since_press < 4000) {
+  if (op_state == STATE_PLAY) {                               // If playing
+    if (pressed) {                                              // and pressed
+      if (since_press == 1000)      flash(255, 255, 255);         // Flash white when chip will sleep (500ms)
+      else if (since_press == 4000) flash(0, 0, 255);             // Flash blue when conjure will toggle (2s)
+      else if (since_press == 8000) flash(255, 0, 0);             // Flash red when chip will lock and sleep (4s)
+    } else if (changed) {                                       // if not pressed and changed (just released)
+      if (since_press < 1000) {                                   // if less than 500ms, sleep if conjuring and change mode if not
+        if (settings.conjure) enter_sleep();
+        else                  next_mode();
+      } else if (since_press < 4000) {                            // if less than 2s, sleep
         enter_sleep();
-      } else if (since_press < 6000) {
-        conjure = !conjure;
-        ee_update(ADDR_CONJURE, conjure);
-        ee_update(ADDR_CONJURE_MODE, cur_mode);
-      } else {
-        ee_update(ADDR_LOCKED, true);
-        enter_sleep();
+      } else if (since_press < 8000) {                            // if less than 4s, toggle conjure
+        settings.conjure = (settings.conjure == 0) ? 1 : 0;         // toggle conjure
+        ee_update(ADDR_SETTINGS, settings.settings);                // save settings
+      } else {                                                    // if more than 4s, lock light
+        settings.locked = 1;                                        // set locked bit
+        ee_update(ADDR_SETTINGS, settings.settings);                // save settings
+        enter_sleep();                                              // go to sleep
       }
     }
-  } else if (op_state == S_WAKE) {
-    if (locked) {
-      if (pressed) {
-        if (since_press == 6000) flash(0, 255, 0);
-      } else if (changed) {
-        if (since_press < 6000) {
-          flash(255, 0, 0);
-          enter_sleep();
-        } else if (since_press < 8000) {
-          ee_update(ADDR_LOCKED, false);
-          op_state = S_PLAY;
-        } else {
-          flash(255, 0, 0);
-          enter_sleep();
+  } else if (op_state == STATE_WAKE) {                        // If waking
+    if (settings.locked) {                                      // and locked
+      if (pressed) {                                              // and pressed
+        if (since_press == 4000)      flash(0, 255, 0);             // Flash green when light will wake (2s)
+        else if (since_press == 8000) flash(255, 0, 0);             // Flash red when light will stay locked (4s)
+      } else if (changed) {                                       // if not pressed and changed (just released)
+        if (since_press < 4000) {                                   // if less than 2s, stay locked
+          flash(255, 0, 0);                                           // flash red
+          enter_sleep();                                              // go to sleep
+        } else if (since_press < 8000) {                            // if less than 4s, unlock
+          settings.locked = 0;                                        // unset locked bit
+          ee_update(ADDR_SETTINGS, settings.settings);                // save settings
+          op_state = STATE_PLAY;                                      // wake up and play
+        } else {                                                    // if more than 4s, stay locked
+          flash(255, 0, 0);                                           // flash red
+          enter_sleep();                                              // go to sleep
         }
       }
-    } else {
-      if (pressed) {
-        if (since_press == 3000)      flash(255, 255, 255);
-        else if (since_press == 5000) flash(255, 0, 0);
-      } else if (changed) {
-        if (since_press < 3000) {
-          op_state = S_PLAY;
-        } else if (since_press < 5000) {
-          cur_bundle = (cur_bundle + 1) % 2;
-          change_mode(cur_bundle, 0);
-          ee_update(ADDR_BUNDLE, cur_bundle);
-          ee_update(ADDR_CONJURE, false);
-          ee_update(ADDR_CONJURE_MODE, 0);
-        } else {
-          ee_update(ADDR_LOCKED, true);
-          enter_sleep();
+    } else {                                                    // if not locked
+      if (pressed) {                                              // and pressed
+        if (since_press == 4000)      flash(255, 255, 255);         // flash white after 2s (bundle switch)
+        else if (since_press == 8000) flash(255, 0, 0);             // flash red after 4s (lock light)
+      } else if (changed) {                                       // if not pressed and changed (just released)
+        if (since_press < 4000) {                                   // if less than 2s, wake up and play
+          op_state = STATE_PLAY;
+        } else if (since_press < 8000) {                            // if less than 4s, switch bundles
+          settings.bundle = (settings.bundle == 0) ? 1 : 0;           // toggle bundle 1/2
+          settings.conjure = 0;                                       // deactivate conjure
+          settings.mode = 0;                                          // reset mode
+          ee_update(ADDR_SETTINGS, settings.settings);                // save settings
+          change_mode(0);                                             // change to mode 0
+        } else {                                                    // if more than 4s, lock light
+          settings.locked = 1;                                        // set lock bit
+          ee_update(ADDR_SETTINGS, settings.settings);                // save settings
+          enter_sleep();                                              // go to sleep
         }
       }
     }
   }
 
   since_press++;
-  if (changed) since_press = 0;
+  if (changed) since_press = 0;                               // If state changed we need to reset since_press
+  was_pressed  = pressed;                                     // Update was_pressed to this frame's button status
 }
 
 void handle_accel() {
-  if (accel_tick == 0) {
+  if (accel_tick == 0) {                                      // Tick 0: request y axis (x and y are swapped on v2s)
     TWADC_begin();
     TWADC_write_w(ACCEL_ADDR);
     TWADC_write((uint8_t)1);
-  } else if (accel_tick == 1) {
+  } else if (accel_tick == 1) {                               // Tick 1: start read
     TWADC_begin();
     TWADC_write_r(ACCEL_ADDR);
-  } else if (accel_tick == 2) {
+  } else if (accel_tick == 2) {                               // Tick 2: read in first byte
     accel.axis_y = (int16_t)TWADC_read(1) << 8;
-  } else if (accel_tick == 3) {
+  } else if (accel_tick == 3) {                               // Tick 3: read in second byte
     accel.axis_y = (accel.axis_y | TWADC_read(0)) >> 4;
-  } else if (accel_tick == 4) {
+  } else if (accel_tick == 4) {                               // Tick 4: request x axis
     TWADC_begin();
     TWADC_write_w(ACCEL_ADDR);
     TWADC_write((uint8_t)3);
-  } else if (accel_tick == 5) {
+  } else if (accel_tick == 5) {                               // Tick 5: start read
     TWADC_begin();
     TWADC_write_r(ACCEL_ADDR);
-  } else if (accel_tick == 6) {
+  } else if (accel_tick == 6) {                               // Tick 6: read in first byte
     accel.axis_x = (int16_t)TWADC_read(1) << 8;
-  } else if (accel_tick == 7) {
+  } else if (accel_tick == 7) {                               // Tick 7: read in second byte
     accel.axis_x = (accel.axis_x | TWADC_read(0)) >> 4;
-  } else if (accel_tick == 8) {
+  } else if (accel_tick == 8) {                               // Tick 8: request z axis
     TWADC_begin();
     TWADC_write_w(ACCEL_ADDR);
     TWADC_write((uint8_t)5);
-  } else if (accel_tick == 9) {
+  } else if (accel_tick == 9) {                               // Tick 9: start read
     TWADC_begin();
     TWADC_write_r(ACCEL_ADDR);
-  } else if (accel_tick == 10) {
+  } else if (accel_tick == 10) {                              // Tick 10: read in first byte
     accel.axis_z = (int16_t)TWADC_read(1) << 8;
-  } else if (accel_tick == 11) {
+  } else if (accel_tick == 11) {                              // Tick 11: read in second byte
     accel.axis_z = (accel.axis_z | TWADC_read(0)) >> 4;
-  } else if (accel_tick == 12) {
+  } else if (accel_tick == 12) {                              // Tick 12: calculate squares and square roots
     accel.axis_x2 = pow(accel.axis_x, 2);
     accel.axis_y2 = pow(accel.axis_y, 2);
-    accel.axis_z2 = pow(accel.axis_z, 2);;
+    accel.axis_z2 = pow(accel.axis_z, 2);
     accel.magnitude = fast_sqrt(accel.axis_x2 + accel.axis_y2 + accel.axis_z2);
     accel.fpitch = fast_sqrt(accel.axis_y2 + accel.axis_z2);
     accel.froll = fast_sqrt(accel.axis_x2 + accel.axis_z2);
-  } else if (accel_tick == 13) {
+  } else if (accel_tick == 13) {                              // Tick 13: calculate pitch in radians
     accel.fpitch = fast_atan2(-accel.axis_x, accel.fpitch);
-  } else if (accel_tick == 14) {
+  } else if (accel_tick == 14) {                              // Tick 14: calculate roll in radians
     accel.froll = fast_atan2(accel.axis_y, accel.froll);
-  } else if (accel_tick == 15) {
+  } else if (accel_tick == 15) {                              // Tick 15: normalize pitch, roll, and flip to 0-32
     accel.pitch = 16 + constrain(accel.fpitch * ACCEL_COEF, -16, 16);
     accel.roll  = 16 + constrain(accel.froll  * ACCEL_COEF, -16, 16);
     accel.flip  = 16 + constrain(accel.axis_z / 30,         -16, 16);
-  } else if (accel_tick == 16) {
+  } else if (accel_tick == 16) {                              // Tick 16: calculate velocity
     accel_velocity();
-  } else if (accel_tick == 17) {
-    accel_timings();
-  } else if (accel_tick == 18) {
+  } else if (accel_tick == 17) {                              // Tick 17: blend colors and timings (vectr calcs)
+    accel_blend();
+  } else if (accel_tick == 18) {                              // Tick 18: determine active pattern
     accel_variant();
   }
-
+                                                              // Tick 19 - end: do nothing
   accel_tick++;
-  if (accel_tick >= ACCEL_COUNTS) accel_tick = 0;
+  if (accel_tick >= ACCEL_COUNTS) accel_tick = 0;             // Loop accel tracker
 }
 
 void handle_render() {
-  ledr = ledg = ledb = 0;
-  if (op_state == S_PLAY) {
+  ledr = ledg = ledb = 0;                                     // reset color values
+  if (op_state == STATE_PLAY) {                               // if playing and not pressed, render the mode
     if (!was_pressed) {
       render_mode();
     }
-  } else if (op_state == S_GUI_MODE) {
+  } else if (op_state == STATE_GUI_MODE) {                    // if viewing mode, render it
     render_mode();
-  } else if (op_state == S_GUI_COLOR) {
+  } else if (op_state == STATE_GUI_COLOR) {                   // if viewing color, render it
     ledr = mode.colors[color_set][color_slot][0];
     ledg = mode.colors[color_set][color_slot][1];
     ledb = mode.colors[color_set][color_slot][2];
   }
 
-  write_frame(ledr, ledg, ledb);
+  write_frame(ledr, ledg, ledb);                              // write the frame out to LED
 }
 
 
 void setup() {
-  Serial.begin(115200);
+  settings.settings = ee_read(ADDR_SETTINGS);     // Read the settings from memory
+  pinMode(PIN_BUTTON, INPUT);                     // Enable button pin for input to handle interrupt
+  if (settings.sleeping) {                        // If we need to sleep
+    attachInterrupt(0, _push_interrupt, FALLING);   // Attach interrupt to wake on button press
+    power_down();                                   // Power down the chip
+    detachInterrupt(0);                             // Detach interrupt on waking
 
-  pinMode(PIN_BUTTON, INPUT);             // Setup pins 
-  pinMode(PIN_R, OUTPUT);
-  pinMode(PIN_G, OUTPUT);
-  pinMode(PIN_B, OUTPUT);
-  pinMode(PIN_LDO, OUTPUT);
-  digitalWrite(PIN_LDO, HIGH);            // Power on Low-Voltage Dropoff
-
-  sbi(ADCSRA, ADPS2);                     // Configure ADC for TWACD functions
-  cbi(ADCSRA, ADPS1);
-  cbi(ADCSRA, ADPS0);
-
-  noInterrupts();                         // Configure timers for fastest PWM
-  TCCR0B = (TCCR0B & 0b11111000) | 0b001; // no prescaler ~64/ms
-  TCCR1B = (TCCR1B & 0b11111000) | 0b001; // no prescaler ~32/ms
-  sbi(TCCR1B, WGM12);                     // fast PWM ~64/ms
-  limiter_us <<= 6;                       // Since the clock timer is 64x normal, compensate
-  interrupts();
-
-  pattern_funcs[P_STROBE]  = &pattern_strobe;
-  pattern_funcs[P_TRACER]  = &pattern_tracer;
-  pattern_funcs[P_MORPH]   = &pattern_morph;
-  pattern_funcs[P_SWORD]   = &pattern_sword;
-  pattern_funcs[P_WAVE]    = &pattern_wave;
-  pattern_funcs[P_DYNAMO]  = &pattern_dynamo;
-  pattern_funcs[P_SHIFTER] = &pattern_shifter;
-  pattern_funcs[P_TRIPLE]  = &pattern_triple;
-  pattern_funcs[P_STEPPER] = &pattern_stepper;
-  pattern_funcs[P_RANDOM]  = &pattern_random;
-
-  attachInterrupt(0, _push_interrupt, FALLING);
-  if (ee_read(ADDR_SLEEPING)) {
-    ee_update(ADDR_SLEEPING, 0);
-    power_down();
-    op_state = S_WAKE;
-  } else {
-    op_state = S_PLAY;
+    settings.sleeping = 0;                          // Disable sleeping bit
+    ee_update(ADDR_SETTINGS, settings.settings);    // Update settings
+    op_state = STATE_WAKE;                          // Set state to waking
+  } else {                                        // If not sleeping
+    op_state = STATE_PLAY;                          // Set state to play
   }
-  detachInterrupt(0);
 
-  locked     = ee_read(ADDR_LOCKED);      // Read in stored settings
-  conjure    = ee_read(ADDR_CONJURE);
-  cur_bundle = ee_read(ADDR_BUNDLE);
-  if (conjure) cur_mode = ee_read(ADDR_CONJURE_MODE);
-
-  accel_init();                           // initialize the accelerometer
-  change_mode(cur_bundle, cur_mode);                  // initialize current mode
-
-  randomSeed(analogRead(0));
-  Serial.write(SER_HANDSHAKE);
+  // Now that we're past the sleep handling, we can turn on everything else
+  randomSeed(analogRead(0));                      // Seed random
+  Serial.begin(115200);                           // Init serial connection
+  Serial.write(SER_HANDSHAKE);                    // Send handshake to GUI
   Serial.write(SER_VERSION);
   Serial.write(42);
   Serial.write(42);
-  last_write = micros();                  // Reset the limiter
+
+  pinMode(PIN_R, OUTPUT);                         // Enable LED pins for output
+  pinMode(PIN_G, OUTPUT);
+  pinMode(PIN_B, OUTPUT);
+  pinMode(PIN_LDO, OUTPUT);                       // Enable Low-Voltage Dropoff
+  digitalWrite(PIN_LDO, HIGH);                    // Power on Low-Voltage Dropoff
+
+  sbi(ADCSRA, ADPS2);                             // Configure ADC for TWACD functions
+  cbi(ADCSRA, ADPS1);
+  cbi(ADCSRA, ADPS0);
+  accel_init();                                   // Initialize the accelerometer
+
+  noInterrupts();                                 // Configure timers for fastest PWM
+  TCCR0B = (TCCR0B & 0b11111000) | 0b001;         // no prescaler ~64/ms
+  TCCR1B = (TCCR1B & 0b11111000) | 0b001;         // no prescaler ~32/ms
+  sbi(TCCR1B, WGM12);                             // fast PWM ~64/ms
+  limiter_us <<= 6;                               // Since the clock timer is 64x normal, compensate
+  interrupts();
+
+  patterns[PATTERN_STROBE]  = &pattern_strobe;    // Configure patterns function array
+  patterns[PATTERN_TRACER]  = &pattern_tracer;
+  patterns[PATTERN_MORPH]   = &pattern_morph;
+  patterns[PATTERN_SWORD]   = &pattern_sword;
+  patterns[PATTERN_WAVE]    = &pattern_wave;
+  patterns[PATTERN_DYNAMO]  = &pattern_dynamo;
+  patterns[PATTERN_SHIFTER] = &pattern_shifter;
+  patterns[PATTERN_TRIPLE]  = &pattern_triple;
+  patterns[PATTERN_STEPPER] = &pattern_stepper;
+  patterns[PATTERN_RANDOM]  = &pattern_random;
+
+  change_mode(settings.mode);                     // Initialize current mode
+  last_write = micros();                          // Reset the limiter
 }
 
 void loop() {
