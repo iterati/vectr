@@ -1,4 +1,3 @@
-var _e;
 var VectrUI = function() {
   'use strict';
 
@@ -117,21 +116,22 @@ var VectrUI = function() {
       view.setInt8(3, cmd[3]);
       chrome.serial.send(connection_id, buf, function() {});
     }
-    // console.log("send: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
+    console.log("send: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
   };
 
   function handleCommand(cmd) {
     if (cmd[0] == SER_HANDSHAKE && cmd[1] == SER_VERSION && cmd[2] == cmd[3]) {
       connected = true;
       sendCommand([SER_HANDSHAKE, SER_VERSION, 42, 42]);
-      // TODO: send current mode to light
+      for (var i = 0; i < 128; i++) {
+        readData(i, data[i]);
+      }
     }
   };
 
   function sendData(addr, val) {
     // Updates in-memory array and sends value to light
     data[addr] = val;
-    // console.log(addr + ": " + val);
     sendCommand([SER_WRITE, addr, val, 0]);
   };
 
@@ -1023,7 +1023,7 @@ var VectrUI = function() {
     modes.appendChild(modeitem);
   };
 
-  function readModeFile(file) {
+  function readModeFile(i, file) {
     file.file(function(file) {
       var reader = new FileReader();
       reader.onload = function(e) {
@@ -1033,6 +1033,12 @@ var VectrUI = function() {
         modeobj.id = modeobj.name.replace(/\s/g, "-").toLowerCase();
         modelib[modeobj.id] = modeobj;
         makeModeItem(modeobj);
+        if (i == 0) {
+          var arr = modeToArray(modeobj);
+          for (var b = 0; b < 128; b++) {
+            readData(b, arr[b]);
+          }
+        }
       };
       reader.readAsText(file);
     });
@@ -1064,15 +1070,46 @@ var VectrUI = function() {
           data.vectr.dir_id = chrome.fileSystem.retainEntry(entry);
           dir_root = entry;
           chrome.storage.local.set(data);
-          dir_root.getDirectory("firmwares", {create: true}, function(entry) { dir_firmwares = entry; });
+
+          var default_modes = DefaultModes.getModes();
           dir_root.getDirectory("modes",     {create: true}, function(entry) {
             dir_modes = entry;
-            var default_modes = DefaultModes.getModes();
             for (var i = 0; i < default_modes.length; i++) {
               modelib[default_modes[i].id] = default_modes[i];
               makeModeItem(default_modes[i]);
               writeMode(default_modes[i]);
+              if (i == 0) {
+                var arr = modeToArray(default_modes[i]);
+                for (var b = 0; b < 128; b++) {
+                  readData(b, arr[b]);
+                }
+              }
             }
+          });
+          dir_root.getDirectory("firmwares", {create: true}, function(entry) {
+            dir_firmwares = entry;
+            var num_modes = [8, 8];
+            var bundle_a = [
+              modeToArray(default_modes[0]),
+              modeToArray(default_modes[1]),
+              modeToArray(default_modes[2]),
+              modeToArray(default_modes[3]),
+              modeToArray(default_modes[4]),
+              modeToArray(default_modes[5]),
+              modeToArray(default_modes[6]),
+              modeToArray(default_modes[7])
+            ];
+            var bundle_b = [
+              modeToArray(default_modes[0]),
+              modeToArray(default_modes[1]),
+              modeToArray(default_modes[2]),
+              modeToArray(default_modes[3]),
+              modeToArray(default_modes[4]),
+              modeToArray(default_modes[5]),
+              modeToArray(default_modes[6]),
+              modeToArray(default_modes[7])
+            ];
+            writeSource("default", num_modes, bundle_a, bundle_b);
           });
         });
       } else {
@@ -1084,7 +1121,7 @@ var VectrUI = function() {
             var reader = entry.createReader();
             reader.readEntries(function(entries) {
               for (var i = 0; i < entries.length; i++) {
-                readModeFile(entries[i]);
+                readModeFile(i, entries[i]);
               }
             },
             function(e) {
@@ -1278,11 +1315,8 @@ var VectrUI = function() {
     };
   };
 
-  // TODO defaults
-
   initSettings();
   initUI();
-  readData(0, 0);
 
   return {
     writeMode: writeMode,

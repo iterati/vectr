@@ -9,13 +9,12 @@
         }
     },
     "icons": {
-        "16": "assets/icons/calculator-16.png",
-        "128": "assets/icons/calculator-128.png"
+        "16": "assets/icons/logo-16.png",
+        "128": "assets/icons/logo-128.png"
     },
     "permissions": [
-        "alert",
         "serial",
         "storage",
-        {"fileSystem": ["write", "directory", "retainEntries", "requestFileSystem"]}
+        {"fileSystem": ["write", "directory", "retainEntries"]}
     ]
 }
