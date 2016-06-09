@@ -116,7 +116,7 @@ var VectrUI = function() {
       view.setInt8(3, cmd[3]);
       chrome.serial.send(connection_id, buf, function() {});
     }
-    console.log("send: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
+    // console.log("send: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
   };
 
   function handleCommand(cmd) {
@@ -721,8 +721,6 @@ var VectrUI = function() {
             sendData(addr + 0, rgb.r);
             sendData(addr + 1, rgb.g);
             sendData(addr + 2, rgb.b);
-            console.log(color.formatted);
-            console.log(normColor(color.formatted));
             color_target.style.background = normColor(color.formatted);
           }
         };

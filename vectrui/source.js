@@ -19,6 +19,10 @@ var getSource = function() {
   return function(num_modes, bundle_a, bundle_b) {
     if (num_modes[0] === 0) { num_modes[0] = 1; }
     if (num_modes[1] === 0) { num_modes[1] = 1; }
+    var addr_settings = Math.round(Math.random() * 1023);
+    var num_modes = 8;
+    var num_bundles = 2;
+    var mode_size = 128;
     var num_modes_str = num_modes[0] + ", " + num_modes[1];
     var bundle_a_str = "";
     var bundle_b_str = "";
@@ -29,6 +33,8 @@ var getSource = function() {
     bundle_a_str += "    " + arrayToModeString(bundle_a[7]);
     bundle_b_str += "    " + arrayToModeString(bundle_b[7]);
 
+    console.log("formatting source code");
+
     return `
 #include <Arduino.h>
 #include <EEPROM.h>
@@ -38,9 +44,10 @@ var getSource = function() {
 #include <avr/interrupt.h>
 
 /* BEGIN MODE CONFIG */
-#define NUM_BUNDLES 2
-#define NUM_MODES   8
-#define MODE_SIZE   128
+#define ADDR_SETTINGS ${addr_settings}
+#define NUM_BUNDLES   ${num_bundles}
+#define NUM_MODES     ${num_modes}
+#define MODE_SIZE     ${mode_size}
 
 PROGMEM const uint8_t num_modes[NUM_BUNDLES] = {${num_modes_str}};
 PROGMEM const uint8_t modes[NUM_BUNDLES][NUM_MODES][MODE_SIZE] = {
@@ -56,7 +63,6 @@ ${bundle_b_str}
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
 #define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 
-#define ADDR_SETTINGS     99    // Address for saved settings
 
 #define PIN_R             9     // Red pin - timer 0
 #define PIN_G             6     // Green pin - timer 1
@@ -337,19 +343,19 @@ uint8_t TWADC_read(bool ack) {
   }
 
   if (ack) {
-    I2CADC_SCL_L_INPUT();  __asm__("nop\\n\\t");
+    I2CADC_SCL_L_INPUT();  __asm__("nop\n\t");
     I2CADC_SDA_L_INPUT();
-    I2CADC_SCL_H_OUTPUT(); __asm__("nop\\n\\t");
-    I2CADC_SCL_L_INPUT();  __asm__("nop\\n\\t");
+    I2CADC_SCL_H_OUTPUT(); __asm__("nop\n\t");
+    I2CADC_SCL_L_INPUT();  __asm__("nop\n\t");
   } else {
 AckThis:
-    I2CADC_SCL_L_INPUT();  __asm__("nop\\n\\t");
-    I2CADC_SCL_H_OUTPUT(); __asm__("nop\\n\\t");
+    I2CADC_SCL_L_INPUT();  __asm__("nop\n\t");
+    I2CADC_SCL_H_OUTPUT(); __asm__("nop\n\t");
     int result = analogRead(SCL_PIN);
     if (result < I2CADC_L) {
       goto AckThis;
     }
-    I2CADC_SCL_L_INPUT();  __asm__("nop\\n\\t");
+    I2CADC_SCL_L_INPUT();  __asm__("nop\n\t");
 
   }
   return data;
@@ -1339,9 +1345,9 @@ void handle_button() {
 
   if (op_state == STATE_PLAY) {                               // If playing
     if (pressed) {                                              // and pressed
-      if (since_press == 1000)      flash(255, 255, 255);         // Flash white when chip will sleep (500ms)
-      else if (since_press == 4000) flash(0, 0, 255);             // Flash blue when conjure will toggle (2s)
-      else if (since_press == 8000) flash(255, 0, 0);             // Flash red when chip will lock and sleep (4s)
+      if (since_press == 1000)      flash(32, 32, 32);            // Flash white when chip will sleep (500ms)
+      else if (since_press == 4000) flash(0, 0, 128);             // Flash blue when conjure will toggle (2s)
+      else if (since_press == 8000) flash(128, 0, 0);             // Flash red when chip will lock and sleep (4s)
     } else if (changed) {                                       // if not pressed and changed (just released)
       if (since_press < 1000) {                                   // if less than 500ms, sleep if conjuring and change mode if not
         if (settings.conjure) enter_sleep();
@@ -1360,25 +1366,25 @@ void handle_button() {
   } else if (op_state == STATE_WAKE) {                        // If waking
     if (settings.locked) {                                      // and locked
       if (pressed) {                                              // and pressed
-        if (since_press == 4000)      flash(0, 255, 0);             // Flash green when light will wake (2s)
-        else if (since_press == 8000) flash(255, 0, 0);             // Flash red when light will stay locked (4s)
+        if (since_press == 4000)      flash(0, 128, 0);             // Flash green when light will wake (2s)
+        else if (since_press == 8000) flash(128, 0, 0);             // Flash red when light will stay locked (4s)
       } else if (changed) {                                       // if not pressed and changed (just released)
         if (since_press < 4000) {                                   // if less than 2s, stay locked
-          flash(255, 0, 0);                                           // flash red
+          flash(128, 0, 0);                                           // flash red
           enter_sleep();                                              // go to sleep
         } else if (since_press < 8000) {                            // if less than 4s, unlock
           settings.locked = 0;                                        // unset locked bit
           ee_update(ADDR_SETTINGS, settings.settings);                // save settings
           op_state = STATE_PLAY;                                      // wake up and play
         } else {                                                    // if more than 4s, stay locked
-          flash(255, 0, 0);                                           // flash red
+          flash(128, 0, 0);                                           // flash red
           enter_sleep();                                              // go to sleep
         }
       }
     } else {                                                    // if not locked
       if (pressed) {                                              // and pressed
-        if (since_press == 4000)      flash(255, 255, 255);         // flash white after 2s (bundle switch)
-        else if (since_press == 8000) flash(255, 0, 0);             // flash red after 4s (lock light)
+        if (since_press == 4000)      flash(32, 32, 32);            // flash white after 2s (bundle switch)
+        else if (since_press == 8000) flash(128, 0, 0);             // flash red after 4s (lock light)
       } else if (changed) {                                       // if not pressed and changed (just released)
         if (since_press < 4000) {                                   // if less than 2s, wake up and play
           op_state = STATE_PLAY;

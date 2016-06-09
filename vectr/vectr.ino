@@ -6,9 +6,10 @@
 #include <avr/interrupt.h>
 
 /* BEGIN MODE CONFIG */
-#define NUM_BUNDLES 2
-#define NUM_MODES   8
-#define MODE_SIZE   128
+#define ADDR_SETTINGS 99
+#define NUM_BUNDLES   2
+#define NUM_MODES     8
+#define MODE_SIZE     128
 
 PROGMEM const uint8_t num_modes[NUM_BUNDLES] = {8, 8};
 PROGMEM const uint8_t modes[NUM_BUNDLES][NUM_MODES][MODE_SIZE] = {
@@ -38,7 +39,6 @@ PROGMEM const uint8_t modes[NUM_BUNDLES][NUM_MODES][MODE_SIZE] = {
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
 #define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 
-#define ADDR_SETTINGS     99    // Address for saved settings
 
 #define PIN_R             9     // Red pin - timer 0
 #define PIN_G             6     // Green pin - timer 1
@@ -1321,9 +1321,9 @@ void handle_button() {
 
   if (op_state == STATE_PLAY) {                               // If playing
     if (pressed) {                                              // and pressed
-      if (since_press == 1000)      flash(255, 255, 255);         // Flash white when chip will sleep (500ms)
-      else if (since_press == 4000) flash(0, 0, 255);             // Flash blue when conjure will toggle (2s)
-      else if (since_press == 8000) flash(255, 0, 0);             // Flash red when chip will lock and sleep (4s)
+      if (since_press == 1000)      flash(32, 32, 32);            // Flash white when chip will sleep (500ms)
+      else if (since_press == 4000) flash(0, 0, 128);             // Flash blue when conjure will toggle (2s)
+      else if (since_press == 8000) flash(128, 0, 0);             // Flash red when chip will lock and sleep (4s)
     } else if (changed) {                                       // if not pressed and changed (just released)
       if (since_press < 1000) {                                   // if less than 500ms, sleep if conjuring and change mode if not
         if (settings.conjure) enter_sleep();
@@ -1342,25 +1342,25 @@ void handle_button() {
   } else if (op_state == STATE_WAKE) {                        // If waking
     if (settings.locked) {                                      // and locked
       if (pressed) {                                              // and pressed
-        if (since_press == 4000)      flash(0, 255, 0);             // Flash green when light will wake (2s)
-        else if (since_press == 8000) flash(255, 0, 0);             // Flash red when light will stay locked (4s)
+        if (since_press == 4000)      flash(0, 128, 0);             // Flash green when light will wake (2s)
+        else if (since_press == 8000) flash(128, 0, 0);             // Flash red when light will stay locked (4s)
       } else if (changed) {                                       // if not pressed and changed (just released)
         if (since_press < 4000) {                                   // if less than 2s, stay locked
-          flash(255, 0, 0);                                           // flash red
+          flash(128, 0, 0);                                           // flash red
           enter_sleep();                                              // go to sleep
         } else if (since_press < 8000) {                            // if less than 4s, unlock
           settings.locked = 0;                                        // unset locked bit
           ee_update(ADDR_SETTINGS, settings.settings);                // save settings
           op_state = STATE_PLAY;                                      // wake up and play
         } else {                                                    // if more than 4s, stay locked
-          flash(255, 0, 0);                                           // flash red
+          flash(128, 0, 0);                                           // flash red
           enter_sleep();                                              // go to sleep
         }
       }
     } else {                                                    // if not locked
       if (pressed) {                                              // and pressed
-        if (since_press == 4000)      flash(255, 255, 255);         // flash white after 2s (bundle switch)
-        else if (since_press == 8000) flash(255, 0, 0);             // flash red after 4s (lock light)
+        if (since_press == 4000)      flash(32, 32, 32);            // flash white after 2s (bundle switch)
+        else if (since_press == 8000) flash(128, 0, 0);             // flash red after 4s (lock light)
       } else if (changed) {                                       // if not pressed and changed (just released)
         if (since_press < 4000) {                                   // if less than 2s, wake up and play
           op_state = STATE_PLAY;
