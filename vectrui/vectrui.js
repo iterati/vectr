@@ -108,7 +108,7 @@ var VectrUI = function() {
 
   function sendCommand(cmd, force) {
     if (connected || force) {
-      console.log("sent: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
+      // console.log("sent: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
       var buf = new ArrayBuffer(4);
       var view = new DataView(buf);
       view.setInt8(0, cmd[0]);
@@ -120,7 +120,7 @@ var VectrUI = function() {
   };
 
   function handleCommand(cmd) {
-    console.log("got: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
+    // console.log("got: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
     if (cmd[0] == SER_HANDSHAKE && cmd[1] == SER_VERSION && cmd[2] == cmd[3]) {
       connected = true;
       for (var i = 0; i < 128; i++) {
@@ -1187,7 +1187,6 @@ var VectrUI = function() {
     connect_button.style.width = "120px";
     connect_button.onclick = function() {
       return function(event) {
-        console.log("I CLICKED!");
         if (this.value === "Connect") {
           var port = dropdown.childNodes[dropdown.value].textContent;
           chrome.serial.connect(port, {bitrate: 115200}, function(info) {

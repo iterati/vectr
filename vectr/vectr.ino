@@ -1358,10 +1358,8 @@ void handle_button() {
         enter_sleep();
       } else if (since_press < 8000) {                            // if less than 4s, toggle conjure
         settings.conjure = (settings.conjure == 0) ? 1 : 0;         // toggle conjure
-        ee_update(ADDR_SETTINGS, settings.settings);                // save settings
       } else {                                                    // if more than 4s, lock light
         settings.locked = 1;                                        // set locked bit
-        ee_update(ADDR_SETTINGS, settings.settings);                // save settings
         enter_sleep();                                              // go to sleep
       }
     }
@@ -1376,7 +1374,6 @@ void handle_button() {
           enter_sleep();                                              // go to sleep
         } else if (since_press < 8000) {                            // if less than 4s, unlock
           settings.locked = 0;                                        // unset locked bit
-          ee_update(ADDR_SETTINGS, settings.settings);                // save settings
           op_state = STATE_PLAY;                                      // wake up and play
         } else {                                                    // if more than 4s, stay locked
           flash(128, 0, 0);                                           // flash red
@@ -1394,11 +1391,10 @@ void handle_button() {
           settings.bundle = (settings.bundle == 0) ? 1 : 0;           // toggle bundle 1/2
           settings.conjure = 0;                                       // deactivate conjure
           settings.mode = 0;                                          // reset mode
-          ee_update(ADDR_SETTINGS, settings.settings);                // save settings
           change_mode(0);                                             // change to mode 0
+          op_state = STATE_PLAY;
         } else {                                                    // if more than 4s, lock light
           settings.locked = 1;                                        // set lock bit
-          ee_update(ADDR_SETTINGS, settings.settings);                // save settings
           enter_sleep();                                              // go to sleep
         }
       }
@@ -1500,7 +1496,6 @@ void setup() {
     detachInterrupt(0);                             // Detach interrupt on waking
 
     settings.sleeping = 0;                          // Disable sleeping bit
-    ee_update(ADDR_SETTINGS, settings.settings);    // Update settings
     op_state = STATE_WAKE;                          // Set state to waking
   } else {                                        // If not sleeping
     op_state = STATE_PLAY;                          // Set state to play
