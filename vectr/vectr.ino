@@ -674,7 +674,7 @@ void pattern_sword(PatternState *state, bool rend) {
     if (state->segm >= 2) {
       state->segm = 0;
       state->cntr++;
-      if (state->cntr >= (pick - 1) * 2) {
+      if (state->cntr >= (pick * 2) - 1) {
         state->cntr = 0;
         state->cidx += pick;
         if (state->cidx >= numc) {
@@ -702,9 +702,9 @@ void pattern_sword(PatternState *state, bool rend) {
     bool show_blank = state->segm == 0;
     uint8_t color = state->cidx;
     if (state->cntr < pick) {
-      color += numc - state->cntr - 1;
+      color += pick - state->cntr - 1;
     } else {
-      color += state->cntr - numc + 1;
+      color += state->cntr - pick + 1;
     }
     if (color >= numc) show_blank = true;
 
@@ -721,6 +721,7 @@ void pattern_sword(PatternState *state, bool rend) {
 
   state->trip--;
 }
+
 
 void pattern_wave(PatternState *state, bool rend) {
   uint8_t numc = constrain(state->numc, 1, 9);

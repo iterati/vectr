@@ -8,7 +8,7 @@ var VectrUI = function() {
   var SER_VIEW_MODE  = 220;
   var SER_VIEW_COLOR = 230;
 
-  var version = "0.2";
+  var version = "0.2.1";
   var dir_root;
   var dir_firmwares;
   var dir_modes;
@@ -738,7 +738,7 @@ var VectrUI = function() {
         };
       }();
 
-      $(color_input).colorpicker({
+      var picker = $(color_input).colorpicker({
         alpha: false,
         closeOnOutside: false,
         swatches: 'custom_array',
@@ -769,7 +769,9 @@ var VectrUI = function() {
 
       var updateColor = function(channel) {
         return function(val) {
-          color_target.style.background = getColorHex(set_idx, slot_idx);
+          var hex = getColorHex(set_idx, slot_idx);
+          color_target.style.background = hex;
+          $(color_input).val(hex);
         };
       };
 
@@ -915,6 +917,7 @@ var VectrUI = function() {
                         .concat(values)
                         .concat([$(slider).limitslider("option", "max")]);
 
+          console.log(val + " " + checks[idx] + " " + checks[idx + 2]);
           if (val < checks[idx]) {
             val = checks[idx];
           } else if (val > checks[idx + 2]) {
@@ -954,7 +957,8 @@ var VectrUI = function() {
         if (event.originalEvent) {
           var idx = $(ui.handle).data("ui-slider-handle-index");
           value_elems[idx].value = ui.values[idx];
-          sendData(addr, ui.values[idx]);
+          console.log((addr + idx) + " " + ui.values[idx]);
+          sendData(addr + idx, ui.values[idx]);
         }
       };
     }();
@@ -1319,6 +1323,7 @@ var VectrUI = function() {
 
   return {
     writeMode: writeMode,
-    writeSource: writeSource
+    writeSource: writeSource,
+    data: data
   };
 }();
