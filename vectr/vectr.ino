@@ -722,7 +722,6 @@ void pattern_sword(PatternState *state, bool rend) {
   state->trip--;
 }
 
-
 void pattern_wave(PatternState *state, bool rend) {
   uint8_t numc = constrain(state->numc, 1, 9);
 
