@@ -5,6 +5,23 @@
 #include <avr/power.h>
 #include <avr/interrupt.h>
 
+// /* BEGIN MODE CONFIG */
+// #define ADDR_SETTINGS ${addr_settings}
+// #define NUM_BUNDLES   ${num_bundles}
+// #define NUM_MODES     ${max_modes}
+// #define MODE_SIZE     ${mode_size}
+// 
+// PROGMEM const uint8_t num_modes[NUM_BUNDLES] = {${num_modes_str}};
+// PROGMEM const uint8_t modes[NUM_BUNDLES][NUM_MODES][MODE_SIZE] = {
+//   {
+// ${bundle_a_str}
+//   },
+//   {
+// ${bundle_b_str}
+//   }
+// };
+// /* END MODE CONFIG */
+
 /* BEGIN MODE CONFIG */
 #define ADDR_SETTINGS 99
 #define NUM_BUNDLES   2
@@ -34,6 +51,9 @@ PROGMEM const uint8_t modes[NUM_BUNDLES][NUM_MODES][MODE_SIZE] = {
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
   },
 };
+
+#define NOP __asm__("nop\n\t")
+
 /* END MODE CONFIG */
 
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
@@ -319,19 +339,19 @@ uint8_t TWADC_read(bool ack) {
   }
 
   if (ack) {
-    I2CADC_SCL_L_INPUT();  __asm__("nop\n\t");
+    I2CADC_SCL_L_INPUT();  NOP;
     I2CADC_SDA_L_INPUT();
-    I2CADC_SCL_H_OUTPUT(); __asm__("nop\n\t");
-    I2CADC_SCL_L_INPUT();  __asm__("nop\n\t");
+    I2CADC_SCL_H_OUTPUT(); NOP;
+    I2CADC_SCL_L_INPUT();  NOP;
   } else {
 AckThis:
-    I2CADC_SCL_L_INPUT();  __asm__("nop\n\t");
-    I2CADC_SCL_H_OUTPUT(); __asm__("nop\n\t");
+    I2CADC_SCL_L_INPUT();  NOP;
+    I2CADC_SCL_H_OUTPUT(); NOP;
     int result = analogRead(SCL_PIN);
     if (result < I2CADC_L) {
       goto AckThis;
     }
-    I2CADC_SCL_L_INPUT();  __asm__("nop\n\t");
+    I2CADC_SCL_L_INPUT();  NOP;
 
   }
   return data;
@@ -1300,11 +1320,17 @@ void handle_serial() {
         settings.bundle = 0;                      // Reset bundle
         settings.mode = 0;                        // Reset mode
         op_state = STATE_GUI_MODE;                // View mode
+
+        Serial.write(SER_HANDSHAKE);              // Send handshake to GUI
+        Serial.write(SER_VERSION);
+        Serial.write(42);
+        Serial.write(42);
       }
     } else if (cmd == SER_DISCONNECT) {         // If disconnecting, just go into play state
       op_state = STATE_PLAY;
     } else if (cmd == SER_WRITE) {              // If writing, set in-memory mode's addr (in0) to value (in1)
       mode.data[in0] = in1;
+      init_mode();
     } else if (cmd == SER_VIEW_MODE) {          // If view mode, view mode
       op_state = STATE_GUI_MODE;
     } else if (cmd == SER_VIEW_COLOR) {         // If view color, update color set (in0) and slot (in1) then view color
@@ -1465,6 +1491,8 @@ void handle_render() {
 
 void setup() {
   settings.settings = ee_read(ADDR_SETTINGS);     // Read the settings from memory
+  if (!settings.conjure) settings.mode = 0;       // Reset mode if we're not conjuring
+
   pinMode(PIN_BUTTON, INPUT);                     // Enable button pin for input to handle interrupt
   if (settings.sleeping) {                        // If we need to sleep
     attachInterrupt(0, _push_interrupt, FALLING);   // Attach interrupt to wake on button press
@@ -1481,10 +1509,6 @@ void setup() {
   // Now that we're past the sleep handling, we can turn on everything else
   randomSeed(analogRead(0));                      // Seed random
   Serial.begin(115200);                           // Init serial connection
-  Serial.write(SER_HANDSHAKE);                    // Send handshake to GUI
-  Serial.write(SER_VERSION);
-  Serial.write(42);
-  Serial.write(42);
 
   pinMode(PIN_R, OUTPUT);                         // Enable LED pins for output
   pinMode(PIN_G, OUTPUT);
