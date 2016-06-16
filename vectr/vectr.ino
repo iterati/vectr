@@ -1209,15 +1209,8 @@ void accel_velocity() {
 
   while (i < ACCEL_BINS) {
     bin_thresh += ACCEL_BIN_SIZE;               // Increase thresh for next level
-    bin_thresh += ACCEL_BINS - i;               // Smooth out velocity curve
-
-    // Enlarge bin for current velocity
-    /* if (i == prev_velocity - 3) bin_thresh -= 4; */
-    /* if (i == prev_velocity - 2) bin_thresh -= 12; */
-    /* if (i == prev_velocity - 1) bin_thresh -= 28; */
-    /* if (i == prev_velocity)     bin_thresh += 28; */
-    /* if (i == prev_velocity + 1) bin_thresh += 12; */
-    /* if (i == prev_velocity + 2) bin_thresh += 4; */
+    /* bin_thresh += ACCEL_BINS - i;               // Smooth out velocity curve */
+    bin_thresh += i;
 
     // If velocity is over thresh, reset falloff and increment trigger (capped at 128 to prevent overflow)
     if (accel.magnitude > bin_thresh) {
@@ -1323,8 +1316,10 @@ void handle_serial() {
 
         Serial.write(SER_HANDSHAKE);              // Send handshake to GUI
         Serial.write(SER_VERSION);
-        Serial.write(42);
-        Serial.write(42);
+        Serial.write(in1);
+        Serial.write(in2);
+
+        flash(64, 64, 64);
       }
     } else if (cmd == SER_DISCONNECT) {         // If disconnecting, just go into play state
       op_state = STATE_PLAY;

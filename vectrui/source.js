@@ -1329,6 +1329,8 @@ void handle_serial() {
         Serial.write(SER_VERSION);
         Serial.write(42);
         Serial.write(42);
+
+        flash(64, 64, 64);
       }
     } else if (cmd == SER_DISCONNECT) {         // If disconnecting, just go into play state
       op_state = STATE_PLAY;
