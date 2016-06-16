@@ -19,12 +19,12 @@ var VectrUI = function() {
   var updateListeners = [];
   var modelib = {};
 
-  var main = document.querySelector("#main");
-  var editor = document.querySelector("#editor");
-  var bundles = document.querySelector("#bundles");
-  var bundle0 = document.querySelector("#bundle0");
-  var bundle1 = document.querySelector("#bundle1");
-  var modes = document.querySelector("#mode-list");
+  var main = document.getElementById("main");
+  var editor = document.getElementById("editor");
+  var bundles = document.getElementById("bundles");
+  var bundle0 = document.getElementById("bundle0");
+  var bundle1 = document.getElementById("bundle1");
+  var modes = document.getElementById("mode-list");
 
   var modetypes = ["Vectr", "Primer"];
   var triggers = ["Off", "Velocity", "Pitch", "Roll", "Flip"];
@@ -917,7 +917,6 @@ var VectrUI = function() {
                         .concat(values)
                         .concat([$(slider).limitslider("option", "max")]);
 
-          console.log(val + " " + checks[idx] + " " + checks[idx + 2]);
           if (val < checks[idx]) {
             val = checks[idx];
           } else if (val > checks[idx + 2]) {
@@ -957,7 +956,6 @@ var VectrUI = function() {
         if (event.originalEvent) {
           var idx = $(ui.handle).data("ui-slider-handle-index");
           value_elems[idx].value = ui.values[idx];
-          console.log((addr + idx) + " " + ui.values[idx]);
           sendData(addr + idx, ui.values[idx]);
         }
       };
@@ -1122,8 +1120,12 @@ var VectrUI = function() {
             dir_modes = entry;
             var reader = entry.createReader();
             reader.readEntries(function(entries) {
+              var c = 0;
               for (var i = 0; i < entries.length; i++) {
-                readModeFile(i, entries[i]);
+                if (entries[i].name.endsWith(".mode")) {
+                  readModeFile(c, entries[i]);
+                  c++;
+                }
               }
             },
             function(e) {
@@ -1318,12 +1320,40 @@ var VectrUI = function() {
     };
   };
 
+  function initDragDrop() {
+    var dnd = new DnDFileController('body', function(data) {
+      var fileEntry = data.items[0].webkitGetAsEntry();
+
+      fileEntry.file(function(file) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var contents = e.target.result;
+          var modeobj = JSON.parse(contents);
+          modeobj.name = file.name.replace(".mode", "");
+          modeobj.id = modeobj.name.replace(/\s/g, "-").toLowerCase();
+
+          if (modelib[modeobj.id]) {
+            modelib[modeobj.id] = modeobj;
+            writeMode(modeobj);
+          } else {
+            modelib[modeobj.id] = modeobj;
+            makeModeItem(modeobj);
+            writeMode(modeobj);
+          }
+        }
+        reader.readAsText(file);
+      });
+    });
+  };
+
   initSettings();
   initUI();
+  initDragDrop();
 
   return {
     writeMode: writeMode,
     writeSource: writeSource,
+    modelib: modelib,
     data: data
   };
 }();
