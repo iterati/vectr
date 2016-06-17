@@ -81,6 +81,7 @@ ${bundle_b_str}
 #define SER_DISCONNECT    210   // Disconnect command
 #define SER_VIEW_MODE     220   // View in-memory mode command
 #define SER_VIEW_COLOR    230   // View in-memory color command: color set, color slot
+#define SER_INIT          240   // Call init_mode()
 
 #define STATE_PLAY        0     // Normal operation
 #define STATE_WAKE        1     // Waking from sleep
@@ -1213,15 +1214,8 @@ void accel_velocity() {
 
   while (i < ACCEL_BINS) {
     bin_thresh += ACCEL_BIN_SIZE;               // Increase thresh for next level
-    bin_thresh += ACCEL_BINS - i;               // Smooth out velocity curve
-
-    // Enlarge bin for current velocity
-    /* if (i == prev_velocity - 3) bin_thresh -= 4; */
-    /* if (i == prev_velocity - 2) bin_thresh -= 12; */
-    /* if (i == prev_velocity - 1) bin_thresh -= 28; */
-    /* if (i == prev_velocity)     bin_thresh += 28; */
-    /* if (i == prev_velocity + 1) bin_thresh += 12; */
-    /* if (i == prev_velocity + 2) bin_thresh += 4; */
+    /* bin_thresh += ACCEL_BINS - i;               // Smooth out velocity curve */
+    bin_thresh += i;
 
     // If velocity is over thresh, reset falloff and increment trigger (capped at 128 to prevent overflow)
     if (accel.magnitude > bin_thresh) {
@@ -1324,25 +1318,25 @@ void handle_serial() {
         settings.bundle = 0;                      // Reset bundle
         settings.mode = 0;                        // Reset mode
         op_state = STATE_GUI_MODE;                // View mode
+        flash(64, 64, 64);
 
         Serial.write(SER_HANDSHAKE);              // Send handshake to GUI
         Serial.write(SER_VERSION);
         Serial.write(42);
         Serial.write(42);
-
-        flash(64, 64, 64);
       }
     } else if (cmd == SER_DISCONNECT) {         // If disconnecting, just go into play state
       op_state = STATE_PLAY;
     } else if (cmd == SER_WRITE) {              // If writing, set in-memory mode's addr (in0) to value (in1)
       mode.data[in0] = in1;
-      init_mode();
     } else if (cmd == SER_VIEW_MODE) {          // If view mode, view mode
       op_state = STATE_GUI_MODE;
     } else if (cmd == SER_VIEW_COLOR) {         // If view color, update color set (in0) and slot (in1) then view color
       color_set = in0;
       color_slot = in1;
       op_state = STATE_GUI_COLOR;
+    } else if (cmd == SER_INIT) {
+      init_mode();
     }
   }
 }

@@ -108,7 +108,7 @@ var VectrUI = function() {
 
   function sendCommand(cmd, force) {
     if (connected || force) {
-      // console.log("sent: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
+      console.log("sent: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
       var buf = new ArrayBuffer(4);
       var view = new DataView(buf);
       view.setInt8(0, cmd[0]);
@@ -120,12 +120,13 @@ var VectrUI = function() {
   };
 
   function handleCommand(cmd) {
-    // console.log("got: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
+    console.log("got: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
     if (cmd[0] == SER_HANDSHAKE && cmd[1] == SER_VERSION && cmd[2] == cmd[3]) {
       connected = true;
       for (var i = 0; i < 128; i++) {
-        readData(i, data[i]);
+        sendData(i, data[i]);
       }
+      sendCommand([240, 0, 0, 0]);
     }
   };
 
@@ -429,7 +430,6 @@ var VectrUI = function() {
       updateListeners[1 + pattern_idx].push(listener(true));
     };
 
-
     function PatternElement(parent) {
       // Pattern label + dropdown
       var elem = document.createElement("div");
@@ -450,6 +450,7 @@ var VectrUI = function() {
       dropdown.onchange = function() {
         return function(event) {
           updateData(1 + pattern_idx, this.value);
+          sendCommand([240, 0, 0, 0]);
         };
       }();
       elem.appendChild(dropdown);
@@ -663,6 +664,7 @@ var VectrUI = function() {
             updateData(1, 0);
             updateData(2, 0);
             updateData(127, 0);
+            sendCommand([240, 0, 0, 0]);
           }
         } else {
           elem.style.display = 'none';
@@ -1018,6 +1020,7 @@ var VectrUI = function() {
       for (var i = 0; i < 128; i++) {
         readData(i, arr[i]);
       }
+      sendCommand([240, 0, 0, 0]);
     };
 
     modes.appendChild(modeitem);
@@ -1146,6 +1149,7 @@ var VectrUI = function() {
     dropdown.onchange = function() {
       return function(event) {
         updateData(0, this.value);
+        sendCommand([240, 0, 0, 0]);
       };
     }();
     elem.appendChild(dropdown);
