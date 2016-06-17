@@ -8,7 +8,7 @@ var VectrUI = function() {
   var SER_VIEW_MODE  = 220;
   var SER_VIEW_COLOR = 230;
 
-  var version = "0.2.1";
+  var version = "0.2.2";
   var dir_root;
   var dir_firmwares;
   var dir_modes;
