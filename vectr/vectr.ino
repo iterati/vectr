@@ -7,7 +7,7 @@
 #include <avr/interrupt.h>
 
 /* BEGIN MODE CONFIG */
-#define ADDR_SETTINGS 550
+#define ADDR_SETTINGS 525
 #define NUM_BUNDLES   2
 #define NUM_MODES     8
 #define MODE_SIZE     128
