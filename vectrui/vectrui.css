@@ -1,7 +1,27 @@
+/* latin */
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 400;
+  src: url(./assets/fonts/Cairo.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+}
+
 body, html {
   margin: 0px;
   padding: 0px;
+  background-color: #222222;
+  font-family: 'Cairo', serif;
+  color: #dddddd;
+
 }
+
+input, select, button {
+  background-color:#222222;
+  color: #dddddd;
+  border: 1px #888888 solid;
+}
+
 
 #main {
   height: 720px;
@@ -9,6 +29,7 @@ body, html {
 }
 
 #header {
+  font-weight: bold;
   position: fixed;
   top: 0;
   left: 0;
@@ -89,15 +110,15 @@ body, html {
   width: 100%;
 }
 
-.range-0  { background: #ff0000; }
-.range-01 { background: -webkit-linear-gradient(left, #ff0000 0%, #ff00ff 50%, #0000ff 100%); }
-.range-1  { background: #0000ff; }
-.range-12 { background: -webkit-linear-gradient(left, #0000ff 0%, #00ffff 50%, #00ff00 100%); }
-.range-2  { background: #00ff00; }
+.range-0  { background: #ff4444; }
+.range-01 { background: -webkit-linear-gradient(left, #ff4444 0%, #ff44ff 50%, #4444ff 100%); }
+.range-1  { background: #4444ff; }
+.range-12 { background: -webkit-linear-gradient(left, #4444ff 0%, #44ffff 50%, #44ff44 100%); }
+.range-2  { background: #44ff44; }
 
-.trigger-0  { background: #ff0000; }
-.trigger-01 { background: #ff00ff; }
-.trigger-1  { background: #0000ff; }
+.trigger-0  { background: #ff4444; }
+.trigger-01 { background: #ff44ff; }
+.trigger-1  { background: #4444ff; }
 
 .color {
   width: 25px;
@@ -110,8 +131,9 @@ body, html {
 .mode {
   min-height: 20px;
   min-width: 160px;
-  padding-top: 5px;
+  padding-top: 0px;
   margin: 5px;
   text-align: center;
-  background: #aaa;
+  background: #555555;
+  color: #dddddd;
 }

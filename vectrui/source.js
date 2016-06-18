@@ -88,13 +88,15 @@ ${bundle_b_str}
 #define STATE_GUI_MODE    2     // Viewing in-memory mode
 #define STATE_GUI_COLOR   3     // Viewing in-memory color
 
-#define ACCEL_BINS        32    // 32 bins gives 33 velocity states
-#define ACCEL_BIN_SIZE    40    // approx 0.1g
 #define ACCEL_COUNTS      40    // 20 frames between accel reads (50hz)
+#define ACCEL_BINS        64    // 32 bins gives 33 velocity states
 #define ACCEL_ONEG        512   // +- 4g range
-#define ACCEL_FALLOFF     10    // 10 cycle falloff / 200ms
-#define ACCEL_TARGET      2     // 2 cycle target / 40ms
-#define ACCEL_COEF        11.82 // For normalizing pitch and roll to 0-32
+#define ACCEL_MAX_GS      4
+uint32_t ACCEL_BIN_SIZE = (ACCEL_MAX_GS * ACCEL_ONEG) / ACCEL_BINS;
+float ACCEL_COEF =        378.24 / ACCEL_BINS;  // For normalizing pitch and roll
+
+#define ACCEL_FALLOFF     8     // 20ms cycles before falloff
+#define ACCEL_TARGET      1     // 20ms cycles before triggering
 
 #define TYPE_VECTR        0     // Vectr mode type
 #define TYPE_PRIMER       1     // Primer mode type
@@ -494,6 +496,7 @@ void pattern_strobe(PatternState *state, bool rend) {
 
   bool show_blank = !(state->segm & 1 == 1);
   uint8_t color = state->cidx + (state->segm / 2);
+  if (color >= state->numc) color -= numc;
 
   if (rend) {
     if (show_blank) {
@@ -1213,9 +1216,7 @@ void accel_velocity() {
   uint8_t i = 0;                                // Counter
 
   while (i < ACCEL_BINS) {
-    bin_thresh += ACCEL_BIN_SIZE;               // Increase thresh for next level
-    /* bin_thresh += ACCEL_BINS - i;               // Smooth out velocity curve */
-    bin_thresh += i;
+    bin_thresh += ACCEL_BIN_SIZE;
 
     // If velocity is over thresh, reset falloff and increment trigger (capped at 128 to prevent overflow)
     if (accel.magnitude > bin_thresh) {

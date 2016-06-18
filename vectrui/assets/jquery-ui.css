@@ -844,21 +844,21 @@ body .ui-tooltip {
 	font-size: 1em;
 }
 .ui-widget-content {
-	border: 1px solid #404040;
-	background: #121212 url("images/ui-bg_gloss-wave_16_121212_500x100.png") 50% top repeat-x;
-	color: #eeeeee;
+	border: 1px solid #808080;
+	background: #c0c0c0 url("images/ui-bg_gloss-wave_16_121212_500x100.png") 50% top repeat-x;
+	color: #222222;
 }
 .ui-widget-content a {
-	color: #eeeeee;
+	color: #222222;
 }
 .ui-widget-header {
-	border: 1px solid #404040;
-	background: #888888 url("images/ui-bg_highlight-hard_15_888888_1x100.png") 50% 50% repeat-x;
-	color: #ffffff;
+	border: 1px solid #808080;
+	background: #c0c0c0 url("images/ui-bg_highlight-hard_15_888888_1x100.png") 50% 50% repeat-x;
+	color: #000000;
 	font-weight: bold;
 }
 .ui-widget-header a {
-	color: #ffffff;
+	color: #000000;
 }
 
 /* Interaction states

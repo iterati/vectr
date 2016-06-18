@@ -50,8 +50,8 @@ var DefaultModes = function() {
         [0, 0, 0]
       ]
     ],
-    thresh0: [7, 7, 30, 30],
-    thresh1: [7, 7, 30, 30],
+    thresh0: [10, 10, 40, 40],
+    thresh1: [10, 10, 40, 40],
     trigger: 0
   },
   {
@@ -65,8 +65,8 @@ var DefaultModes = function() {
     ],
     timings: [
       [1, 0, 200, 0, 0, 0, 0, 0],
-      [6, 0, 200, 0, 0, 0, 0, 0],
-      [6, 50, 0, 0, 0, 0, 0, 0]
+      [11, 0, 200, 0, 0, 0, 0, 0],
+      [3, 50, 0, 0, 0, 0, 0, 0]
     ],
     numc: [6, 6, 1],
     colors: [
@@ -104,8 +104,8 @@ var DefaultModes = function() {
         [0, 0, 0]
       ]
     ],
-    thresh0: [1, 6, 6, 32],
-    thresh1: [0, 32, 32, 32],
+    thresh0: [0, 10, 10, 58],
+    thresh1: [0, 58, 64, 64],
     trigger: 0
   },
   {
@@ -158,8 +158,8 @@ var DefaultModes = function() {
         [0, 0, 0]
       ]
     ],
-    thresh0: [5, 15, 20, 30],
-    thresh1: [32, 32, 32, 32],
+    thresh0: [5, 25, 25, 60],
+    thresh1: [64, 64, 64, 64],
     trigger: 0
   },
   {
@@ -173,7 +173,7 @@ var DefaultModes = function() {
     ],
     timings: [
       [5, 0, 1, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 0, 1, 0, 0, 0, 0, 0],
       [0, 0, 0, 0, 0, 0, 0, 0]
     ],
     numc: [3, 3, 1],
@@ -212,8 +212,8 @@ var DefaultModes = function() {
         [0, 0, 0]
       ]
     ],
-    thresh0: [32, 32, 32, 32],
-    thresh1: [6, 22, 32, 32],
+    thresh0: [8, 64, 64, 64],
+    thresh1: [8, 64, 64, 64],
     trigger: 0
   },
   {
@@ -266,8 +266,8 @@ var DefaultModes = function() {
         [0, 0, 0]
       ]
     ],
-    thresh0: [0, 32, 32, 32],
-    thresh1: [32, 32, 32, 32],
+    thresh0: [0, 64, 64, 64],
+    thresh1: [64, 64, 64, 64],
     trigger: 0
   },
   {
@@ -280,9 +280,9 @@ var DefaultModes = function() {
       [0, 0, 0, 0]
     ],
     timings: [
-      [80, 1, 9, 5, 9, 5, 1, 5],
-      [60, 1, 9, 5, 9, 5, 1, 5],
-      [20, 1, 9, 5, 9, 5, 1, 5]
+      [80, 1, 8, 5, 9, 6, 2, 4],
+      [60, 1, 8, 5, 9, 6, 2, 4],
+      [20, 1, 8, 5, 9, 6, 2, 4]
     ],
     numc: [4, 1, 1],
     colors: [
@@ -320,8 +320,8 @@ var DefaultModes = function() {
         [0, 0, 0]
       ]
     ],
-    thresh0: [0, 16, 16, 32],
-    thresh1: [32, 32, 32, 32],
+    thresh0: [0, 32, 32, 64],
+    thresh1: [64, 64, 64, 64],
     trigger: 0
   },
   {
@@ -374,8 +374,8 @@ var DefaultModes = function() {
         [0, 0, 0]
       ]
     ],
-    thresh0: [0, 26, 32, 32],
-    thresh1: [32, 32, 32, 32],
+    thresh0: [0, 56, 64, 64],
+    thresh1: [64, 64, 64, 64],
     trigger: 0
   },
   {
@@ -428,8 +428,8 @@ var DefaultModes = function() {
         [0, 0, 0]
       ]
     ],
-    thresh0: [0, 6, 12, 32],
-    thresh1: [12, 32, 32, 32],
+    thresh0: [0, 16, 20, 64],
+    thresh1: [20, 64, 64, 64],
     trigger: 0
   }
   ];

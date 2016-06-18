@@ -8,7 +8,7 @@ var VectrUI = function() {
   var SER_VIEW_MODE  = 220;
   var SER_VIEW_COLOR = 230;
 
-  var version = "0.2.2";
+  var version = "0.2.3";
   var dir_root;
   var dir_firmwares;
   var dir_modes;
@@ -964,7 +964,7 @@ var VectrUI = function() {
     }();
 
     $(slider).limitslider({
-      min: 0, max: 32, gap: 0,
+      min: 0, max: 64, gap: 0,
       values: def_values,
       ranges: ranges,
       slide: threshChange,
