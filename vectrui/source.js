@@ -479,7 +479,7 @@ void pattern_strobe(PatternState *state, bool rend) {
           if (pick == skip) {
             state->cidx = 0;
           } else {
-            state->cidx -= numc;
+            state->cidx %= numc;
           }
         }
       }
@@ -537,7 +537,7 @@ void pattern_tracer(PatternState *state, bool rend) {
         state->cntr = 0;
         state->cidx += skip;
         if (state->cidx >= numc) {
-          state->cidx -= numc;
+          state->cidx %= numc;
         }
       }
     }
@@ -605,7 +605,7 @@ void pattern_morph(PatternState *state, bool rend) {
       if (state->cntr >= steps + 1) {
         state->cntr = 0;
         state->cidx++;
-        if (state->cidx == numc) {
+        if (state->cidx >= numc) {
           state->cidx = 0;
         }
       }
@@ -686,7 +686,7 @@ void pattern_sword(PatternState *state, bool rend) {
         state->cntr = 0;
         state->cidx += pick;
         if (state->cidx >= numc) {
-          state->cidx -= numc;
+          state->cidx %= numc;
         }
       }
     }
@@ -1290,6 +1290,7 @@ void accel_blend() {
       states[update_pattern].colors[i][1] = fast_interp(mode.colors[fs][i][1], mode.colors[fs + 1][i][1], fv, fd);
       states[update_pattern].colors[i][2] = fast_interp(mode.colors[fs][i][2], mode.colors[fs + 1][i][2], fv, fd);
       if (i < 8) states[update_pattern].timings[i] = fast_interp(mode.timings[ms][i], mode.timings[ms + 1][i], mv, md);
+      if (i < 4) states[update_pattern].args[i] = mode.args[0][i];
     }
   }
 }

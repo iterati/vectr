@@ -266,7 +266,7 @@ var DefaultModes = function() {
         [0, 0, 0]
       ]
     ],
-    thresh0: [0, 64, 64, 64],
+    thresh0: [0, 48, 64, 64],
     thresh1: [64, 64, 64, 64],
     trigger: 0
   },
@@ -428,8 +428,8 @@ var DefaultModes = function() {
         [0, 0, 0]
       ]
     ],
-    thresh0: [0, 16, 20, 64],
-    thresh1: [20, 64, 64, 64],
+    thresh0: [0, 10, 16, 48],
+    thresh1: [16, 48, 64, 64],
     trigger: 0
   }
   ];
