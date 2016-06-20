@@ -124,6 +124,16 @@ var Patterns = function() {
       name: "Morph Blank",
       tooltip: "Length blank is shown.",
       default: 44
+    },
+    {
+      name: "Color Strobe",
+      tooltip: "Length color is shown.",
+      default: 44
+    },
+    {
+      name: "Color Blank",
+      tooltip: "Length blanke is shown after color.",
+      default: 44
     }
     ]
   },

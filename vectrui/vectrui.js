@@ -7,8 +7,9 @@ var VectrUI = function() {
   var SER_DISCONNECT = 210;
   var SER_VIEW_MODE  = 220;
   var SER_VIEW_COLOR = 230;
+  var SER_INIT       = 240;
 
-  var version = "0.2.3";
+  var version = "0.2.4";
   var dir_root;
   var dir_firmwares;
   var dir_modes;
@@ -126,7 +127,7 @@ var VectrUI = function() {
       for (var i = 0; i < 128; i++) {
         sendData(i, data[i]);
       }
-      sendCommand([240, 0, 0, 0]);
+      sendCommand([SER_INIT, 0, 0, 0]);
     }
   };
 
@@ -450,7 +451,7 @@ var VectrUI = function() {
       dropdown.onchange = function() {
         return function(event) {
           updateData(1 + pattern_idx, this.value);
-          sendCommand([240, 0, 0, 0]);
+          sendCommand([SER_INIT, 0, 0, 0]);
         };
       }();
       elem.appendChild(dropdown);
@@ -664,7 +665,7 @@ var VectrUI = function() {
             updateData(1, 0);
             updateData(2, 0);
             updateData(127, 0);
-            sendCommand([240, 0, 0, 0]);
+            sendCommand([SER_INIT, 0, 0, 0]);
           }
         } else {
           elem.style.display = 'none';
@@ -730,13 +731,13 @@ var VectrUI = function() {
 
       var viewColor = function() {
         return function(event, ui) {
-          sendCommand([230, set_idx, slot_idx, 0]);
+          sendCommand([SER_VIEW_COLOR, set_idx, slot_idx, 0]);
         };
       }();
 
       var viewMode = function() {
         return function(event, ui) {
-          sendCommand([220, 0, 0, 0]);
+          sendCommand([SER_VIEW_MODE, 0, 0, 0]);
         };
       }();
 
@@ -830,7 +831,6 @@ var VectrUI = function() {
   };
 
   function ThreshRow(parent, thresh_idx, thresh_vals) {
-    var addr = 119 + (4 * thresh_idx);
     var elem = document.createElement("div");
     elem.style.margin = "10px";
     parent.appendChild(elem);
@@ -903,6 +903,7 @@ var VectrUI = function() {
 
     elem.appendChild(slider);
 
+    var addr = 119 + (4 * thresh_idx);
     var values_container = document.createElement("div");
     values_container.style.display = "flex";
     values_container.style.justifyContent = "space-between";
@@ -1020,7 +1021,7 @@ var VectrUI = function() {
       for (var i = 0; i < 128; i++) {
         readData(i, arr[i]);
       }
-      sendCommand([240, 0, 0, 0]);
+      sendCommand([SER_INIT, 0, 0, 0]);
     };
 
     modes.appendChild(modeitem);
@@ -1149,7 +1150,7 @@ var VectrUI = function() {
     dropdown.onchange = function() {
       return function(event) {
         updateData(0, this.value);
-        sendCommand([240, 0, 0, 0]);
+        sendCommand([SER_INIT, 0, 0, 0]);
       };
     }();
     elem.appendChild(dropdown);
