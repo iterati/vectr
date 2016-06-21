@@ -557,7 +557,7 @@ var VectrUI = function() {
     new ThreshRow(elem, 1, 4);
 
     var spacer = document.createElement("div");
-    spacer.style.minHeight = "20px";
+    spacer.style.minHeight = "15px";
     elem.appendChild(spacer);
 
     var colors = document.createElement("div");
@@ -568,13 +568,13 @@ var VectrUI = function() {
     new ColorSetRow(colors, 2, "vectr");
 
     var spacer = document.createElement("div");
-    spacer.style.minHeight = "30px";
+    spacer.style.minHeight = "15px";
     elem.appendChild(spacer);
 
     var timingThresh = ThreshRow(elem, 0, 4);
 
     var spacer = document.createElement("div");
-    spacer.style.minHeight = "20px";
+    spacer.style.minHeight = "15px";
     elem.appendChild(spacer);
 
     var timings = document.createElement("div");
@@ -620,17 +620,13 @@ var VectrUI = function() {
 
     new ThreshRow(elem, 0, 2);
 
-    var spacer = document.createElement("div");
-    spacer.style.minHeight = "10px";
-    elem.appendChild(spacer);
-
     var container0 = document.createElement("div");
     elem.appendChild(container0);
     var pattern0 = new PatternRow(container0, 0);
     var colors0 = new ColorSetRow(container0, 0, "primer");
 
     var spacer = document.createElement("div");
-    spacer.style.minHeight = "30px";
+    spacer.style.minHeight = "10px";
     elem.appendChild(spacer);
 
     var container1 = document.createElement("div");
@@ -639,7 +635,7 @@ var VectrUI = function() {
     var colors1 = new ColorSetRow(container1, 1, "primer");
 
     var spacer = document.createElement("div");
-    spacer.style.minHeight = "40px";
+    spacer.style.minHeight = "20px";
     elem.appendChild(spacer);
 
     var timings = document.createElement("div");

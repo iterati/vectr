@@ -56,8 +56,6 @@ ${bundle_a_str}
 ${bundle_b_str}
   }
 };
-
-#define NOP __asm__("nop\\n\\t")
 /* END MODE CONFIG */
 
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
@@ -320,7 +318,7 @@ void TWADC_write(uint8_t data) {
   }
 
 AckThis:
-  I2CADC_SCL_L_INPUT(); 
+  I2CADC_SCL_L_INPUT();
   I2CADC_SCL_H_OUTPUT();
   int ADCresult = analogRead(SCL_PIN);
   if (ADCresult < I2CADC_L) {
@@ -346,19 +344,19 @@ uint8_t TWADC_read(bool ack) {
   }
 
   if (ack) {
-    I2CADC_SCL_L_INPUT();  NOP;
+    I2CADC_SCL_L_INPUT();  _NOP();
     I2CADC_SDA_L_INPUT();
-    I2CADC_SCL_H_OUTPUT(); NOP;
-    I2CADC_SCL_L_INPUT();  NOP;
+    I2CADC_SCL_H_OUTPUT(); _NOP();
+    I2CADC_SCL_L_INPUT();  _NOP();
   } else {
 AckThis:
-    I2CADC_SCL_L_INPUT();  NOP;
-    I2CADC_SCL_H_OUTPUT(); NOP;
+    I2CADC_SCL_L_INPUT();  _NOP();
+    I2CADC_SCL_H_OUTPUT(); _NOP();
     int result = analogRead(SCL_PIN);
     if (result < I2CADC_L) {
       goto AckThis;
     }
-    I2CADC_SCL_L_INPUT();  NOP;
+    I2CADC_SCL_L_INPUT();  _NOP();
 
   }
   return data;
@@ -371,7 +369,7 @@ void TWADC_write_w(uint8_t data) {
     i--;
     pinMode(SDA_PIN, bitRead(data_r, i));
     I2CADC_SCL_H_OUTPUT();
-    I2CADC_SCL_L_INPUT(); 
+    I2CADC_SCL_L_INPUT();
   }
   I2CADC_SDA_L_INPUT();
   I2CADC_SCL_H_OUTPUT();
@@ -1211,11 +1209,9 @@ void get_vectr_vals(uint8_t thresh[4], uint8_t *g, uint8_t *v, uint8_t *d, uint8
 
 void accel_velocity() {
   uint16_t bin_thresh = ACCEL_ONEG;             // Threshold starts at 1g
-  uint8_t prev_velocity = accel.velocity;       // Track previous velocity
   accel.velocity = 0;                           // Reset velocity to 0
-  uint8_t i = 0;                                // Counter
 
-  while (i < ACCEL_BINS) {
+  for (uint8_t i = 0; i < ACCEL_BINS; i++) {
     bin_thresh += ACCEL_BIN_SIZE;
 
     // If velocity is over thresh, reset falloff and increment trigger (capped at 128 to prevent overflow)
@@ -1232,14 +1228,12 @@ void accel_velocity() {
 
     // Increment falloff and counter
     accel.vectr_falloff[i]++;
-    i++;
   }
 }
 
-void accel_variant() {
+void accel_type_handler() {
   // For primer, this is where we check triggers to see if we switch active patterns
   // For vectr, this is where we switch patterns so that we can read in new data from accel incrementally
-
   if (mode.type == TYPE_PRIMER) {
     uint8_t value = 0;                                                // Trigger value to test, stays 0 if OFF
     if (mode.trigger == TRIGGER_VELOCITY)   value = accel.velocity;
@@ -1247,8 +1241,8 @@ void accel_variant() {
     else if (mode.trigger == TRIGGER_ROLL)  value = accel.roll;
     else if (mode.trigger == TRIGGER_FLIP)  value = accel.flip;
 
-    if ((active_pattern == 0 && value > mode.tr_meta[0]) ||           // If we're A and qualify for B
-        (active_pattern == 1 && value < mode.tr_meta[1])) {           // Or if we're B and qualify for A
+    if ((active_pattern == 0 && value >= mode.tr_meta[0]) ||          // If we're A and qualify for B
+        (active_pattern == 1 && value <= mode.tr_meta[1])) {          // Or if we're B and qualify for A
       accel.prime_falloff = 0;                                          // Reset falloff
       accel.prime_trigger = min(accel.prime_trigger + 1, 128);          // Increment trigger (capped at 128)
     }
@@ -1259,17 +1253,7 @@ void accel_variant() {
       accel.prime_trigger = 0;                                          // Reset trigger
       active_pattern = (active_pattern == 0) ? 1 : 0;                   // Change active pattern
     }
-  } else {
-    active_pattern = (active_pattern == 0) ? 1 : 0;                   // Change active pattern
-    states[active_pattern].trip = states[!active_pattern].trip;       // Copy over pattern tracking variables
-    states[active_pattern].cidx = states[!active_pattern].cidx;
-    states[active_pattern].cntr = states[!active_pattern].cntr;
-    states[active_pattern].segm = states[!active_pattern].segm;
-  }
-}
-
-void accel_blend() {
-  if (mode.data[0] == TYPE_VECTR) {
+  } else if (mode.data[0] == TYPE_VECTR) {
     uint8_t update_pattern = !active_pattern;                         // Update the inactive pattern
 
     uint8_t mg, mv, md, ms;                                           // Get blend values
@@ -1292,6 +1276,12 @@ void accel_blend() {
       if (i < 8) states[update_pattern].timings[i] = fast_interp(mode.timings[ms][i], mode.timings[ms + 1][i], mv, md);
       if (i < 4) states[update_pattern].args[i] = mode.args[0][i];
     }
+
+    active_pattern = (active_pattern == 0) ? 1 : 0;                   // Change active pattern
+    states[active_pattern].trip = states[!active_pattern].trip;       // Copy over pattern tracking variables
+    states[active_pattern].cidx = states[!active_pattern].cidx;
+    states[active_pattern].cntr = states[!active_pattern].cntr;
+    states[active_pattern].segm = states[!active_pattern].segm;
   }
 }
 
@@ -1317,8 +1307,6 @@ void handle_serial() {
 
     if (cmd == SER_HANDSHAKE) {                 // If handshake, we need to verify a valid handshake
       if (in0 == SER_VERSION && in1 == in2) {
-        settings.bundle = 0;                      // Reset bundle
-        settings.mode = 0;                        // Reset mode
         op_state = STATE_GUI_MODE;                // View mode
         flash(64, 64, 64);
 
@@ -1328,6 +1316,8 @@ void handle_serial() {
         Serial.write(42);
       }
     } else if (cmd == SER_DISCONNECT) {         // If disconnecting, just go into play state
+      settings.bundle = 0;
+      settings.mode = 0;
       op_state = STATE_PLAY;
     } else if (cmd == SER_WRITE) {              // If writing, set in-memory mode's addr (in0) to value (in1)
       mode.data[in0] = in1;
@@ -1409,62 +1399,99 @@ void handle_button() {
 }
 
 void handle_accel() {
-  if (accel_tick == 0) {                                      // Tick 0: request y axis (x and y are swapped on v2s)
-    TWADC_begin();
-    TWADC_write_w(ACCEL_ADDR);
-    TWADC_write((uint8_t)1);
-  } else if (accel_tick == 1) {                               // Tick 1: start read
-    TWADC_begin();
-    TWADC_write_r(ACCEL_ADDR);
-  } else if (accel_tick == 2) {                               // Tick 2: read in first byte
-    accel.axis_y = (int16_t)TWADC_read(1) << 8;
-  } else if (accel_tick == 3) {                               // Tick 3: read in second byte
-    accel.axis_y = (accel.axis_y | TWADC_read(0)) >> 4;
-  } else if (accel_tick == 4) {                               // Tick 4: request x axis
-    TWADC_begin();
-    TWADC_write_w(ACCEL_ADDR);
-    TWADC_write((uint8_t)3);
-  } else if (accel_tick == 5) {                               // Tick 5: start read
-    TWADC_begin();
-    TWADC_write_r(ACCEL_ADDR);
-  } else if (accel_tick == 6) {                               // Tick 6: read in first byte
-    accel.axis_x = (int16_t)TWADC_read(1) << 8;
-  } else if (accel_tick == 7) {                               // Tick 7: read in second byte
-    accel.axis_x = (accel.axis_x | TWADC_read(0)) >> 4;
-  } else if (accel_tick == 8) {                               // Tick 8: request z axis
-    TWADC_begin();
-    TWADC_write_w(ACCEL_ADDR);
-    TWADC_write((uint8_t)5);
-  } else if (accel_tick == 9) {                               // Tick 9: start read
-    TWADC_begin();
-    TWADC_write_r(ACCEL_ADDR);
-  } else if (accel_tick == 10) {                              // Tick 10: read in first byte
-    accel.axis_z = (int16_t)TWADC_read(1) << 8;
-  } else if (accel_tick == 11) {                              // Tick 11: read in second byte
-    accel.axis_z = (accel.axis_z | TWADC_read(0)) >> 4;
-  } else if (accel_tick == 12) {                              // Tick 12: calculate squares and square roots
-    accel.axis_x2 = pow(accel.axis_x, 2);
-    accel.axis_y2 = pow(accel.axis_y, 2);
-    accel.axis_z2 = pow(accel.axis_z, 2);
-    accel.magnitude = fast_sqrt(accel.axis_x2 + accel.axis_y2 + accel.axis_z2);
-    accel.fpitch = fast_sqrt(accel.axis_y2 + accel.axis_z2);
-    accel.froll = fast_sqrt(accel.axis_x2 + accel.axis_z2);
-  } else if (accel_tick == 13) {                              // Tick 13: calculate pitch in radians
-    accel.fpitch = fast_atan2(-accel.axis_x, accel.fpitch);
-  } else if (accel_tick == 14) {                              // Tick 14: calculate roll in radians
-    accel.froll = fast_atan2(accel.axis_y, accel.froll);
-  } else if (accel_tick == 15) {                              // Tick 15: normalize pitch, roll, and flip to 0-32
-    accel.pitch = 16 + constrain(accel.fpitch * ACCEL_COEF, -16, 16);
-    accel.roll  = 16 + constrain(accel.froll  * ACCEL_COEF, -16, 16);
-    accel.flip  = 16 + constrain(accel.axis_z / 30,         -16, 16);
-  } else if (accel_tick == 16) {                              // Tick 16: calculate velocity
-    accel_velocity();
-  } else if (accel_tick == 17) {                              // Tick 17: blend colors and timings (vectr calcs)
-    accel_blend();
-  } else if (accel_tick == 18) {                              // Tick 18: determine active pattern
-    accel_variant();
+  switch (accel_tick) {
+    case 0:
+      TWADC_begin();
+      TWADC_write_w(ACCEL_ADDR);
+      TWADC_write((uint8_t)1);
+      break;
+
+    case 1:
+      TWADC_begin();
+      TWADC_write_r(ACCEL_ADDR);
+      break;
+
+    case 2:
+      accel.axis_y = (int16_t)TWADC_read(1) << 8;
+      break;
+
+    case 3:
+      accel.axis_y = (accel.axis_y | TWADC_read(0)) >> 4;
+      break;
+
+    case 4:
+      TWADC_begin();
+      TWADC_write_w(ACCEL_ADDR);
+      TWADC_write((uint8_t)3);
+      break;
+
+    case 5:
+      TWADC_begin();
+      TWADC_write_r(ACCEL_ADDR);
+      break;
+
+    case 6:
+      accel.axis_x = (int16_t)TWADC_read(1) << 8;
+      break;
+
+    case 7:
+      accel.axis_x = (accel.axis_x | TWADC_read(0)) >> 4;
+      break;
+
+    case 8:
+      TWADC_begin();
+      TWADC_write_w(ACCEL_ADDR);
+      TWADC_write((uint8_t)5);
+      break;
+
+    case 9:
+      TWADC_begin();
+      TWADC_write_r(ACCEL_ADDR);
+      break;
+
+    case 10:
+      accel.axis_z = (int16_t)TWADC_read(1) << 8;
+      break;
+
+    case 11:
+      accel.axis_z = (accel.axis_z | TWADC_read(0)) >> 4;
+      break;
+
+    case 12:
+      accel.axis_x2 = pow(accel.axis_x, 2);
+      accel.axis_y2 = pow(accel.axis_y, 2);
+      accel.axis_z2 = pow(accel.axis_z, 2);
+      accel.magnitude = fast_sqrt(accel.axis_x2 + accel.axis_y2 + accel.axis_z2);
+      accel.fpitch = fast_sqrt(accel.axis_y2 + accel.axis_z2);
+      accel.froll = fast_sqrt(accel.axis_x2 + accel.axis_z2);
+      break;
+
+    case 13:
+      accel.fpitch = fast_atan2(-accel.axis_x, accel.fpitch);
+      break;
+
+    case 14:
+      accel.froll = fast_atan2(accel.axis_y, accel.froll);
+      break;
+
+    case 15:
+      accel.pitch = 16 + constrain(accel.fpitch * ACCEL_COEF, -16, 16);
+      accel.roll  = 16 + constrain(accel.froll  * ACCEL_COEF, -16, 16);
+      accel.flip  = 16 + constrain(accel.axis_z / 30,         -16, 16);
+      break;
+
+    case 16:
+      accel_velocity();
+      break;
+
+    case 17:
+      accel_type_handler();
+      break;
+
+    default:
+      break;
   }
-                                                              // Tick 19 - end: do nothing
+
   accel_tick++;
   if (accel_tick >= ACCEL_COUNTS) accel_tick = 0;             // Loop accel tracker
 }
