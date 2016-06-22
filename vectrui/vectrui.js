@@ -122,8 +122,11 @@ var VectrUI = function() {
 
   function handleCommand(cmd) {
     console.log("got: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
-    if (cmd[0] == SER_HANDSHAKE && cmd[1] == SER_VERSION && cmd[2] == cmd[3]) {
+    if (cmd[0] == SER_HANDSHAKE && cmd[1] == SER_VERSION && cmd[2] == cmd[3] && !connected) {
       connected = true;
+      sendCommand([SER_HANDSHAKE, SER_VERSION, 42, 42], true);
+      var now = new Date().getTime();
+      while (new Date().getTime() < now + 500) {}
       for (var i = 0; i < 128; i++) {
         sendData(i, data[i]);
       }

@@ -1308,12 +1308,13 @@ void handle_serial() {
     if (cmd == SER_HANDSHAKE) {                 // If handshake, we need to verify a valid handshake
       if (in0 == SER_VERSION && in1 == in2) {
         op_state = STATE_GUI_MODE;                // View mode
-        flash(64, 64, 64);
 
         Serial.write(SER_HANDSHAKE);              // Send handshake to GUI
         Serial.write(SER_VERSION);
         Serial.write(42);
         Serial.write(42);
+
+        flash(64, 64, 64);
       }
     } else if (cmd == SER_DISCONNECT) {         // If disconnecting, just go into play state
       settings.bundle = 0;
@@ -1562,6 +1563,11 @@ void setup() {
   patterns[PATTERN_TRIPLE]  = &pattern_triple;
   patterns[PATTERN_STEPPER] = &pattern_stepper;
   patterns[PATTERN_RANDOM]  = &pattern_random;
+
+  Serial.write(SER_HANDSHAKE);                    // Send handshake to GUI
+  Serial.write(SER_VERSION);
+  Serial.write(42);
+  Serial.write(42);
 
   change_mode(settings.mode);                     // Initialize current mode
   last_write = micros();                          // Reset the limiter
