@@ -928,7 +928,7 @@ var VectrUI = function() {
           event.target.value = val;
           values[idx] = val;
           $(slider).limitslider("values", values);
-          sendData(value_addr, val);
+          sendData(119 + (4 * thresh_idx) + idx, val);
         }
       }(i);
 
