@@ -90,7 +90,12 @@ var Patterns = function() {
       default: 0
     },
     {
-      name: "Gap",
+      name: "Pre-Tracer Gap",
+      tooltip: "Length blank is shown between color and tracer.",
+      default: 0
+    },
+    {
+      name: "Post-Tracer Gap",
       tooltip: "Length blank is shown between tracer and color.",
       default: 0
     }

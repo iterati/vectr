@@ -47,7 +47,7 @@ var getSource = function() {
 #define NUM_MODES     ${max_modes}
 #define MODE_SIZE     ${mode_size}
 
-PROGMEM const uint8_t num_modes[NUM_BUNDLES] = {${num_modes_str}};
+const uint8_t num_modes[NUM_BUNDLES] = {${num_modes_str}};
 PROGMEM const uint8_t modes[NUM_BUNDLES][NUM_MODES][MODE_SIZE] = {
   {
 ${bundle_a_str}
@@ -91,7 +91,8 @@ ${bundle_b_str}
 #define ACCEL_ONEG        512   // +- 4g range
 #define ACCEL_MAX_GS      4
 uint32_t ACCEL_BIN_SIZE = (ACCEL_MAX_GS * ACCEL_ONEG) / ACCEL_BINS;
-float ACCEL_COEF =        378.24 / ACCEL_BINS;  // For normalizing pitch and roll
+float ACCEL_COEF =        23.64;  // For normalizing pitch and roll
+uint8_t ACCEL_HALFBINS =  ACCEL_BINS >> 1;
 
 #define ACCEL_FALLOFF     8     // 20ms cycles before falloff
 #define ACCEL_TARGET      1     // 20ms cycles before triggering
@@ -522,9 +523,10 @@ void pattern_tracer(PatternState *state, bool rend) {
   uint8_t cbt = state->timings[1];
   uint8_t tst = state->timings[2];
   uint8_t tbt = state->timings[3];
-  uint8_t gt  = state->timings[4];
+  uint8_t gta = state->timings[4];
+  uint8_t gtb = state->timings[5];
 
-  if (cst == 0 && cbt == 0 && tst == 0 && tbt == 0 && gt == 0) gt = 1;
+  if (cst == 0 && cbt == 0 && tst == 0 && tbt == 0 && gta == 0 && gtb == 0) gta = 1;
 
   while (state->trip == 0) {
     state->segm++;
@@ -542,11 +544,11 @@ void pattern_tracer(PatternState *state, bool rend) {
 
     if (state->segm == 0) {
       if (state->cntr == 0) {
-        state->trip = gt;
+        state->trip = gtb;
       } else if (state->cntr < pick) {
         state->trip = cbt;
       } else if (state->cntr == pick) {
-        state->trip = gt;
+        state->trip = gta;
       } else {
         state->trip = tbt;
       }
@@ -680,7 +682,7 @@ void pattern_sword(PatternState *state, bool rend) {
     if (state->segm >= 2) {
       state->segm = 0;
       state->cntr++;
-      if (state->cntr >= (pick * 2) - 1) {
+      if (state->cntr + 1 >= pick * 2) {
         state->cntr = 0;
         state->cidx += pick;
         if (state->cidx >= numc) {
@@ -696,7 +698,7 @@ void pattern_sword(PatternState *state, bool rend) {
         state->trip = bt;
       }
     } else {
-      if (state->cntr == pick - 1) {
+      if (state->cntr + 1 == pick) {
         state->trip = ct;
       } else {
         state->trip = st;
@@ -971,16 +973,27 @@ void pattern_triple(PatternState *state, bool rend) {
     }
 
     if (state->segm == 0) {
-      if (state->cntr == 0)                         state->trip = sbt;
-      else if (state->cntr < repeat_a)              state->trip = abt;
-      else if (state->cntr == repeat_a)             state->trip = sbt;
-      else if (state->cntr < repeat_a + repeat_b)   state->trip = bbt;
-      else if (state->cntr == repeat_a + repeat_b)  state->trip = sbt;
-      else                                          state->trip = cbt;
+      if (state->cntr == 0) {
+        state->trip = sbt;
+      } else if (state->cntr < repeat_a) {
+        state->trip = abt;
+      } else if (state->cntr == repeat_a) {
+        state->trip = sbt;
+      } else if (state->cntr < repeat_a + repeat_b) {
+        state->trip = bbt;
+      } else if (state->cntr == repeat_a + repeat_b) {
+        state->trip = sbt;
+      } else {
+        state->trip = cbt;
+      }
     } else {
-      if (state->cntr < repeat_a)                   state->trip = ast;
-      else if (state->cntr < repeat_b)              state->trip = bst;
-      else                                          state->trip = cst;
+      if (state->cntr < repeat_a) {
+        state->trip = ast;
+      } else if (state->cntr < repeat_b) {
+        state->trip = bst;
+      } else {
+        state->trip = cst;
+      }
     }
   }
 
@@ -1037,8 +1050,11 @@ void pattern_stepper(PatternState *state, bool rend) {
       state->cntr = (rend && random_step)  ? random(0, steps) : (state->cntr + 1) % steps;
     }
 
-    if (state->segm == 0) state->trip = bt;
-    else                  state->trip = ct[state->cntr];
+    if (state->segm == 0) {
+      state->trip = bt;
+    } else {
+      state->trip = ct[state->cntr];
+    }
   }
 
   if (rend) {
@@ -1068,6 +1084,7 @@ void pattern_random(PatternState *state, bool rend) {
   uint8_t bth = max(state->timings[2], state->timings[3]);
 
   if (ctl == 0 && cth == 0 && btl == 0 && bth == 0) btl = bth = 1;
+
   while (state->trip == 0) {
     state->segm++;
     if (state->segm >= 2) {
@@ -1243,8 +1260,10 @@ void accel_type_handler() {
 
     if ((active_pattern == 0 && value >= mode.tr_meta[0]) ||          // If we're A and qualify for B
         (active_pattern == 1 && value <= mode.tr_meta[1])) {          // Or if we're B and qualify for A
-      accel.prime_falloff = 0;                                          // Reset falloff
-      accel.prime_trigger = min(accel.prime_trigger + 1, 128);          // Increment trigger (capped at 128)
+      if (mode.trigger == TRIGGER_VELOCITY || accel.velocity < 4) {
+        accel.prime_falloff = 0;                                          // Reset falloff
+        accel.prime_trigger = min(accel.prime_trigger + 1, 128);          // Increment trigger (capped at 128)
+      }
     }
 
     if (accel.prime_falloff > ACCEL_FALLOFF) accel.prime_trigger = 0; // If too long since signal, reset trigger
@@ -1476,9 +1495,9 @@ void handle_accel() {
       break;
 
     case 15:
-      accel.pitch = 16 + constrain(accel.fpitch * ACCEL_COEF, -16, 16);
-      accel.roll  = 16 + constrain(accel.froll  * ACCEL_COEF, -16, 16);
-      accel.flip  = 16 + constrain(accel.axis_z / 30,         -16, 16);
+      accel.pitch = ACCEL_HALFBINS + constrain(accel.fpitch * ACCEL_COEF, -ACCEL_HALFBINS, ACCEL_HALFBINS);
+      accel.roll  = ACCEL_HALFBINS + constrain(accel.froll  * ACCEL_COEF, -ACCEL_HALFBINS, ACCEL_HALFBINS);
+      accel.flip  = ACCEL_HALFBINS + constrain(accel.axis_z / 15,         -ACCEL_HALFBINS, ACCEL_HALFBINS);
       break;
 
     case 16:

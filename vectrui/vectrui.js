@@ -1,3 +1,4 @@
+var r;
 var VectrUI = function() {
   'use strict';
 
@@ -9,7 +10,7 @@ var VectrUI = function() {
   var SER_VIEW_COLOR = 230;
   var SER_INIT       = 240;
 
-  var version = "0.2.4";
+  var version = "0.2.5";
   var dir_root;
   var dir_firmwares;
   var dir_modes;
@@ -26,6 +27,15 @@ var VectrUI = function() {
   var bundle0 = document.getElementById("bundle0");
   var bundle1 = document.getElementById("bundle1");
   var modes = document.getElementById("mode-list");
+
+  var mode_bundles = [
+    [[], [], [], [], [], [], [], []],
+    [[], [], [], [], [], [], [], []]
+  ];
+  var mode_bundle_ids = [
+    [[], [], [], [], [], [], [], []],
+    [[], [], [], [], [], [], [], []]
+  ];
 
   var modetypes = ["Vectr", "Primer"];
   var triggers = ["Off", "Velocity", "Pitch", "Roll", "Flip"];
@@ -151,15 +161,23 @@ var VectrUI = function() {
 
   function handleCommand(cmd) {
     console.log("got: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
+    var delay_send = false;
     if (cmd[0] == SER_HANDSHAKE && cmd[1] == SER_VERSION && cmd[2] == cmd[3] && !connected) {
       connected = true;
       sendCommand([SER_HANDSHAKE, SER_VERSION, 42, 42], true);
+      var now = new Date().getTime();
+      while (new Date().getTime() < now + 500) {}
+      delay_send = true;
+    }
+    // If on windows, or rebooting, you'll get the handshake first
+    if (cmd[0] == SER_HANDSHAKE && cmd[1] == SER_VERSION && cmd[2] == cmd[3] && delay_send) {
       var now = new Date().getTime();
       while (new Date().getTime() < now + 500) {}
       for (var i = 0; i < 128; i++) {
         sendData(i, data[i]);
       }
       sendCommand([SER_INIT, 0, 0, 0]);
+      delay_send = false;
     }
   };
 
@@ -482,7 +500,7 @@ var VectrUI = function() {
       dropdown.style.display = "inline-block";
       dropdown.onchange = function() {
         return function(event) {
-          updateData(1 + pattern_idx, this.value);
+          updateData(1 + pattern_idx, Number(this.value));
           sendCommand([SER_INIT, 0, 0, 0]);
         };
       }();
@@ -939,7 +957,12 @@ var VectrUI = function() {
     elem.appendChild(values_container);
 
     for (var i = 0; i < thresh_vals; i++) {
-      var value_addr = 119 + (4 * thresh_idx) + i;
+      var value_addr = 119;
+      if (thresh_vals == 2) {
+        value_addr += 1 - i;
+      } else {
+        value_addr += (4 * thresh_idx) + i;
+      }
       var valueChange = function(idx) {
         return function(event) {
           var val = Number(event.target.value);
@@ -957,7 +980,11 @@ var VectrUI = function() {
           event.target.value = val;
           values[idx] = val;
           $(slider).limitslider("values", values);
-          sendData(119 + (4 * thresh_idx) + idx, val);
+          if (thresh_vals == 2) {
+            sendData(120 - idx, val);
+          } else {
+            sendData(119 + (4 * thresh_idx) + idx, val);
+          }
         }
       }(i);
 
@@ -1007,6 +1034,7 @@ var VectrUI = function() {
         writer.onwriteend = function(e) {
           if (writer.length === 0) {
             writer.write(blob);
+            // console.log("Write success!");
           }
         };
 
@@ -1024,6 +1052,7 @@ var VectrUI = function() {
   function writeMode(mode) {
     var modecopy = JSON.parse(JSON.stringify(mode));
     delete modecopy.id;
+    modecopy.version = version;
     var content = JSON.stringify(modecopy, null, 2);
     writeFile(dir_modes, modecopy.name + ".mode", content);
   };
@@ -1055,22 +1084,43 @@ var VectrUI = function() {
     modes.appendChild(modeitem);
   };
 
+  function translateMode(modeobj) {
+    console.log("version mismatch: " + modeobj.version);
+
+    // < 0.2.5, tracer only had one gap
+    if (modeobj.type == 0) {
+      if (modeobj.pattern[0] == 1) {
+        modeobj.timings[0][5] = modeobj.timings[0][4];
+      }
+      if (modeobj.pattern[1] == 1) {
+        modeobj.timings[1][5] = modeobj.timings[1][4];
+      }
+    } else {
+      if (modeobj.pattern[0] == 1) {
+        modeobj.timings[0][5] = modeobj.timings[0][4];
+        modeobj.timings[1][5] = modeobj.timings[1][4];
+        modeobj.timings[2][5] = modeobj.timings[2][4];
+      }
+    }
+
+    return modeobj;
+  };
+
   function readModeFile(i, file) {
     file.file(function(file) {
       var reader = new FileReader();
       reader.onload = function(e) {
         var contents = e.target.result;
         var modeobj = JSON.parse(contents);
+        if (modeobj.version != version) {
+          modeobj = translateMode(modeobj);
+          writeMode(modeobj);
+        }
         modeobj.name = file.name.replace(".mode", "");
         modeobj.id = modeobj.name.replace(/\s/g, "-").toLowerCase();
         modelib[modeobj.id] = modeobj;
         makeModeItem(modeobj);
-        if (i == 0) {
-          var arr = modeToArray(modeobj);
-          for (var b = 0; b < 128; b++) {
-            readData(b, arr[b]);
-          }
-        }
+        if (i == 0) document.getElementById(modeobj.id).click();
       };
       reader.readAsText(file);
     });
@@ -1107,41 +1157,41 @@ var VectrUI = function() {
           dir_root.getDirectory("modes",     {create: true}, function(entry) {
             dir_modes = entry;
             for (var i = 0; i < default_modes.length; i++) {
-              modelib[default_modes[i].id] = default_modes[i];
-              makeModeItem(default_modes[i]);
-              writeMode(default_modes[i]);
+              var default_mode = default_modes[i];
+
+              for (var b = 0; b < default_mode.bundles.length; b++) {
+                mode_bundles[default_mode.bundles[b]][default_mode.slot] = modeToArray(default_mode);
+                mode_bundle_ids[default_mode.bundles[b]][default_mode.slot] = default_mode.id;
+              }
+
+              modelib[default_mode.id] = default_mode;
+              makeModeItem(default_mode);
+              writeMode(default_mode);
               if (i == 0) {
-                var arr = modeToArray(default_modes[i]);
-                for (var b = 0; b < 128; b++) {
-                  readData(b, arr[b]);
-                }
+                document.getElementById(default_mode.id).click();
               }
             }
           });
           dir_root.getDirectory("firmwares", {create: true}, function(entry) {
             dir_firmwares = entry;
             var num_modes = [8, 8];
-            var bundle_a = [
-              modeToArray(default_modes[0]),
-              modeToArray(default_modes[1]),
-              modeToArray(default_modes[2]),
-              modeToArray(default_modes[3]),
-              modeToArray(default_modes[4]),
-              modeToArray(default_modes[5]),
-              modeToArray(default_modes[6]),
-              modeToArray(default_modes[7])
-            ];
-            var bundle_b = [
-              modeToArray(default_modes[0]),
-              modeToArray(default_modes[1]),
-              modeToArray(default_modes[2]),
-              modeToArray(default_modes[3]),
-              modeToArray(default_modes[4]),
-              modeToArray(default_modes[5]),
-              modeToArray(default_modes[6]),
-              modeToArray(default_modes[7])
-            ];
-            writeSource("default", num_modes, bundle_a, bundle_b);
+            for (var i = 0; i < 8; i++) {
+              var child0 = document.getElementById(mode_bundle_ids[0][i]);
+              var el0 = child0.cloneNode();
+              el0.data = {id: child0.id};
+              el0.textContent = child0.textContent;
+              el0.setAttribute("id", "mode-item-" + Math.floor(Math.random() * Math.pow(2, 16)));
+              bundle0.appendChild(el0);
+
+              var child1 = document.getElementById(mode_bundle_ids[1][i]);
+              var el1 = child1.cloneNode();
+              el1.data = {id: child1.id};
+              el1.textContent = child1.textContent;
+              el1.setAttribute("id", "mode-item-" + Math.floor(Math.random() * Math.pow(2, 16)));
+              bundle1.appendChild(el1);
+            }
+            document.getElementById("firmware-save").value = "default";
+            writeSource("default", num_modes, mode_bundles[0], mode_bundles[1]);
           });
         });
       } else {
@@ -1177,7 +1227,7 @@ var VectrUI = function() {
     var dropdown = document.createElement("select");
     dropdown.onchange = function() {
       return function(event) {
-        updateData(0, this.value);
+        updateData(0, Number(this.value));
         sendCommand([SER_INIT, 0, 0, 0]);
       };
     }();
@@ -1236,6 +1286,7 @@ var VectrUI = function() {
           this.value = "Disconnect";
         } else {
           sendCommand([SER_DISCONNECT, 0, 0, 0]);
+          connected = false;
           chrome.serial.disconnect(connection_id, function(result) {});
           connection_id = null;
           this.value = "Connect";
@@ -1301,6 +1352,9 @@ var VectrUI = function() {
       // Update modelib with new mode data
       modelib[modeobj.id] = modeobj;
 
+      var modeitem = document.getElementById(modeobj.id);
+      modeitem.data = modeobj;
+
       // If no existing modeitem, create a new one!
       var elem = document.querySelector("#" + name);
       if (elem === null) {
@@ -1319,6 +1373,7 @@ var VectrUI = function() {
     parent.appendChild(elem);
 
     var field = document.createElement("input");
+    field.id = "firmware-save";
     field.type = "text";
     field.style.display = "block";
     field.style.width =  "150px";

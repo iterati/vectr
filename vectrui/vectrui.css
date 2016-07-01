@@ -129,7 +129,7 @@ input, select, button {
 }
 
 .mode {
-  min-height: 20px;
+  min-height: 25px;
   min-width: 160px;
   padding-top: 0px;
   margin: 5px;
