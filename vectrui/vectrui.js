@@ -1352,14 +1352,14 @@ var VectrUI = function() {
       // Update modelib with new mode data
       modelib[modeobj.id] = modeobj;
 
-      var modeitem = document.getElementById(modeobj.id);
-      modeitem.data = modeobj;
-
       // If no existing modeitem, create a new one!
       var elem = document.querySelector("#" + name);
       if (elem === null) {
         makeModeItem(modeobj);
       }
+
+      var modeitem = document.getElementById(modeobj.id);
+      modeitem.data = modeobj;
 
       // Write the file
       writeMode(modeobj);
