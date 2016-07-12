@@ -1359,11 +1359,11 @@ void handle_button() {
 
   if (op_state == STATE_PLAY) {                               // If playing
     if (pressed) {                                              // and pressed
-      if (since_press == 1000)      flash(32, 32, 32);            // Flash white when chip will sleep (500ms)
+      if (since_press == 600)       flash(32, 32, 32);            // Flash white when chip will sleep (500ms)
       else if (since_press == 4000) flash(0, 0, 128);             // Flash blue when conjure will toggle (2s)
       else if (since_press == 8000) flash(128, 0, 0);             // Flash red when chip will lock and sleep (4s)
     } else if (changed) {                                       // if not pressed and changed (just released)
-      if (since_press < 1000) {                                   // if less than 500ms, sleep if conjuring and change mode if not
+      if (since_press < 600) {                                    // if less than 500ms, sleep if conjuring and change mode if not
         if (settings.conjure) enter_sleep();
         else                  next_mode();
       } else if (since_press < 4000) {                            // if less than 2s, sleep
