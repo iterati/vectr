@@ -19,7 +19,7 @@ var getSource = function() {
   return function(num_modes, bundle_a, bundle_b) {
     if (num_modes[0] === 0) { num_modes[0] = 1; }
     if (num_modes[1] === 0) { num_modes[1] = 1; }
-    var addr_settings = Math.round(Math.random() * 1023);
+    var addr_settings = Math.round(Math.random() * 1022);
     var num_bundles = 2;
     var max_modes = 16;
     var mode_size = 128;
@@ -506,9 +506,10 @@ void pattern_tracer(PatternState *state, bool rend) {
   uint8_t cbt = state->timings[1];
   uint8_t tst = state->timings[2];
   uint8_t tbt = state->timings[3];
-  uint8_t gt  = state->timings[4];
+  uint8_t gta = state->timings[4];
+  uint8_t gtb = state->timings[4];
 
-  if (cst == 0 && cbt == 0 && tst == 0 && tbt == 0 && gt == 0) gt = 1;
+  if (cst == 0 && cbt == 0 && tst == 0 && tbt == 0 && gta == 0 && gtb == 0) gta = 1;
 
   while (state->trip == 0) {
     state->segm++;
@@ -524,11 +525,11 @@ void pattern_tracer(PatternState *state, bool rend) {
 
     if (state->segm == 0) {
       if (state->cntr == 0) {
-        state->trip = gt;
+        state->trip = gta;
       } else if (state->cntr < pick) {
         state->trip = cbt;
       } else if (state->cntr == pick) {
-        state->trip = gt;
+        state->trip = gtb;
       } else {
         state->trip = tbt;
       }
