@@ -1414,11 +1414,10 @@ var VectrUI = function() {
       } else if (field.value.includes(" ")) {
         dialog.children[0].textContent = "Firmware name must not have spaces.";
       } else {
+        writeSource(field.value, num_modes, bundle_a, bundle_b);
         dialog.children[0].textContent = "Firmware saved.";
       }
       dialog.show();
-
-      writeSource(field.value, num_modes, bundle_a, bundle_b);
     };
   };
 
