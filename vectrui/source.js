@@ -1323,7 +1323,6 @@ void handle_serial() {
       op_state = STATE_PLAY;
     } else if (cmd == SER_WRITE) {              // If writing, set in-memory mode's addr (in0) to value (in1)
       mode.data[in0] = in1;
-      init_mode();
     } else if (cmd == SER_VIEW_MODE) {          // If view mode, view mode
       op_state = STATE_GUI_MODE;
     } else if (cmd == SER_VIEW_COLOR) {         // If view color, update color set (in0) and slot (in1) then view color
