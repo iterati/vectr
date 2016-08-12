@@ -13,6 +13,9 @@ var getSource = function() {
       }
       str += arr[i] + ", ";
     }
+    if (arr[127] === null || arr[127] === undefined) {
+      arr[127] = 0;
+    }
     str += arr[127] + "}";
     return str;
   };
