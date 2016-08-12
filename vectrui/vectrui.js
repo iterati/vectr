@@ -12,7 +12,7 @@ var VectrUI = function() {
 
   var MAX_MODES      = 16;
 
-  var version = "0.2.5";
+  var version = "0.3.0";
   var dir_root;
   var dir_firmwares;
   var dir_modes;

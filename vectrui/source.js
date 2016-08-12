@@ -8,7 +8,8 @@ var getSource = function() {
     }
     var str = "{";
     for (var i = 0; i < 127; i++) {
-      if (arr[i] === null) {
+      if (arr[i] === null || arr[i] === undefined) {
+        arr[i] = 0;
       }
       str += arr[i] + ", ";
     }
