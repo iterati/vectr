@@ -12,7 +12,7 @@ var VectrUI = function() {
 
   var MAX_MODES      = 16;
 
-  var version = "0.3.0";
+  var version = "0.3.1";
   var dir_root;
   var dir_firmwares;
   var dir_modes;
@@ -145,14 +145,14 @@ var VectrUI = function() {
     0
   ];
 
-  for (var i = 0; i < 128; i++) {
+  for (var i = 0; i < 191; i++) {
     readListeners[i] = [];
     updateListeners[i] = [];
   }
 
   function sendCommand(cmd, force) {
+    console.log("sent: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
     if (connected || force) {
-      console.log("sent: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
       var buf = new ArrayBuffer(4);
       var view = new DataView(buf);
       view.setInt8(0, cmd[0]);
@@ -177,7 +177,7 @@ var VectrUI = function() {
     if (cmd[0] == SER_HANDSHAKE && cmd[1] == SER_VERSION && cmd[2] == cmd[3] && delay_send) {
       var now = new Date().getTime();
       while (new Date().getTime() < now + 500) {}
-      for (var i = 0; i < 128; i++) {
+      for (var i = 0; i < 191; i++) {
         sendData(i, data[i]);
       }
       sendCommand([SER_INIT, 0, 0, 0]);
@@ -222,31 +222,29 @@ var VectrUI = function() {
         [arr[27], arr[28], arr[29], arr[30], arr[31], arr[32], arr[33], arr[34]]
       ],
       numc: [arr[35], arr[36], arr[37]],
+      thresh0: [arr[38], arr[39], arr[40], arr[41]],
+      thresh1: [arr[42], arr[43], arr[44], arr[45]],
+      trigger: arr[46],
       colors: [
         [
-          [arr[38], arr[39], arr[40]],
-          [arr[41], arr[42], arr[43]],
-          [arr[44], arr[45], arr[46]],
-          [arr[47], arr[48], arr[49]],
-          [arr[50], arr[51], arr[52]],
-          [arr[53], arr[54], arr[55]],
-          [arr[56], arr[57], arr[58]],
-          [arr[59], arr[60], arr[61]],
-          [arr[62], arr[63], arr[64]]
-        ],
-        [
-          [arr[65], arr[66], arr[67]],
-          [arr[68], arr[69], arr[70]],
-          [arr[71], arr[72], arr[73]],
+          [arr[47], arr[48], arr[40]],
+          [arr[50], arr[51], arr[43]],
+          [arr[53], arr[54], arr[46]],
+          [arr[56], arr[57], arr[49]],
+          [arr[59], arr[60], arr[52]],
+          [arr[62], arr[63], arr[55]],
+          [arr[65], arr[66], arr[58]],
+          [arr[68], arr[69], arr[61]],
+          [arr[71], arr[72], arr[64]],
           [arr[74], arr[75], arr[76]],
           [arr[77], arr[78], arr[79]],
           [arr[80], arr[81], arr[82]],
           [arr[83], arr[84], arr[85]],
           [arr[86], arr[87], arr[88]],
-          [arr[89], arr[90], arr[91]]
+          [arr[89], arr[90], arr[91]],
+          [arr[92], arr[93], arr[94]]
         ],
         [
-          [arr[92], arr[93], arr[94]],
           [arr[95], arr[96], arr[97]],
           [arr[98], arr[99], arr[100]],
           [arr[101], arr[102], arr[103]],
@@ -254,12 +252,35 @@ var VectrUI = function() {
           [arr[107], arr[108], arr[109]],
           [arr[110], arr[111], arr[112]],
           [arr[113], arr[114], arr[115]],
-          [arr[116], arr[117], arr[118]]
+          [arr[116], arr[117], arr[118]],
+          [arr[119], arr[120], arr[121]],
+          [arr[122], arr[123], arr[124]],
+          [arr[125], arr[126], arr[127]],
+          [arr[128], arr[129], arr[130]],
+          [arr[131], arr[132], arr[133]],
+          [arr[134], arr[135], arr[136]],
+          [arr[137], arr[138], arr[139]],
+          [arr[140], arr[141], arr[142]]
+        ],
+        [
+          [arr[143], arr[144], arr[145]],
+          [arr[146], arr[147], arr[148]],
+          [arr[149], arr[150], arr[151]],
+          [arr[152], arr[153], arr[154]],
+          [arr[155], arr[156], arr[157]],
+          [arr[158], arr[159], arr[160]],
+          [arr[161], arr[162], arr[163]],
+          [arr[164], arr[165], arr[166]],
+          [arr[167], arr[168], arr[169]],
+          [arr[170], arr[171], arr[172]],
+          [arr[173], arr[174], arr[175]],
+          [arr[176], arr[177], arr[178]],
+          [arr[179], arr[180], arr[181]],
+          [arr[182], arr[183], arr[184]],
+          [arr[185], arr[186], arr[187]],
+          [arr[188], arr[189], arr[190]]
         ]
-      ],
-      thresh0: [arr[119], arr[120], arr[121], arr[122]],
-      thresh1: [arr[123], arr[124], arr[125], arr[126]],
-      trigger: arr[127]
+      ]
     };
   };
 
@@ -278,39 +299,60 @@ var VectrUI = function() {
 
       m.numc[0], m.numc[1], m.numc[2],
 
-      m.colors[0][0][0], m.colors[0][0][1], m.colors[0][0][2],
-      m.colors[0][1][0], m.colors[0][1][1], m.colors[0][1][2],
-      m.colors[0][2][0], m.colors[0][2][1], m.colors[0][2][2],
-      m.colors[0][3][0], m.colors[0][3][1], m.colors[0][3][2],
-      m.colors[0][4][0], m.colors[0][4][1], m.colors[0][4][2],
-      m.colors[0][5][0], m.colors[0][5][1], m.colors[0][5][2],
-      m.colors[0][6][0], m.colors[0][6][1], m.colors[0][6][2],
-      m.colors[0][7][0], m.colors[0][7][1], m.colors[0][7][2],
-      m.colors[0][8][0], m.colors[0][8][1], m.colors[0][8][2],
-
-      m.colors[1][0][0], m.colors[1][0][1], m.colors[1][0][2],
-      m.colors[1][1][0], m.colors[1][1][1], m.colors[1][1][2],
-      m.colors[1][2][0], m.colors[1][2][1], m.colors[1][2][2],
-      m.colors[1][3][0], m.colors[1][3][1], m.colors[1][3][2],
-      m.colors[1][4][0], m.colors[1][4][1], m.colors[1][4][2],
-      m.colors[1][5][0], m.colors[1][5][1], m.colors[1][5][2],
-      m.colors[1][6][0], m.colors[1][6][1], m.colors[1][6][2],
-      m.colors[1][7][0], m.colors[1][7][1], m.colors[1][7][2],
-      m.colors[1][8][0], m.colors[1][8][1], m.colors[1][8][2],
-
-      m.colors[2][0][0], m.colors[2][0][1], m.colors[2][0][2],
-      m.colors[2][1][0], m.colors[2][1][1], m.colors[2][1][2],
-      m.colors[2][2][0], m.colors[2][2][1], m.colors[2][2][2],
-      m.colors[2][3][0], m.colors[2][3][1], m.colors[2][3][2],
-      m.colors[2][4][0], m.colors[2][4][1], m.colors[2][4][2],
-      m.colors[2][5][0], m.colors[2][5][1], m.colors[2][5][2],
-      m.colors[2][6][0], m.colors[2][6][1], m.colors[2][6][2],
-      m.colors[2][7][0], m.colors[2][7][1], m.colors[2][7][2],
-      m.colors[2][8][0], m.colors[2][8][1], m.colors[2][8][2],
-
       m.thresh0[0], m.thresh0[1], m.thresh0[2], m.thresh0[3],
       m.thresh1[0], m.thresh1[1], m.thresh1[2], m.thresh1[3],
-      m.trigger
+      m.trigger,
+
+      m.colors[0][0][0],  m.colors[0][0][1],  m.colors[0][0][2],
+      m.colors[0][1][0],  m.colors[0][1][1],  m.colors[0][1][2],
+      m.colors[0][2][0],  m.colors[0][2][1],  m.colors[0][2][2],
+      m.colors[0][3][0],  m.colors[0][3][1],  m.colors[0][3][2],
+      m.colors[0][4][0],  m.colors[0][4][1],  m.colors[0][4][2],
+      m.colors[0][5][0],  m.colors[0][5][1],  m.colors[0][5][2],
+      m.colors[0][6][0],  m.colors[0][6][1],  m.colors[0][6][2],
+      m.colors[0][7][0],  m.colors[0][7][1],  m.colors[0][7][2],
+      m.colors[0][8][0],  m.colors[0][8][1],  m.colors[0][8][2],
+      m.colors[0][9][0],  m.colors[0][9][1],  m.colors[0][8][2],
+      m.colors[0][10][0], m.colors[0][10][1], m.colors[0][8][2],
+      m.colors[0][11][0], m.colors[0][11][1], m.colors[0][8][2],
+      m.colors[0][12][0], m.colors[0][12][1], m.colors[0][8][2],
+      m.colors[0][13][0], m.colors[0][13][1], m.colors[0][8][2],
+      m.colors[0][14][0], m.colors[0][14][1], m.colors[0][8][2],
+      m.colors[0][15][0], m.colors[0][15][1], m.colors[0][8][2],
+
+      m.colors[1][0][0],  m.colors[1][0][1],  m.colors[1][0][2],
+      m.colors[1][1][0],  m.colors[1][1][1],  m.colors[1][1][2],
+      m.colors[1][2][0],  m.colors[1][2][1],  m.colors[1][2][2],
+      m.colors[1][3][0],  m.colors[1][3][1],  m.colors[1][3][2],
+      m.colors[1][4][0],  m.colors[1][4][1],  m.colors[1][4][2],
+      m.colors[1][5][0],  m.colors[1][5][1],  m.colors[1][5][2],
+      m.colors[1][6][0],  m.colors[1][6][1],  m.colors[1][6][2],
+      m.colors[1][7][0],  m.colors[1][7][1],  m.colors[1][7][2],
+      m.colors[1][8][0],  m.colors[1][8][1],  m.colors[1][8][2],
+      m.colors[1][8][0],  m.colors[1][9][1],  m.colors[1][9][2],
+      m.colors[1][8][0], m.colors[1][10][1], m.colors[1][10][2],
+      m.colors[1][9][0], m.colors[1][11][1], m.colors[1][11][2],
+      m.colors[1][10][0], m.colors[1][12][1], m.colors[1][12][2],
+      m.colors[1][11][0], m.colors[1][13][1], m.colors[1][13][2],
+      m.colors[1][12][0], m.colors[1][14][1], m.colors[1][14][2],
+      m.colors[1][13][0], m.colors[1][15][1], m.colors[1][15][2],
+
+      m.colors[2][0][0],  m.colors[2][0][1],  m.colors[2][0][2],
+      m.colors[2][1][0],  m.colors[2][1][1],  m.colors[2][1][2],
+      m.colors[2][2][0],  m.colors[2][2][1],  m.colors[2][2][2],
+      m.colors[2][3][0],  m.colors[2][3][1],  m.colors[2][3][2],
+      m.colors[2][4][0],  m.colors[2][4][1],  m.colors[2][4][2],
+      m.colors[2][5][0],  m.colors[2][5][1],  m.colors[2][5][2],
+      m.colors[2][6][0],  m.colors[2][6][1],  m.colors[2][6][2],
+      m.colors[2][7][0],  m.colors[2][7][1],  m.colors[2][7][2],
+      m.colors[2][8][0],  m.colors[2][8][1],  m.colors[2][8][2],
+      m.colors[2][9][0],  m.colors[2][9][1],  m.colors[2][9][2],
+      m.colors[2][10][0], m.colors[2][10][1], m.colors[2][10][2],
+      m.colors[2][11][0], m.colors[2][11][1], m.colors[2][11][2],
+      m.colors[2][12][0], m.colors[2][12][1], m.colors[2][12][2],
+      m.colors[2][13][0], m.colors[2][13][1], m.colors[2][13][2],
+      m.colors[2][14][0], m.colors[2][14][1], m.colors[2][14][2],
+      m.colors[2][15][0], m.colors[2][15][1], m.colors[2][15][2]
     ];
   };
 
@@ -330,11 +372,27 @@ var VectrUI = function() {
   };
 
   function getColorHex(set, slot) {
+    var red = data[(48 * set) + (3 * slot) + 47];
+    if (red === null || red === undefined) {
+      red = 0;
+    }
+
+    var green = data[(48 * set) + (3 * slot) + 48];
+    if (green === null || green === undefined) {
+      green = 0;
+    }
+
+    var blue = data[(48 * set) + (3 * slot) + 49];
+    if (blue === null || blue === undefined) {
+      blue = 0;
+    }
+
     var rgb = {
-      r: data[(27 * set) + (3 * slot) + 38],
-      g: data[(27 * set) + (3 * slot) + 39],
-      b: data[(27 * set) + (3 * slot) + 40]
+      r: red,
+      g: green,
+      b: blue
     };
+
     return rgb2hex(rgb);
   };
 
@@ -716,7 +774,7 @@ var VectrUI = function() {
           if (send_data) {
             updateData(1, 0);
             updateData(2, 0);
-            updateData(127, 0);
+            updateData(46, 0);
             sendCommand([SER_INIT, 0, 0, 0]);
           }
         } else {
@@ -737,8 +795,8 @@ var VectrUI = function() {
       };
     };
 
-    readListeners[127].push(triggerListener(false));
-    updateListeners[127].push(triggerListener(false));
+    readListeners[46].push(triggerListener(false));
+    updateListeners[46].push(triggerListener(false));
 
     readListeners[0].push(typeListener(false));
     updateListeners[0].push(typeListener(true));
@@ -749,7 +807,7 @@ var VectrUI = function() {
     // Numc sliderfield + colorpickers
     function ColorSlot(parent, slot_idx) {
       // Color picker
-      var addr = 38 + (27 * set_idx) + (3 * slot_idx);
+      var addr = 47 + (48 * set_idx) + (3 * slot_idx);
       var id = prefix + "-color-" + set_idx + "-" + slot_idx;
 
       var color_elem = document.createElement("div");
@@ -852,12 +910,12 @@ var VectrUI = function() {
 
     var elem = document.createElement("div");
     elem.style.margin = "0 auto";
-    elem.style.width = "535px";
+    elem.style.width = "785px";
     parent.appendChild(elem);
 
     var slider = new SliderField(elem, {
       min: 1,
-      max: 9,
+      max: 16,
       width: 200,
       addr: 35 + set_idx
     });
@@ -868,7 +926,7 @@ var VectrUI = function() {
     color_container.style.display = "inline-block";
     elem.appendChild(color_container);
 
-    for (var i = 0; i < 9; i++) {
+    for (var i = 0; i < 16; i++) {
       var color_slot = new ColorSlot(color_container, i);
       slots.push(color_slot);
     }
@@ -918,7 +976,7 @@ var VectrUI = function() {
           } else {
             $(slider).limitslider("enable");
           }
-          updateData(127, this.value);
+          updateData(46, this.value);
           sendCommand([SER_INIT, 0, 0, 0]);
         };
       }();
@@ -942,7 +1000,7 @@ var VectrUI = function() {
         };
       }();
 
-      readListeners[127].push(listener);
+      readListeners[46].push(listener);
     } else {
       ranges = [
         {styleClass: 'range-0'},
@@ -956,7 +1014,7 @@ var VectrUI = function() {
 
     elem.appendChild(slider);
 
-    var addr = 119 + (4 * thresh_idx);
+    var addr = 38 + (4 * thresh_idx);
     var values_container = document.createElement("div");
     values_container.style.display = "flex";
     values_container.style.justifyContent = "space-between";
@@ -964,7 +1022,7 @@ var VectrUI = function() {
     elem.appendChild(values_container);
 
     for (var i = 0; i < thresh_vals; i++) {
-      var value_addr = 119;
+      var value_addr = 38;
       if (thresh_vals == 2) {
         value_addr += 1 - i;
       } else {
@@ -988,9 +1046,9 @@ var VectrUI = function() {
           values[idx] = val;
           $(slider).limitslider("values", values);
           if (thresh_vals == 2) {
-            sendData(120 - idx, val);
+            sendData(39 - idx, val);
           } else {
-            sendData(119 + (4 * thresh_idx) + idx, val);
+            sendData(38 + (4 * thresh_idx) + idx, val);
           }
         }
       }(i);
@@ -1082,7 +1140,7 @@ var VectrUI = function() {
       var field = document.querySelector("#mode-save");
       field.value = this.data.filename;
       var arr = modeToArray(this.data);
-      for (var i = 0; i < 128; i++) {
+      for (var i = 0; i < 191; i++) {
         readData(i, arr[i]);
       }
       sendCommand([SER_INIT, 0, 0, 0]);
@@ -1095,18 +1153,20 @@ var VectrUI = function() {
     console.log("version mismatch: " + modeobj.version);
 
     // < 0.2.5, tracer only had one gap
-    if (modeobj.type == 0) {
-      if (modeobj.pattern[0] == 1) {
-        modeobj.timings[0][5] = modeobj.timings[0][4];
-      }
-      if (modeobj.pattern[1] == 1) {
-        modeobj.timings[1][5] = modeobj.timings[1][4];
-      }
-    } else {
-      if (modeobj.pattern[0] == 1) {
-        modeobj.timings[0][5] = modeobj.timings[0][4];
-        modeobj.timings[1][5] = modeobj.timings[1][4];
-        modeobj.timings[2][5] = modeobj.timings[2][4];
+    if (modeobj.version === null || modeobj.version === undefined) {
+      if (modeobj.type == 0) {
+        if (modeobj.pattern[0] == 1) {
+          modeobj.timings[0][5] = modeobj.timings[0][4];
+        }
+        if (modeobj.pattern[1] == 1) {
+          modeobj.timings[1][5] = modeobj.timings[1][4];
+        }
+      } else {
+        if (modeobj.pattern[0] == 1) {
+          modeobj.timings[0][5] = modeobj.timings[0][4];
+          modeobj.timings[1][5] = modeobj.timings[1][4];
+          modeobj.timings[2][5] = modeobj.timings[2][4];
+        }
       }
     }
 
