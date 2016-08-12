@@ -27,6 +27,8 @@ var VectrUI = function() {
   var bundle0 = document.getElementById("bundle0");
   var bundle1 = document.getElementById("bundle1");
   var modes = document.getElementById("mode-list");
+  var dialog = document.querySelector("dialog");
+  var close = document.getElementById("close-dialog");
 
   var mode_bundles = [
     [[], [], [], [], [], [], [], []],
@@ -363,6 +365,7 @@ var VectrUI = function() {
         field.value = ui.value;
         if (event.originalEvent) {
           updateData(opts.addr, ui.value * opts.multiplier);
+          sendCommand([SER_INIT, 0, 0, 0]);
         }
       }
     }();
@@ -376,6 +379,7 @@ var VectrUI = function() {
         }
         $(slider).slider("value", event.target.value);
         updateData(opts.addr, event.target.value * opts.multiplier);
+        sendCommand([SER_INIT, 0, 0, 0]);
       };
     }();
 
@@ -913,6 +917,7 @@ var VectrUI = function() {
             $(slider).limitslider("enable");
           }
           updateData(127, this.value);
+          sendCommand([SER_INIT, 0, 0, 0]);
         };
       }();
       dropdown_container.appendChild(dropdown);
@@ -1404,6 +1409,15 @@ var VectrUI = function() {
         bundle_b.push(modeToArray(modeobj));
       }
 
+      if (field.value == "") {
+        dialog.children[0].textContent = "Firmware must have a name.";
+      } else if (field.value.includes(" ")) {
+        dialog.children[0].textContent = "Firmware name must not have spaces.";
+      } else {
+        dialog.children[0].textContent = "Firmware saved.";
+      }
+      dialog.show();
+
       writeSource(field.value, num_modes, bundle_a, bundle_b);
     };
   };
@@ -1437,6 +1451,8 @@ var VectrUI = function() {
   initSettings();
   initUI();
   initDragDrop();
+
+  close.onclick = function () { dialog.close(); }
 
   return {
     writeMode: writeMode,

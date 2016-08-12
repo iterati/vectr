@@ -623,7 +623,7 @@ var DefaultModes = function() {
         [0, 0, 0]
       ]
     ],
-    thresh0: [0, 10, 16, 48],
+    thresh0: [4, 14, 16, 48],
     thresh1: [16, 48, 64, 64],
     trigger: 0
   },
