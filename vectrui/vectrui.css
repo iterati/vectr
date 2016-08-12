@@ -62,12 +62,18 @@ input, select, button {
   right: 190px;
 }
 
+::-webkit-scrollbar {
+  display: none;
+}
+
 #bundle0 {
   position: absolute;
   top: 20px;
   height: 245px;
   width: 168px;
   border: 2px solid black;
+  overflow-x: hidden;
+  overflow-y: scroll;
 }
 
 #bundle1 {
@@ -76,6 +82,8 @@ input, select, button {
   height: 245px;
   width: 168px;
   border: 2px solid black;
+  overflow-x: hidden;
+  overflow-y: scroll;
 }
 
 #bundle-controls {
@@ -129,7 +137,7 @@ input, select, button {
 }
 
 .mode {
-  min-height: 25px;
+  min-height: 20px;
   min-width: 160px;
   padding-top: 0px;
   margin: 5px;

@@ -21,17 +21,17 @@ var getSource = function() {
     if (num_modes[1] === 0) { num_modes[1] = 1; }
     var addr_settings = Math.round(Math.random() * 1023);
     var num_bundles = 2;
-    var max_modes = 8;
+    var max_modes = 16;
     var mode_size = 128;
     var num_modes_str = num_modes[0] + ", " + num_modes[1];
     var bundle_a_str = "";
     var bundle_b_str = "";
-    for (var i = 0; i < 7; i++) {
+    for (var i = 0; i < max_modes - 1; i++) {
       bundle_a_str += "    " + arrayToModeString(bundle_a[i]) + ",\n";
       bundle_b_str += "    " + arrayToModeString(bundle_b[i]) + ",\n";
     }
-    bundle_a_str += "    " + arrayToModeString(bundle_a[7]);
-    bundle_b_str += "    " + arrayToModeString(bundle_b[7]);
+    bundle_a_str += "    " + arrayToModeString(bundle_a[max_modes - 1]);
+    bundle_b_str += "    " + arrayToModeString(bundle_b[max_modes - 1]);
 
     return `
 #include <Arduino.h>
@@ -56,11 +56,12 @@ ${bundle_a_str}
 ${bundle_b_str}
   }
 };
+
+#define NOP __asm__("nop\\n\\t")
 /* END MODE CONFIG */
 
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
 #define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
-
 
 #define PIN_R             9     // Red pin - timer 0
 #define PIN_G             6     // Green pin - timer 1
@@ -86,16 +87,15 @@ ${bundle_b_str}
 #define STATE_GUI_MODE    2     // Viewing in-memory mode
 #define STATE_GUI_COLOR   3     // Viewing in-memory color
 
-#define ACCEL_COUNTS      40    // 20 frames between accel reads (50hz)
+#define ACCEL_COUNTS      40    // 40 frames between accel reads (50hz)
 #define ACCEL_BINS        64    // 32 bins gives 33 velocity states
 #define ACCEL_ONEG        512   // +- 4g range
 #define ACCEL_MAX_GS      4
 uint32_t ACCEL_BIN_SIZE = (ACCEL_MAX_GS * ACCEL_ONEG) / ACCEL_BINS;
-float ACCEL_COEF =        23.64;  // For normalizing pitch and roll
-uint8_t ACCEL_HALFBINS =  ACCEL_BINS >> 1;
+float ACCEL_COEF =        378.24 / ACCEL_BINS;  // For normalizing pitch and roll
 
 #define ACCEL_FALLOFF     8     // 20ms cycles before falloff
-#define ACCEL_TARGET      1     // 20ms cycles before triggering
+#define ACCEL_TARGET      0     // 20ms cycles before triggering
 
 #define TYPE_VECTR        0     // Vectr mode type
 #define TYPE_PRIMER       1     // Primer mode type
@@ -120,13 +120,14 @@ uint8_t ACCEL_HALFBINS =  ACCEL_BINS >> 1;
 
 typedef union Settings {
   struct {
-    uint8_t sleeping: 1;        // Should the light go to sleep?
-    uint8_t locked: 1;          // Is the light locked?
-    uint8_t conjure: 1;         // Are we  conjuring?
-    uint8_t bundle: 1;          // Which bundle?
-    uint8_t mode: 3;            // Current mode
+    unsigned sleeping: 1;       // Should the light go to sleep?
+    unsigned locked  : 1;       // Is the light locked?
+    unsigned conjure : 1;       // Are we conjuring?
+    unsigned bundle  : 1;       // Which bundle?
+    unsigned _0      : 4;
+    unsigned mode    : 8;       // Current mode
   };
-  uint8_t settings;             // for saving/loading
+  uint8_t settings[2];          // for saving/loading
 } Settings;
 
 typedef union Mode {
@@ -223,18 +224,19 @@ const uint16_t _reciprocals[] = {
   0x0108, 0x0107, 0x0106, 0x0105, 0x0104, 0x0103, 0x0102, 0x0101,
 };
 
+const float COEFF1 = PI * 0.25;
+const float COEFF2 = 3 *  COEFF1;
+
 float fast_atan2(float y, float x) {
-  float coeff_1 = PI * 0.25;
-  float coeff_2 = 3 * coeff_1;
   float abs_y = fabs(y) + 1e-10;
   float angle, r;
 
   if (x >= 0) {
     r = (x - abs_y) / (x + abs_y);
-    angle = coeff_1 - coeff_1 * r;
+    angle = COEFF1 - COEFF1 * r;
   } else {
     r = (x + abs_y) / (abs_y - x);
-    angle = coeff_2 - coeff_1 * r;
+    angle = COEFF2 - COEFF1 * r;
   }
   return (y < 0) ? -angle : angle;
 }
@@ -292,17 +294,6 @@ uint8_t fast_interp(uint8_t s, uint8_t e, uint8_t d, uint8_t D) {
 }
 
 
-void ee_update(uint16_t addr, uint8_t val) {
-  while (!eeprom_is_ready()) {}
-  EEPROM.update(addr, val);
-}
-
-uint8_t ee_read(uint16_t addr) {
-  while (!eeprom_is_ready()) {}
-  return EEPROM.read(addr);
-}
-
-
 inline void I2CADC_SDA_H_OUTPUT() { DDRC &= ~(1 << 4); }
 inline void I2CADC_SDA_L_INPUT()  { DDRC |=  (1 << 4); }
 inline void I2CADC_SCL_H_OUTPUT() { DDRC &= ~(1 << 5); }
@@ -311,15 +302,14 @@ inline void I2CADC_SCL_L_INPUT()  { DDRC |=  (1 << 5); }
 void TWADC_write(uint8_t data) {
   uint8_t data_r = ~data;
   uint8_t i = 8;
-  while (i > 0) {
-    i--;
+  while (i--) {
     pinMode(SDA_PIN, bitRead(data_r, i));
     I2CADC_SCL_H_OUTPUT();
     I2CADC_SCL_L_INPUT();
   }
 
 AckThis:
-  I2CADC_SCL_L_INPUT();
+  I2CADC_SCL_L_INPUT(); 
   I2CADC_SCL_H_OUTPUT();
   int ADCresult = analogRead(SCL_PIN);
   if (ADCresult < I2CADC_L) {
@@ -331,8 +321,7 @@ AckThis:
 uint8_t TWADC_read(bool ack) {
   uint8_t data = 0;
   uint8_t i = 8;
-  while (i > 0) {
-    i--;
+  while (i--) {
     I2CADC_SDA_H_OUTPUT();
     I2CADC_SCL_H_OUTPUT();
     int result = analogRead(SDA_PIN);
@@ -345,19 +334,19 @@ uint8_t TWADC_read(bool ack) {
   }
 
   if (ack) {
-    I2CADC_SCL_L_INPUT();  _NOP();
+    I2CADC_SCL_L_INPUT();  NOP;
     I2CADC_SDA_L_INPUT();
-    I2CADC_SCL_H_OUTPUT(); _NOP();
-    I2CADC_SCL_L_INPUT();  _NOP();
+    I2CADC_SCL_H_OUTPUT(); NOP;
+    I2CADC_SCL_L_INPUT();  NOP;
   } else {
 AckThis:
-    I2CADC_SCL_L_INPUT();  _NOP();
-    I2CADC_SCL_H_OUTPUT(); _NOP();
+    I2CADC_SCL_L_INPUT();  NOP;
+    I2CADC_SCL_H_OUTPUT(); NOP;
     int result = analogRead(SCL_PIN);
     if (result < I2CADC_L) {
       goto AckThis;
     }
-    I2CADC_SCL_L_INPUT();  _NOP();
+    I2CADC_SCL_L_INPUT();  NOP;
 
   }
   return data;
@@ -366,8 +355,7 @@ AckThis:
 void TWADC_write_w(uint8_t data) {
   uint8_t data_r = ~data;
   uint8_t i = 7;
-  while (i > 0) {
-    i--;
+  while (i--) {
     pinMode(SDA_PIN, bitRead(data_r, i));
     I2CADC_SCL_H_OUTPUT();
     I2CADC_SCL_L_INPUT();
@@ -388,7 +376,7 @@ AckThis:
 void TWADC_write_r(uint8_t data) {
   uint8_t data_r = ~data;
   uint8_t i = 7;
-  while (i > 0) {
+  while (i--) {
     i--;
     pinMode(SDA_PIN, bitRead(data_r, i));
     I2CADC_SCL_H_OUTPUT();
@@ -441,10 +429,11 @@ void accel_init() {
   delay(1);
   TWADC_send(0x2A, B00000000); // Standby to accept new settings
   TWADC_send(0x0E, B00000001); // Set +-4g range
-  TWADC_send(0x2B, B00011011); // Low Power SLEEP
-  TWADC_send(0x2C, B00111000);
-  TWADC_send(0x2D, B00000000);
-  TWADC_send(0x2A, B00100001); // Set 50 samples/sec (every 40 frames) and active
+  TWADC_send(0x2B, B00011011); // Low Power
+  TWADC_send(0x2C, B00000000); // No interrupt wake
+  TWADC_send(0x2D, B00000000); // No interrupts
+  TWADC_send(0x2E, B00000000); // Interrupts on INT2
+  TWADC_send(0x2A, B00100001); // Set 50Hz and active
 }
 
 void accel_standby() {
@@ -474,13 +463,7 @@ void pattern_strobe(PatternState *state, bool rend) {
       if (state->cntr >= repeat) {
         state->cntr = 0;
         state->cidx += skip;
-        if (state->cidx >= numc) {
-          if (pick == skip) {
-            state->cidx = 0;
-          } else {
-            state->cidx %= numc;
-          }
-        }
+        while (state->cidx >= numc) state->cidx -= numc;
       }
     }
 
@@ -523,10 +506,9 @@ void pattern_tracer(PatternState *state, bool rend) {
   uint8_t cbt = state->timings[1];
   uint8_t tst = state->timings[2];
   uint8_t tbt = state->timings[3];
-  uint8_t gta = state->timings[4];
-  uint8_t gtb = state->timings[5];
+  uint8_t gt  = state->timings[4];
 
-  if (cst == 0 && cbt == 0 && tst == 0 && tbt == 0 && gta == 0 && gtb == 0) gta = 1;
+  if (cst == 0 && cbt == 0 && tst == 0 && tbt == 0 && gt == 0) gt = 1;
 
   while (state->trip == 0) {
     state->segm++;
@@ -536,19 +518,17 @@ void pattern_tracer(PatternState *state, bool rend) {
       if (state->cntr >= pick + repeat) {
         state->cntr = 0;
         state->cidx += skip;
-        if (state->cidx >= numc) {
-          state->cidx %= numc;
-        }
+        while (state->cidx >= numc) state->cidx -= numc;
       }
     }
 
     if (state->segm == 0) {
       if (state->cntr == 0) {
-        state->trip = gtb;
+        state->trip = gt;
       } else if (state->cntr < pick) {
         state->trip = cbt;
       } else if (state->cntr == pick) {
-        state->trip = gta;
+        state->trip = gt;
       } else {
         state->trip = tbt;
       }
@@ -682,11 +662,11 @@ void pattern_sword(PatternState *state, bool rend) {
     if (state->segm >= 2) {
       state->segm = 0;
       state->cntr++;
-      if (state->cntr + 1 >= pick * 2) {
+      if (state->cntr >= (pick * 2) - 1) {
         state->cntr = 0;
         state->cidx += pick;
         if (state->cidx >= numc) {
-          state->cidx %= numc;
+          state->cidx -= numc;
         }
       }
     }
@@ -698,7 +678,7 @@ void pattern_sword(PatternState *state, bool rend) {
         state->trip = bt;
       }
     } else {
-      if (state->cntr + 1 == pick) {
+      if (state->cntr == pick - 1) {
         state->trip = ct;
       } else {
         state->trip = st;
@@ -925,9 +905,10 @@ void pattern_shifter(PatternState *state, bool rend) {
 
   if (rend) {
     if (state->segm & 1) {
-      ledr = state->colors[state->segm / 2][0];
-      ledg = state->colors[state->segm / 2][1];
-      ledb = state->colors[state->segm / 2][2];
+      uint8_t color = state->segm >> 1;
+      ledr = state->colors[color][0];
+      ledg = state->colors[color][1];
+      ledb = state->colors[color][2];
     } else {
       ledr = 0;
       ledg = 0;
@@ -973,27 +954,16 @@ void pattern_triple(PatternState *state, bool rend) {
     }
 
     if (state->segm == 0) {
-      if (state->cntr == 0) {
-        state->trip = sbt;
-      } else if (state->cntr < repeat_a) {
-        state->trip = abt;
-      } else if (state->cntr == repeat_a) {
-        state->trip = sbt;
-      } else if (state->cntr < repeat_a + repeat_b) {
-        state->trip = bbt;
-      } else if (state->cntr == repeat_a + repeat_b) {
-        state->trip = sbt;
-      } else {
-        state->trip = cbt;
-      }
+      if (state->cntr == 0)                         state->trip = sbt;
+      else if (state->cntr < repeat_a)              state->trip = abt;
+      else if (state->cntr == repeat_a)             state->trip = sbt;
+      else if (state->cntr < repeat_a + repeat_b)   state->trip = bbt;
+      else if (state->cntr == repeat_a + repeat_b)  state->trip = sbt;
+      else                                          state->trip = cbt;
     } else {
-      if (state->cntr < repeat_a) {
-        state->trip = ast;
-      } else if (state->cntr < repeat_b) {
-        state->trip = bst;
-      } else {
-        state->trip = cst;
-      }
+      if (state->cntr < repeat_a)                   state->trip = ast;
+      else if (state->cntr < repeat_b)              state->trip = bst;
+      else                                          state->trip = cst;
     }
   }
 
@@ -1003,19 +973,15 @@ void pattern_triple(PatternState *state, bool rend) {
       ledg = 0;
       ledb = 0;
     } else {
-      if (state->cntr < repeat_a) {
-        ledr = state->colors[state->cidx][0];
-        ledg = state->colors[state->cidx][1];
-        ledb = state->colors[state->cidx][2];
-      } else if (state->cntr < repeat_a + repeat_b) {
-        ledr = state->colors[(state->cidx + skip) % numc][0];
-        ledg = state->colors[(state->cidx + skip) % numc][1];
-        ledb = state->colors[(state->cidx + skip) % numc][2];
-      } else {
-        ledr = state->colors[(state->cidx + skip + skip) % numc][0];
-        ledg = state->colors[(state->cidx + skip + skip) % numc][1];
-        ledb = state->colors[(state->cidx + skip + skip) % numc][2];
-      }
+      uint8_t color = state->cidx;
+
+      if (state->cntr >= repeat_a)            color += skip;
+      if (state->cntr >= repeat_a + repeat_b) color += skip;
+      while (color >= numc)                   color -= numc;
+
+      ledr = state->colors[color][0];
+      ledg = state->colors[color][1];
+      ledb = state->colors[color][2];
     }
   }
 
@@ -1046,15 +1012,16 @@ void pattern_stepper(PatternState *state, bool rend) {
     state->segm++;
     if (state->segm >= 2) {
       state->segm = 0;
-      state->cidx = (rend && random_color) ? random(0, numc ) : (state->cidx + 1) % numc;
-      state->cntr = (rend && random_step)  ? random(0, steps) : (state->cntr + 1) % steps;
+
+      state->cidx = (rend && random_color) ? random(0, numc ) : (state->cidx + 1);
+      if (state->cidx >= numc) state->cidx = 0;
+
+      state->cntr = (rend && random_step)  ? random(0, steps) : (state->cntr + 1);
+      if (state->cntr >= steps) state->cntr = 0;
     }
 
-    if (state->segm == 0) {
-      state->trip = bt;
-    } else {
-      state->trip = ct[state->cntr];
-    }
+    if (state->segm == 0) state->trip = bt;
+    else                  state->trip = ct[state->cntr];
   }
 
   if (rend) {
@@ -1084,12 +1051,12 @@ void pattern_random(PatternState *state, bool rend) {
   uint8_t bth = max(state->timings[2], state->timings[3]);
 
   if (ctl == 0 && cth == 0 && btl == 0 && bth == 0) btl = bth = 1;
-
   while (state->trip == 0) {
     state->segm++;
     if (state->segm >= 2) {
       state->segm = 0;
-      state->cidx = (rend && random_color) ? random(0, numc) : (state->cidx + 1) % numc;
+      state->cidx = (rend && random_color) ? random(0, numc) : (state->cidx + 1);
+      if (state->cidx >= numc) state->cidx = 0;
     }
 
     if (rend) {
@@ -1152,7 +1119,8 @@ void change_mode(uint8_t s) {
 }
 
 void next_mode() {
-  settings.mode = (settings.mode + 1) % num_modes[settings.bundle];
+  settings.mode++;
+  if (settings.mode >= num_modes[settings.bundle]) settings.mode = 0;
   for (uint8_t i = 0; i < MODE_SIZE; i++) {
     mode.data[i] = pgm_read_byte(&modes[settings.bundle][settings.mode][i]);
   }
@@ -1200,7 +1168,12 @@ void power_down() {
 
 void enter_sleep() {
   settings.sleeping = 1;                        // Set sleeping bit
-  ee_update(ADDR_SETTINGS, settings.settings);  // Save settings
+
+  while (!eeprom_is_ready()) {}
+  EEPROM.update(ADDR_SETTINGS, settings.settings[0]);
+  while (!eeprom_is_ready()) {}
+  EEPROM.update(ADDR_SETTINGS + 1, settings.settings[1]);
+
   write_frame(0, 0, 0);                         // Blank the LED
   accel_standby();                              // Standby the acceleromater
   digitalWrite(PIN_LDO, LOW);                   // Deactivate the LDO
@@ -1226,9 +1199,11 @@ void get_vectr_vals(uint8_t thresh[4], uint8_t *g, uint8_t *v, uint8_t *d, uint8
 
 void accel_velocity() {
   uint16_t bin_thresh = ACCEL_ONEG;             // Threshold starts at 1g
+  uint8_t prev_velocity = accel.velocity;       // Track previous velocity
   accel.velocity = 0;                           // Reset velocity to 0
+  uint8_t i = 0;                                // Counter
 
-  for (uint8_t i = 0; i < ACCEL_BINS; i++) {
+  while (i < ACCEL_BINS) {
     bin_thresh += ACCEL_BIN_SIZE;
 
     // If velocity is over thresh, reset falloff and increment trigger (capped at 128 to prevent overflow)
@@ -1245,24 +1220,28 @@ void accel_velocity() {
 
     // Increment falloff and counter
     accel.vectr_falloff[i]++;
+    i++;
   }
 }
 
-void accel_type_handler() {
+uint8_t accel_variant() {
   // For primer, this is where we check triggers to see if we switch active patterns
   // For vectr, this is where we switch patterns so that we can read in new data from accel incrementally
+
   if (mode.type == TYPE_PRIMER) {
+    if (mode.trigger == TRIGGER_OFF) return 0;
+
     uint8_t value = 0;                                                // Trigger value to test, stays 0 if OFF
     if (mode.trigger == TRIGGER_VELOCITY)   value = accel.velocity;
     else if (mode.trigger == TRIGGER_PITCH) value = accel.pitch;
     else if (mode.trigger == TRIGGER_ROLL)  value = accel.roll;
     else if (mode.trigger == TRIGGER_FLIP)  value = accel.flip;
 
-    if ((active_pattern == 0 && value >= mode.tr_meta[0]) ||          // If we're A and qualify for B
-        (active_pattern == 1 && value <= mode.tr_meta[1])) {          // Or if we're B and qualify for A
-      if (mode.trigger == TRIGGER_VELOCITY || accel.velocity < 4) {
-        accel.prime_falloff = 0;                                          // Reset falloff
-        accel.prime_trigger = min(accel.prime_trigger + 1, 128);          // Increment trigger (capped at 128)
+    if ((active_pattern == 0 && value > mode.tr_meta[0]) ||           // If we're A and qualify for B
+        (active_pattern == 1 && value < mode.tr_meta[1])) {           // Or if we're B and qualify for A
+      if (mode.trigger == TRIGGER_VELOCITY || accel.velocity < 5) {     // Only trigger non-velocity modes when velocity < 5
+        accel.prime_falloff = 0;                                        // Reset falloff
+        accel.prime_trigger = min(accel.prime_trigger + 1, 128);        // Increment trigger
       }
     }
 
@@ -1272,7 +1251,17 @@ void accel_type_handler() {
       accel.prime_trigger = 0;                                          // Reset trigger
       active_pattern = (active_pattern == 0) ? 1 : 0;                   // Change active pattern
     }
-  } else if (mode.data[0] == TYPE_VECTR) {
+  } else {
+    active_pattern = (active_pattern == 0) ? 1 : 0;                   // Change active pattern
+    states[active_pattern].trip = states[!active_pattern].trip;       // Copy over pattern tracking variables
+    states[active_pattern].cidx = states[!active_pattern].cidx;
+    states[active_pattern].cntr = states[!active_pattern].cntr;
+    states[active_pattern].segm = states[!active_pattern].segm;
+  }
+}
+
+void accel_blend() {
+  if (mode.data[0] == TYPE_VECTR) {
     uint8_t update_pattern = !active_pattern;                         // Update the inactive pattern
 
     uint8_t mg, mv, md, ms;                                           // Get blend values
@@ -1295,12 +1284,6 @@ void accel_type_handler() {
       if (i < 8) states[update_pattern].timings[i] = fast_interp(mode.timings[ms][i], mode.timings[ms + 1][i], mv, md);
       if (i < 4) states[update_pattern].args[i] = mode.args[0][i];
     }
-
-    active_pattern = (active_pattern == 0) ? 1 : 0;                   // Change active pattern
-    states[active_pattern].trip = states[!active_pattern].trip;       // Copy over pattern tracking variables
-    states[active_pattern].cidx = states[!active_pattern].cidx;
-    states[active_pattern].cntr = states[!active_pattern].cntr;
-    states[active_pattern].segm = states[!active_pattern].segm;
   }
 }
 
@@ -1326,21 +1309,21 @@ void handle_serial() {
 
     if (cmd == SER_HANDSHAKE) {                 // If handshake, we need to verify a valid handshake
       if (in0 == SER_VERSION && in1 == in2) {
+        settings.bundle = 0;                      // Reset bundle
+        settings.mode = 0;                        // Reset mode
         op_state = STATE_GUI_MODE;                // View mode
+        flash(64, 64, 64);
 
         Serial.write(SER_HANDSHAKE);              // Send handshake to GUI
         Serial.write(SER_VERSION);
         Serial.write(42);
         Serial.write(42);
-
-        flash(64, 64, 64);
       }
     } else if (cmd == SER_DISCONNECT) {         // If disconnecting, just go into play state
-      settings.bundle = 0;
-      settings.mode = 0;
       op_state = STATE_PLAY;
     } else if (cmd == SER_WRITE) {              // If writing, set in-memory mode's addr (in0) to value (in1)
       mode.data[in0] = in1;
+      init_mode();
     } else if (cmd == SER_VIEW_MODE) {          // If view mode, view mode
       op_state = STATE_GUI_MODE;
     } else if (cmd == SER_VIEW_COLOR) {         // If view color, update color set (in0) and slot (in1) then view color
@@ -1359,11 +1342,11 @@ void handle_button() {
 
   if (op_state == STATE_PLAY) {                               // If playing
     if (pressed) {                                              // and pressed
-      if (since_press == 600)       flash(32, 32, 32);            // Flash white when chip will sleep (500ms)
+      if (since_press == 1000)      flash(32, 32, 32);            // Flash white when chip will sleep (500ms)
       else if (since_press == 4000) flash(0, 0, 128);             // Flash blue when conjure will toggle (2s)
       else if (since_press == 8000) flash(128, 0, 0);             // Flash red when chip will lock and sleep (4s)
     } else if (changed) {                                       // if not pressed and changed (just released)
-      if (since_press < 600) {                                    // if less than 500ms, sleep if conjuring and change mode if not
+      if (since_press < 1000) {                                   // if less than 500ms, sleep if conjuring and change mode if not
         if (settings.conjure) enter_sleep();
         else                  next_mode();
       } else if (since_press < 4000) {                            // if less than 2s, sleep
@@ -1419,99 +1402,62 @@ void handle_button() {
 }
 
 void handle_accel() {
-  switch (accel_tick) {
-    case 0:
-      TWADC_begin();
-      TWADC_write_w(ACCEL_ADDR);
-      TWADC_write((uint8_t)1);
-      break;
-
-    case 1:
-      TWADC_begin();
-      TWADC_write_r(ACCEL_ADDR);
-      break;
-
-    case 2:
-      accel.axis_y = (int16_t)TWADC_read(1) << 8;
-      break;
-
-    case 3:
-      accel.axis_y = (accel.axis_y | TWADC_read(0)) >> 4;
-      break;
-
-    case 4:
-      TWADC_begin();
-      TWADC_write_w(ACCEL_ADDR);
-      TWADC_write((uint8_t)3);
-      break;
-
-    case 5:
-      TWADC_begin();
-      TWADC_write_r(ACCEL_ADDR);
-      break;
-
-    case 6:
-      accel.axis_x = (int16_t)TWADC_read(1) << 8;
-      break;
-
-    case 7:
-      accel.axis_x = (accel.axis_x | TWADC_read(0)) >> 4;
-      break;
-
-    case 8:
-      TWADC_begin();
-      TWADC_write_w(ACCEL_ADDR);
-      TWADC_write((uint8_t)5);
-      break;
-
-    case 9:
-      TWADC_begin();
-      TWADC_write_r(ACCEL_ADDR);
-      break;
-
-    case 10:
-      accel.axis_z = (int16_t)TWADC_read(1) << 8;
-      break;
-
-    case 11:
-      accel.axis_z = (accel.axis_z | TWADC_read(0)) >> 4;
-      break;
-
-    case 12:
-      accel.axis_x2 = pow(accel.axis_x, 2);
-      accel.axis_y2 = pow(accel.axis_y, 2);
-      accel.axis_z2 = pow(accel.axis_z, 2);
-      accel.magnitude = fast_sqrt(accel.axis_x2 + accel.axis_y2 + accel.axis_z2);
-      accel.fpitch = fast_sqrt(accel.axis_y2 + accel.axis_z2);
-      accel.froll = fast_sqrt(accel.axis_x2 + accel.axis_z2);
-      break;
-
-    case 13:
-      accel.fpitch = fast_atan2(-accel.axis_x, accel.fpitch);
-      break;
-
-    case 14:
-      accel.froll = fast_atan2(accel.axis_y, accel.froll);
-      break;
-
-    case 15:
-      accel.pitch = ACCEL_HALFBINS + constrain(accel.fpitch * ACCEL_COEF, -ACCEL_HALFBINS, ACCEL_HALFBINS);
-      accel.roll  = ACCEL_HALFBINS + constrain(accel.froll  * ACCEL_COEF, -ACCEL_HALFBINS, ACCEL_HALFBINS);
-      accel.flip  = ACCEL_HALFBINS + constrain(accel.axis_z / 15,         -ACCEL_HALFBINS, ACCEL_HALFBINS);
-      break;
-
-    case 16:
-      accel_velocity();
-      break;
-
-    case 17:
-      accel_type_handler();
-      break;
-
-    default:
-      break;
+  if (accel_tick == 0) {                                      // Tick 0: request y axis (x and y are swapped on v2s)
+    TWADC_begin();
+    TWADC_write_w(ACCEL_ADDR);
+    TWADC_write((uint8_t)1);
+  } else if (accel_tick == 1) {                               // Tick 1: start read
+    TWADC_begin();
+    TWADC_write_r(ACCEL_ADDR);
+  } else if (accel_tick == 2) {                               // Tick 2: read in first byte
+    accel.axis_y = (int16_t)TWADC_read(1) << 8;
+  } else if (accel_tick == 3) {                               // Tick 3: read in second byte
+    accel.axis_y = (accel.axis_y | TWADC_read(0)) >> 4;
+  } else if (accel_tick == 4) {                               // Tick 4: request x axis
+    TWADC_begin();
+    TWADC_write_w(ACCEL_ADDR);
+    TWADC_write((uint8_t)3);
+  } else if (accel_tick == 5) {                               // Tick 5: start read
+    TWADC_begin();
+    TWADC_write_r(ACCEL_ADDR);
+  } else if (accel_tick == 6) {                               // Tick 6: read in first byte
+    accel.axis_x = (int16_t)TWADC_read(1) << 8;
+  } else if (accel_tick == 7) {                               // Tick 7: read in second byte
+    accel.axis_x = (accel.axis_x | TWADC_read(0)) >> 4;
+  } else if (accel_tick == 8) {                               // Tick 8: request z axis
+    TWADC_begin();
+    TWADC_write_w(ACCEL_ADDR);
+    TWADC_write((uint8_t)5);
+  } else if (accel_tick == 9) {                               // Tick 9: start read
+    TWADC_begin();
+    TWADC_write_r(ACCEL_ADDR);
+  } else if (accel_tick == 10) {                              // Tick 10: read in first byte
+    accel.axis_z = (int16_t)TWADC_read(1) << 8;
+  } else if (accel_tick == 11) {                              // Tick 11: read in second byte
+    accel.axis_z = (accel.axis_z | TWADC_read(0)) >> 4;
+  } else if (accel_tick == 12) {                              // Tick 12: calculate squares and square roots
+    accel.axis_x2 = pow(accel.axis_x, 2);
+    accel.axis_y2 = pow(accel.axis_y, 2);
+    accel.axis_z2 = pow(accel.axis_z, 2);
+    accel.magnitude = fast_sqrt(accel.axis_x2 + accel.axis_y2 + accel.axis_z2);
+    accel.fpitch = fast_sqrt(accel.axis_y2 + accel.axis_z2);
+    accel.froll = fast_sqrt(accel.axis_x2 + accel.axis_z2);
+  } else if (accel_tick == 13) {                              // Tick 13: calculate pitch in radians
+    accel.fpitch = fast_atan2(-accel.axis_x, accel.fpitch);
+  } else if (accel_tick == 14) {                              // Tick 14: calculate roll in radians
+    accel.froll = fast_atan2(accel.axis_y, accel.froll);
+  } else if (accel_tick == 15) {                              // Tick 15: normalize pitch, roll, and flip to 0-32
+    accel.pitch = 16 + constrain(accel.fpitch * ACCEL_COEF, -16, 16);
+    accel.roll  = 16 + constrain(accel.froll  * ACCEL_COEF, -16, 16);
+    accel.flip  = 16 + constrain(accel.axis_z / 30,         -16, 16);
+  } else if (accel_tick == 16) {                              // Tick 16: calculate velocity
+    accel_velocity();
+  } else if (accel_tick == 17) {                              // Tick 17: blend colors and timings (vectr calcs)
+    accel_blend();
+  } else if (accel_tick == 18) {                              // Tick 18: determine active pattern
+    accel_variant();
   }
-
+                                                              // Tick 19 - end: do nothing
   accel_tick++;
   if (accel_tick >= ACCEL_COUNTS) accel_tick = 0;             // Loop accel tracker
 }
@@ -1535,7 +1481,11 @@ void handle_render() {
 
 
 void setup() {
-  settings.settings = ee_read(ADDR_SETTINGS);     // Read the settings from memory
+  while (!eeprom_is_ready()) {}
+  settings.settings[0] = EEPROM.read(ADDR_SETTINGS);
+  while (!eeprom_is_ready()) {}
+  settings.settings[0] = EEPROM.read(ADDR_SETTINGS + 1);
+
   if (!settings.conjure) settings.mode = 0;       // Reset mode if we're not conjuring
 
   pinMode(PIN_BUTTON, INPUT);                     // Enable button pin for input to handle interrupt
@@ -1582,11 +1532,6 @@ void setup() {
   patterns[PATTERN_TRIPLE]  = &pattern_triple;
   patterns[PATTERN_STEPPER] = &pattern_stepper;
   patterns[PATTERN_RANDOM]  = &pattern_random;
-
-  Serial.write(SER_HANDSHAKE);                    // Send handshake to GUI
-  Serial.write(SER_VERSION);
-  Serial.write(42);
-  Serial.write(42);
 
   change_mode(settings.mode);                     // Initialize current mode
   last_write = micros();                          // Reset the limiter

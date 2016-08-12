@@ -10,6 +10,8 @@ var VectrUI = function() {
   var SER_VIEW_COLOR = 230;
   var SER_INIT       = 240;
 
+  var MAX_MODES      = 16;
+
   var version = "0.2.5";
   var dir_root;
   var dir_firmwares;
@@ -105,7 +107,7 @@ var VectrUI = function() {
     accepts: function(el, target, source, sibling) {
       if (target === modes) {
         return false;
-      } else if (target.childElementCount > 8) {
+      } else if (target.childElementCount > MAX_MODES) {
         return false;
       }
       return true;
