@@ -306,14 +306,14 @@ inline void I2CADC_SCL_L_INPUT()  { DDRC |=  (1 << 5); }
 void TWADC_write(uint8_t data) {
   uint8_t data_r = ~data;
   uint8_t i = 8;
-  while (i--) {
+  while (i > 0) {
+    i--;
     pinMode(SDA_PIN, bitRead(data_r, i));
     I2CADC_SCL_H_OUTPUT();
     I2CADC_SCL_L_INPUT();
   }
-
 AckThis:
-  I2CADC_SCL_L_INPUT(); 
+  I2CADC_SCL_L_INPUT();
   I2CADC_SCL_H_OUTPUT();
   int ADCresult = analogRead(SCL_PIN);
   if (ADCresult < I2CADC_L) {
@@ -325,7 +325,8 @@ AckThis:
 uint8_t TWADC_read(bool ack) {
   uint8_t data = 0;
   uint8_t i = 8;
-  while (i--) {
+  while (i > 0) {
+    i--;
     I2CADC_SDA_H_OUTPUT();
     I2CADC_SCL_H_OUTPUT();
     int result = analogRead(SDA_PIN);
@@ -336,22 +337,20 @@ uint8_t TWADC_read(bool ack) {
     }
     I2CADC_SCL_L_INPUT();
   }
-
   if (ack) {
-    I2CADC_SCL_L_INPUT();  NOP;
+    I2CADC_SCL_L_INPUT();  _NOP();
     I2CADC_SDA_L_INPUT();
-    I2CADC_SCL_H_OUTPUT(); NOP;
-    I2CADC_SCL_L_INPUT();  NOP;
+    I2CADC_SCL_H_OUTPUT(); _NOP();
+    I2CADC_SCL_L_INPUT();  _NOP();
   } else {
 AckThis:
-    I2CADC_SCL_L_INPUT();  NOP;
-    I2CADC_SCL_H_OUTPUT(); NOP;
+    I2CADC_SCL_L_INPUT();  _NOP();
+    I2CADC_SCL_H_OUTPUT(); _NOP();
     int result = analogRead(SCL_PIN);
     if (result < I2CADC_L) {
       goto AckThis;
     }
-    I2CADC_SCL_L_INPUT();  NOP;
-
+    I2CADC_SCL_L_INPUT();  _NOP();
   }
   return data;
 }
@@ -359,7 +358,8 @@ AckThis:
 void TWADC_write_w(uint8_t data) {
   uint8_t data_r = ~data;
   uint8_t i = 7;
-  while (i--) {
+  while (i > 0) {
+    i--;
     pinMode(SDA_PIN, bitRead(data_r, i));
     I2CADC_SCL_H_OUTPUT();
     I2CADC_SCL_L_INPUT();
@@ -380,7 +380,7 @@ AckThis:
 void TWADC_write_r(uint8_t data) {
   uint8_t data_r = ~data;
   uint8_t i = 7;
-  while (i--) {
+  while (i > 0) {
     i--;
     pinMode(SDA_PIN, bitRead(data_r, i));
     I2CADC_SCL_H_OUTPUT();
@@ -401,10 +401,8 @@ AckThis:
 
 void TWADC_begin() {
   I2CADC_SCL_H_OUTPUT();
-
   I2CADC_SDA_H_OUTPUT();
   I2CADC_SDA_L_INPUT();
-
   I2CADC_SCL_H_OUTPUT();
   I2CADC_SCL_L_INPUT();
 }
