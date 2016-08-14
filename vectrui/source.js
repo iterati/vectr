@@ -128,7 +128,6 @@ typedef union Settings {
     unsigned locked  : 1;       // Is the light locked?
     unsigned conjure : 1;       // Are we conjuring?
     unsigned bundle  : 1;       // Which bundle?
-    unsigned _0      : 4;
     unsigned mode    : 8;       // Current mode
   };
   uint8_t settings[2];          // for saving/loading
@@ -1503,7 +1502,7 @@ void setup() {
   while (!eeprom_is_ready()) {}
   settings.settings[0] = EEPROM.read(ADDR_SETTINGS);
   while (!eeprom_is_ready()) {}
-  settings.settings[0] = EEPROM.read(ADDR_SETTINGS + 1);
+  settings.settings[1] = EEPROM.read(ADDR_SETTINGS + 1);
 
   if (!settings.conjure) settings.mode = 0;       // Reset mode if we're not conjuring
 
