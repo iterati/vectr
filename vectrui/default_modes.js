@@ -711,7 +711,7 @@ var DefaultModes = function() {
     type: 0,
     pattern: [0, 0],
     args: [
-      [3, 1, 40, 0],
+      [5, 1, 24, 0],
       [0, 0, 0, 0]
     ],
     timings: [
