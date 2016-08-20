@@ -2,7 +2,7 @@ var r;
 var VectrUI = function() {
   'use strict';
 
-  var SER_VERSION    = 121;
+  var SER_VERSION    = 33;
   var SER_WRITE      = 100;
   var SER_HANDSHAKE  = 200;
   var SER_DISCONNECT = 210;
@@ -12,7 +12,7 @@ var VectrUI = function() {
 
   var MAX_MODES      = 16;
 
-  var version = "0.3.2";
+  var version = "0.3.3";
   var dir_root;
   var dir_firmwares;
   var dir_modes;

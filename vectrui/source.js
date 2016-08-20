@@ -78,7 +78,7 @@ ${bundle_b_str}
 #define I2CADC_H          315   // Analog read high threshold
 #define I2CADC_L          150   // Analog read low threshold
 
-#define SER_VERSION       121   // Current serial version for UI
+#define SER_VERSION       33    // Current serial version for UI
 #define SER_WRITE         100   // Write command: addr, value
 #define SER_HANDSHAKE     200   // Handshake command: SER_VERSION, value, value (values must be equal)
 #define SER_DISCONNECT    210   // Disconnect command
@@ -1330,12 +1330,13 @@ void handle_serial() {
         settings.bundle = 0;                      // Reset bundle
         settings.mode = 0;                        // Reset mode
         op_state = STATE_GUI_MODE;                // View mode
-        flash(64, 64, 64);
 
         Serial.write(SER_HANDSHAKE);              // Send handshake to GUI
         Serial.write(SER_VERSION);
         Serial.write(42);
         Serial.write(42);
+
+        flash(64, 64, 64);
       }
     } else if (cmd == SER_DISCONNECT) {         // If disconnecting, just go into play state
       op_state = STATE_PLAY;
@@ -1550,6 +1551,11 @@ void setup() {
   patterns[PATTERN_TRIPLE]  = &pattern_triple;
   patterns[PATTERN_STEPPER] = &pattern_stepper;
   patterns[PATTERN_RANDOM]  = &pattern_random;
+
+  Serial.write(SER_HANDSHAKE);                    // Send handshake to GUI
+  Serial.write(SER_VERSION);
+  Serial.write(42);
+  Serial.write(42);
 
   change_mode(settings.mode);                     // Initialize current mode
   last_write = micros();                          // Reset the limiter
