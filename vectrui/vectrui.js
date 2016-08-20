@@ -163,9 +163,9 @@ var VectrUI = function() {
     }
   };
 
+  var delay_send = false;
   function handleCommand(cmd) {
     console.log("got: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
-    var delay_send = false;
     if (cmd[0] == SER_HANDSHAKE && cmd[1] == SER_VERSION && cmd[2] == cmd[3] && !connected) {
       connected = true;
       sendCommand([SER_HANDSHAKE, SER_VERSION, 42, 42], true);
