@@ -2,21 +2,21 @@ var getSource = function() {
   arrayToModeString = function(arr) {
     if (arr === undefined) {
       arr = [];
-      for (var i = 0; i < 128; i++) {
+      for (var i = 0; i < 191; i++) {
         arr[i] = 0;
       }
     }
     var str = "{";
-    for (var i = 0; i < 127; i++) {
+    for (var i = 0; i < 190; i++) {
       if (arr[i] === null || arr[i] === undefined) {
         arr[i] = 0;
       }
       str += arr[i] + ", ";
     }
-    if (arr[127] === null || arr[127] === undefined) {
-      arr[127] = 0;
+    if (arr[190] === null || arr[190] === undefined) {
+      arr[190] = 0;
     }
-    str += arr[127] + "}";
+    str += arr[190] + "}";
     return str;
   };
 
@@ -26,7 +26,7 @@ var getSource = function() {
     var addr_settings = Math.round(Math.random() * 1022);
     var num_bundles = 2;
     var max_modes = 16;
-    var mode_size = 128;
+    var mode_size = 191;
     var num_modes_str = num_modes[0] + ", " + num_modes[1];
     var bundle_a_str = "";
     var bundle_b_str = "";
@@ -128,7 +128,6 @@ typedef union Settings {
     unsigned locked  : 1;       // Is the light locked?
     unsigned conjure : 1;       // Are we conjuring?
     unsigned bundle  : 1;       // Which bundle?
-    unsigned _0      : 4;
     unsigned mode    : 8;       // Current mode
   };
   uint8_t settings[2];          // for saving/loading
@@ -141,19 +140,19 @@ typedef union Mode {
     uint8_t args[2][4];       // 3 - 10         Base pattern arguments
     uint8_t timings[3][8];    // 11 - 34        Base pattern timings
     uint8_t numc[3];          // 35 - 37        Number of active colors
-    uint8_t colors[3][9][3];  // 38 - 118       RGB values of the colors
-    uint8_t tr_meta[4];       // 119 - 122      Thresholds for vectr color blending
-    uint8_t tr_flux[4];       // 123 - 126      Thresholds for vectr timing blending
-    uint8_t trigger;          // 127            Primer trigger type
+    uint8_t tr_meta[4];       // 38 - 41        Thresholds for vectr color blending
+    uint8_t tr_flux[4];       // 42 - 45        Thresholds for vectr timing blending
+    uint8_t trigger;          // 46             Primer trigger type
+    uint8_t colors[3][16][3]; // 47 - 191       RGB values of the colors
   };
-  uint8_t data[MODE_SIZE];    // 128 bytes      Wraps the anonymous struct
+  uint8_t data[MODE_SIZE];    // 191 bytes      Wraps the anonymous struct
 } Mode;
 
 typedef struct PatternState {
   uint8_t args[4];                            // Pattern arguments
   uint8_t timings[8];                         // Pattern timings
   uint8_t numc;                               // Number of active colors
-  uint8_t colors[9][3];                       // RGB values for colors
+  uint8_t colors[16][3];                       // RGB values for colors
 
   uint16_t trip;                              // Frames until next segment
   uint8_t cidx;                               // Current color index
@@ -445,7 +444,7 @@ void accel_standby() {
 
 /* PATTERN FUNCTIONS */
 void pattern_strobe(PatternState *state, bool rend) {
-  uint8_t numc = constrain(state->numc, 1, 9);
+  uint8_t numc = constrain(state->numc, 1, 16);
 
   uint8_t pick = constrain((state->args[0] == 0) ? numc : state->args[0], 1, numc);
   uint8_t skip = constrain((state->args[1] == 0) ? pick : state->args[1], 1, pick);
@@ -498,7 +497,7 @@ void pattern_strobe(PatternState *state, bool rend) {
 }
 
 void pattern_tracer(PatternState *state, bool rend) {
-  uint8_t numc = constrain(state->numc, 2, 9) - 1;
+  uint8_t numc = constrain(state->numc, 2, 16) - 1;
 
   uint8_t pick = constrain((state->args[0] == 0) ? numc : state->args[0], 1, numc);
   uint8_t skip = constrain((state->args[1] == 0) ? pick : state->args[1], 1, pick);
@@ -568,7 +567,7 @@ void pattern_tracer(PatternState *state, bool rend) {
 }
 
 void pattern_morph(PatternState *state, bool rend) {
-  uint8_t numc = constrain(state->numc, 1, 9);
+  uint8_t numc = constrain(state->numc, 1, 16);
 
   uint8_t steps = constrain(state->args[0], 1, 100);
   uint8_t direc = constrain(state->args[1], 0, 1);
@@ -649,7 +648,7 @@ void pattern_morph(PatternState *state, bool rend) {
 }
 
 void pattern_sword(PatternState *state, bool rend) {
-  uint8_t numc = constrain(state->numc, 1, 9);
+  uint8_t numc = constrain(state->numc, 1, 16);
 
   uint8_t pick = constrain((state->args[0] == 0) ? numc : state->args[0], 1, numc);
 
@@ -714,7 +713,7 @@ void pattern_sword(PatternState *state, bool rend) {
 }
 
 void pattern_wave(PatternState *state, bool rend) {
-  uint8_t numc = constrain(state->numc, 1, 9);
+  uint8_t numc = constrain(state->numc, 1, 16);
 
   uint8_t steps = constrain(state->args[0], 1, 100);
   uint8_t direc = constrain(state->args[1], 0, 2);
@@ -791,7 +790,7 @@ void pattern_wave(PatternState *state, bool rend) {
 }
 
 void pattern_dynamo(PatternState *state, bool rend) {
-  uint8_t numc = constrain(state->numc, 1, 9);
+  uint8_t numc = constrain(state->numc, 1, 16);
 
   uint8_t steps = constrain(state->args[0], 1, 100);
   uint8_t direc = constrain(state->args[1], 0, 2);
@@ -861,7 +860,7 @@ void pattern_dynamo(PatternState *state, bool rend) {
 }
 
 void pattern_shifter(PatternState *state, bool rend) {
-  uint8_t numc = constrain(state->numc, 1, 9);
+  uint8_t numc = constrain(state->numc, 1, 16);
 
   uint8_t steps = constrain(state->args[0], 1, 100);
   uint8_t direc = constrain(state->args[1], 0, 2);
@@ -923,7 +922,7 @@ void pattern_shifter(PatternState *state, bool rend) {
 }
 
 void pattern_triple(PatternState *state, bool rend) {
-  uint8_t numc = constrain(state->numc, 1, 9);
+  uint8_t numc = constrain(state->numc, 1, 16);
 
   uint8_t repeat_a = constrain(state->args[0], 1, 100);
   uint8_t repeat_b = constrain(state->args[1], 1, 100);
@@ -992,7 +991,7 @@ void pattern_triple(PatternState *state, bool rend) {
 }
 
 void pattern_stepper(PatternState *state, bool rend) {
-  uint8_t numc = constrain(state->numc, 1, 9);
+  uint8_t numc = constrain(state->numc, 1, 16);
 
   uint8_t steps = constrain(state->args[0], 1, 7);
   uint8_t random_step = state->args[1];
@@ -1043,7 +1042,7 @@ void pattern_stepper(PatternState *state, bool rend) {
 }
 
 void pattern_random(PatternState *state, bool rend) {
-  uint8_t numc = constrain(state->numc, 1, 9);
+  uint8_t numc = constrain(state->numc, 1, 16);
 
   uint8_t random_color = state->args[0];
   uint8_t multiplier = constrain(state->args[1], 1, 10);
@@ -1089,7 +1088,7 @@ void pattern_random(PatternState *state, bool rend) {
 /* MODE AND STATE CHANGING FUNCTIONS */
 void init_state(uint8_t dst, uint8_t src) {
   states[dst].numc = mode.numc[src];
-  for (uint8_t i = 0; i < 9; i++) {
+  for (uint8_t i = 0; i < 16; i++) {
     if (i < 4) states[dst].args[i] = mode.args[src][i];
     if (i < 8) states[dst].timings[i] = mode.timings[src][i];
     states[dst].colors[i][0] = mode.colors[src][i][0];
@@ -1263,7 +1262,7 @@ uint8_t accel_variant() {
   }
 }
 
-void accel_blend() {
+void accel_blend_a() {
   if (mode.data[0] == TYPE_VECTR) {
     uint8_t update_pattern = !active_pattern;                         // Update the inactive pattern
 
@@ -1280,12 +1279,28 @@ void accel_blend() {
     else              states[update_pattern].numc = mode.numc[2];
 
     // Interp colors and timings
-    for (uint8_t i = 0; i < 9; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
       states[update_pattern].colors[i][0] = fast_interp(mode.colors[fs][i][0], mode.colors[fs + 1][i][0], fv, fd);
       states[update_pattern].colors[i][1] = fast_interp(mode.colors[fs][i][1], mode.colors[fs + 1][i][1], fv, fd);
       states[update_pattern].colors[i][2] = fast_interp(mode.colors[fs][i][2], mode.colors[fs + 1][i][2], fv, fd);
-      if (i < 8) states[update_pattern].timings[i] = fast_interp(mode.timings[ms][i], mode.timings[ms + 1][i], mv, md);
+      states[update_pattern].timings[i] = fast_interp(mode.timings[ms][i], mode.timings[ms + 1][i], mv, md);
       if (i < 4) states[update_pattern].args[i] = mode.args[0][i];
+    }
+  }
+}
+
+void accel_blend_b() {
+  if (mode.data[0] == TYPE_VECTR) {
+    uint8_t update_pattern = !active_pattern;                         // Update the inactive pattern
+
+    uint8_t fg, fv, fd, fs;
+    get_vectr_vals(mode.tr_flux, &fg, &fv, &fd, &fs);
+
+    // Interp colors
+    for (uint8_t i = 8; i < 16; i++) {
+      states[update_pattern].colors[i][0] = fast_interp(mode.colors[fs][i][0], mode.colors[fs + 1][i][0], fv, fd);
+      states[update_pattern].colors[i][1] = fast_interp(mode.colors[fs][i][1], mode.colors[fs + 1][i][1], fv, fd);
+      states[update_pattern].colors[i][2] = fast_interp(mode.colors[fs][i][2], mode.colors[fs + 1][i][2], fv, fd);
     }
   }
 }
@@ -1455,11 +1470,12 @@ void handle_accel() {
   } else if (accel_tick == 16) {                              // Tick 16: calculate velocity
     accel_velocity();
   } else if (accel_tick == 17) {                              // Tick 17: blend colors and timings (vectr calcs)
-    accel_blend();
-  } else if (accel_tick == 18) {                              // Tick 18: determine active pattern
+    accel_blend_a();
+  } else if (accel_tick == 18) {                              // Tick 18: blend colors and timings (vectr calcs)
+    accel_blend_b();
+  } else if (accel_tick == 19) {                              // Tick 18: determine active pattern
     accel_variant();
   }
-                                                              // Tick 19 - end: do nothing
   accel_tick++;
   if (accel_tick >= ACCEL_COUNTS) accel_tick = 0;             // Loop accel tracker
 }
@@ -1486,7 +1502,7 @@ void setup() {
   while (!eeprom_is_ready()) {}
   settings.settings[0] = EEPROM.read(ADDR_SETTINGS);
   while (!eeprom_is_ready()) {}
-  settings.settings[0] = EEPROM.read(ADDR_SETTINGS + 1);
+  settings.settings[1] = EEPROM.read(ADDR_SETTINGS + 1);
 
   if (!settings.conjure) settings.mode = 0;       // Reset mode if we're not conjuring
 

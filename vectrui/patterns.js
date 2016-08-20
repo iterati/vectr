@@ -6,14 +6,14 @@ var Patterns = function() {
     {
       name: "Group Size",
       min: 0,
-      max: 9,
+      max: 16,
       tooltip: "Colors used in each set. If 0 or more than the number of colors, all the colors are used.",
       default: 0
     },
     {
       name: "Skip After",
       min: 0,
-      max: 9,
+      max: 16,
       tooltip: "Colors skipped after each set. If 0, it's the same as group size.",
       default: 0
     },
@@ -48,14 +48,14 @@ var Patterns = function() {
     args: [
     {
       min: 0,
-      max: 9,
+      max: 16,
       name: "Group Size",
       tooltip: "Colors used in each set. If 0 or more than the number of colors, all the colors are used.",
       default: 1
     },
     {
       min: 0,
-      max: 9,
+      max: 16,
       name: "Skip After",
       tooltip: "Colors skipped after each set. If 0, it's the same as group size.",
       default: 0
@@ -147,7 +147,7 @@ var Patterns = function() {
     args: [
     {
       min: 0,
-      max: 9,
+      max: 16,
       name: "Group Size",
       tooltip: "Colors used in each set. If the last set is not full, blanks are shown.",
       default: 0
@@ -336,7 +336,7 @@ var Patterns = function() {
     },
     {
       min: 0,
-      max: 8,
+      max: 15,
       name: "Skip Colors",
       tooltip: "Colors to skip between patterns.",
       default: 1
