@@ -1150,7 +1150,9 @@ var VectrUI = function() {
   };
 
   function translateMode(modeobj) {
-    console.log("version mismatch: " + modeobj.version);
+    if (modeobj.version != version) {
+      console.log("version mismatch: " + modeobj.version);
+    }
 
     // < 0.2.5, tracer only had one gap
     if (modeobj.version === null || modeobj.version === undefined) {
@@ -1170,6 +1172,15 @@ var VectrUI = function() {
       }
     }
 
+    for (var s = 0; s < 3; s++) {
+      if (modeobj.colors[s].length < 16) {
+        for (var i = modeobj.colors[s].length - 1; i < 16; i++) {
+          modeobj.colors[s].push([0, 0, 0]);
+        }
+      }
+    }
+
+    writeMode(modeobj);
     return modeobj;
   };
 
@@ -1179,10 +1190,7 @@ var VectrUI = function() {
       reader.onload = function(e) {
         var contents = e.target.result;
         var modeobj = JSON.parse(contents);
-        if (modeobj.version != version) {
-          modeobj = translateMode(modeobj);
-          writeMode(modeobj);
-        }
+        modeobj = translateMode(modeobj);
         modeobj.name = file.name.replace(".mode", "");
         modeobj.id = modeobj.name.replace(/\s/g, "-").toLowerCase();
         modelib[modeobj.id] = modeobj;
@@ -1492,6 +1500,7 @@ var VectrUI = function() {
         reader.onload = function(e) {
           var contents = e.target.result;
           var modeobj = JSON.parse(contents);
+          modeobj = translateMode(modeobj);
           modeobj.name = file.name.replace(".mode", "");
           modeobj.id = modeobj.name.replace(/\s/g, "-").toLowerCase();
 
