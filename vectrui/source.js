@@ -20,10 +20,11 @@ var getSource = function() {
     return str;
   };
 
-  return function(num_modes, bundle_a, bundle_b) {
+  return function(num_modes, bundle_a, bundle_b, ser_ver) {
     if (num_modes[0] === 0) { num_modes[0] = 1; }
     if (num_modes[1] === 0) { num_modes[1] = 1; }
-    var addr_settings = Math.round(Math.random() * 1022);
+    var version = Math.round(Math.random() * 65535);
+    var addr_settings = Math.round(Math.random() * 1000) + 16;
     var num_bundles = 2;
     var max_modes = 16;
     var mode_size = 191;
@@ -46,6 +47,8 @@ var getSource = function() {
 #include <avr/interrupt.h>
 
 /* BEGIN MODE CONFIG */
+#define VERSION       ${version}
+#define ADDR_VERSION  0
 #define ADDR_SETTINGS ${addr_settings}
 #define NUM_BUNDLES   ${num_bundles}
 #define NUM_MODES     ${max_modes}
@@ -78,7 +81,7 @@ ${bundle_b_str}
 #define I2CADC_H          315   // Analog read high threshold
 #define I2CADC_L          150   // Analog read low threshold
 
-#define SER_VERSION       33    // Current serial version for UI
+#define SER_VERSION       ${ser_ver}    // Current serial version for UI
 #define SER_WRITE         100   // Write command: addr, value
 #define SER_HANDSHAKE     200   // Handshake command: SER_VERSION, value, value (values must be equal)
 #define SER_DISCONNECT    210   // Disconnect command
@@ -508,7 +511,7 @@ void pattern_tracer(PatternState *state, bool rend) {
   uint8_t tst = state->timings[2];
   uint8_t tbt = state->timings[3];
   uint8_t gta = state->timings[4];
-  uint8_t gtb = state->timings[4];
+  uint8_t gtb = state->timings[5];
 
   if (cst == 0 && cbt == 0 && tst == 0 && tbt == 0 && gta == 0 && gtb == 0) gta = 1;
 
@@ -1153,29 +1156,40 @@ void flash(uint8_t r, uint8_t g, uint8_t b) {
 
 
 /* SLEEP FUNCTIONS */
-void _push_interrupt() {}
+void _push_interrupt() {
+  sleep_disable();
+  detachInterrupt(0);
+}
 
 void power_down() {
-	ADCSRA &= ~(1 << ADEN);
+  // Set up sleep mode
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-  cli();
   sleep_enable();
+  attachInterrupt(0, _push_interrupt, FALLING);
+  ADCSRA = 0;
+
+  // Go to sleep here
+  cli();
   sleep_bod_disable();
   sei();
   sleep_cpu();
+
+  // Wake up here
   sleep_disable();
-  sei();
-  ADCSRA |= (1 << ADEN);
+  detachInterrupt(0);
+  settings.sleeping = 0;
 }
 
-void enter_sleep() {
-  settings.sleeping = 1;                        // Set sleeping bit
-
+void save_settings() {
   while (!eeprom_is_ready()) {}
   EEPROM.update(ADDR_SETTINGS, settings.settings[0]);
   while (!eeprom_is_ready()) {}
   EEPROM.update(ADDR_SETTINGS + 1, settings.settings[1]);
+}
 
+void enter_sleep() {
+  settings.sleeping = 1;                        // Set sleeping bit
+  save_settings();
   write_frame(0, 0, 0);                         // Blank the LED
   accel_standby();                              // Standby the acceleromater
   digitalWrite(PIN_LDO, LOW);                   // Deactivate the LDO
@@ -1397,7 +1411,7 @@ void handle_button() {
       }
     } else {                                                    // if not locked
       if (pressed) {                                              // and pressed
-        if (since_press == 4000)      flash(32, 32, 32);            // flash white after 2s (bundle switch)
+        if (since_press == 4000)      flash(56, 0, 56);             // flash magenta after 2s (bundle switch)
         else if (since_press == 8000) flash(128, 0, 0);             // flash red after 4s (lock light)
       } else if (changed) {                                       // if not pressed and changed (just released)
         if (since_press < 4000) {                                   // if less than 2s, wake up and play
@@ -1502,38 +1516,51 @@ void handle_render() {
 
 
 void setup() {
-  while (!eeprom_is_ready()) {}
-  settings.settings[0] = EEPROM.read(ADDR_SETTINGS);
-  while (!eeprom_is_ready()) {}
-  settings.settings[1] = EEPROM.read(ADDR_SETTINGS + 1);
-
-  if (!settings.conjure) settings.mode = 0;       // Reset mode if we're not conjuring
-
   pinMode(PIN_BUTTON, INPUT);                     // Enable button pin for input to handle interrupt
-  if (settings.sleeping) {                        // If we need to sleep
-    attachInterrupt(0, _push_interrupt, FALLING);   // Attach interrupt to wake on button press
-    power_down();                                   // Power down the chip
-    detachInterrupt(0);                             // Detach interrupt on waking
 
-    settings.sleeping = 0;                          // Disable sleeping bit
+  while (!eeprom_is_ready()) {}                   // Check version for resetting settings bits
+  uint16_t version = EEPROM.read(ADDR_VERSION) << 8;
+  while (!eeprom_is_ready()) {}
+  version += EEPROM.read(ADDR_VERSION + 1);
+  if (version != VERSION) {
+    settings.settings[0] = 0;
+    settings.settings[1] = 0;
+    save_settings();
+    while (!eeprom_is_ready()) {}
+    EEPROM.update(ADDR_VERSION, VERSION >> 8);
+    while (!eeprom_is_ready()) {}
+    EEPROM.update(ADDR_VERSION + 1, VERSION & 0xff);
+  } else {
+    while (!eeprom_is_ready()) {}
+    settings.settings[0] = EEPROM.read(ADDR_SETTINGS);
+    while (!eeprom_is_ready()) {}
+    settings.settings[1] = EEPROM.read(ADDR_SETTINGS + 1);
+  }
+
+  if (settings.sleeping) {                        // If we need to sleep
+    power_down();                                   // Power down the chip
     op_state = STATE_WAKE;                          // Set state to waking
   } else {                                        // If not sleeping
     op_state = STATE_PLAY;                          // Set state to play
   }
 
+  if (!settings.conjure) settings.mode = 0;       // Reset mode if we're not conjuring
+
   // Now that we're past the sleep handling, we can turn on everything else
   randomSeed(analogRead(0));                      // Seed random
   Serial.begin(115200);                           // Init serial connection
 
+  ADCSRA = 0b10000100;                            // ADC enabled @ x16 prescaler
+  // sbi(ADCSRA, ADPS2);                             // Configure ADC for TWACD functions
+  // cbi(ADCSRA, ADPS1);
+  // cbi(ADCSRA, ADPS0);
+
   pinMode(PIN_R, OUTPUT);                         // Enable LED pins for output
   pinMode(PIN_G, OUTPUT);
   pinMode(PIN_B, OUTPUT);
-  pinMode(PIN_LDO, OUTPUT);                       // Enable Low-Voltage Dropoff
-  digitalWrite(PIN_LDO, HIGH);                    // Power on Low-Voltage Dropoff
+  pinMode(PIN_LDO, OUTPUT);                       // Enable accel pwr pin
+  digitalWrite(PIN_LDO, HIGH);                    // Power on accel
 
-  sbi(ADCSRA, ADPS2);                             // Configure ADC for TWACD functions
-  cbi(ADCSRA, ADPS1);
-  cbi(ADCSRA, ADPS0);
   accel_init();                                   // Initialize the accelerometer
 
   noInterrupts();                                 // Configure timers for fastest PWM

@@ -1,8 +1,8 @@
-var r;
 var VectrUI = function() {
   'use strict';
 
-  var SER_VERSION    = 33;
+  var version = "0.3.4";
+  var SER_VERSION    = 34;
   var SER_WRITE      = 100;
   var SER_HANDSHAKE  = 200;
   var SER_DISCONNECT = 210;
@@ -12,7 +12,6 @@ var VectrUI = function() {
 
   var MAX_MODES      = 16;
 
-  var version = "0.3.3";
   var dir_root;
   var dir_firmwares;
   var dir_modes;
@@ -31,6 +30,7 @@ var VectrUI = function() {
   var modes = document.getElementById("mode-list");
   var dialog = document.querySelector("dialog");
   var close = document.getElementById("close-dialog");
+  var header = document.getElementById("header-title");
 
   var mode_bundles = [
     [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []],
@@ -1123,7 +1123,7 @@ var VectrUI = function() {
   };
 
   function writeSource(name, num_modes, bundle_a, bundle_b) {
-    var content = getSource(num_modes, bundle_a, bundle_b);
+    var content = getSource(num_modes, bundle_a, bundle_b, SER_VERSION);
     dir_firmwares.getDirectory(name, {create: true}, function(entry) {
       writeFile(entry, name + ".ino", content);
     });
@@ -1266,7 +1266,7 @@ var VectrUI = function() {
               bundle1.appendChild(el1);
             }
             document.getElementById("firmware-save").value = "default";
-            writeSource("default", num_modes, mode_bundles[0], mode_bundles[1]);
+            writeSource("default", num_modes, mode_bundles[0], mode_bundles[1], SER_VERSION);
           });
         });
       } else {
@@ -1518,6 +1518,7 @@ var VectrUI = function() {
     });
   };
 
+  header.textContent = "Vectr (" + version + ")";
   initSettings();
   initUI();
   initDragDrop();
