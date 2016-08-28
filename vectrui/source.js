@@ -1378,18 +1378,13 @@ void handle_button() {
 
   if (op_state == STATE_PLAY) {                               // If playing
     if (pressed) {                                              // and pressed
-      if (since_press == 1000)      flash(32, 32, 32);            // Flash white when chip will sleep (500ms)
-      else if (since_press == 4000) flash(0, 0, 128);             // Flash blue when conjure will toggle (2s)
-      else if (since_press == 8000) flash(128, 0, 0);             // Flash red when chip will lock and sleep (4s)
+      if (since_press == 6000) flash(128, 0, 0);             // Flash red when chip will lock and sleep (3s)
     } else if (changed) {                                       // if not pressed and changed (just released)
       if (since_press < 1000) {                                   // if less than 500ms, sleep if conjuring and change mode if not
-        if (settings.conjure) enter_sleep();
-        else                  next_mode();
-      } else if (since_press < 4000) {                            // if less than 2s, sleep
+        next_mode();
+      } else if (since_press < 6000) {                            // if less than 3s, toggle conjure
         enter_sleep();
-      } else if (since_press < 8000) {                            // if less than 4s, toggle conjure
-        settings.conjure = (settings.conjure == 0) ? 1 : 0;         // toggle conjure
-      } else {                                                    // if more than 4s, lock light
+      } else {                                                    // if more than 3s, lock light
         settings.locked = 1;                                        // set locked bit
         enter_sleep();                                              // go to sleep
       }
@@ -1398,27 +1393,24 @@ void handle_button() {
     if (settings.locked) {                                      // and locked
       if (pressed) {                                              // and pressed
         if (since_press == 4000)      flash(0, 128, 0);             // Flash green when light will wake (2s)
-        else if (since_press == 8000) flash(128, 0, 0);             // Flash red when light will stay locked (4s)
       } else if (changed) {                                       // if not pressed and changed (just released)
         if (since_press < 4000) {                                   // if less than 2s, stay locked
-          flash(128, 0, 0);                                           // flash red
           enter_sleep();                                              // go to sleep
         } else if (since_press < 8000) {                            // if less than 4s, unlock
           settings.locked = 0;                                        // unset locked bit
           op_state = STATE_PLAY;                                      // wake up and play
         } else {                                                    // if more than 4s, stay locked
-          flash(128, 0, 0);                                           // flash red
           enter_sleep();                                              // go to sleep
         }
       }
     } else {                                                    // if not locked
       if (pressed) {                                              // and pressed
         if (since_press == 4000)      flash(56, 0, 56);             // flash magenta after 2s (bundle switch)
-        else if (since_press == 8000) flash(128, 0, 0);             // flash red after 4s (lock light)
+        else if (since_press == 6000) flash(128, 0, 0);             // flash red after 3s (lock light)
       } else if (changed) {                                       // if not pressed and changed (just released)
         if (since_press < 4000) {                                   // if less than 2s, wake up and play
           op_state = STATE_PLAY;
-        } else if (since_press < 8000) {                            // if less than 4s, switch bundles
+        } else if (since_press < 6000) {                            // if less than 3s, switch bundles
           settings.bundle = (settings.bundle == 0) ? 1 : 0;           // toggle bundle 1/2
           settings.conjure = 0;                                       // deactivate conjure
           settings.mode = 0;                                          // reset mode
