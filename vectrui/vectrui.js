@@ -1229,7 +1229,7 @@ var VectrUI = function() {
           chrome.storage.local.set(data);
 
           var default_modes = DefaultModes.getModes();
-          dir_root.getDirectory("modes",     {create: true}, function(entry) {
+          dir_root.getDirectory("modes", {create: true}, function(entry) {
             dir_modes = entry;
             for (var i = 0; i < default_modes.length; i++) {
               var default_mode = default_modes[i];
@@ -1529,6 +1529,7 @@ var VectrUI = function() {
     writeMode: writeMode,
     writeSource: writeSource,
     modelib: modelib,
-    data: data
+    data: data,
+    defaults: DefaultModes.getModes(),
   };
 }();

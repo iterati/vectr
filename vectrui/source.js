@@ -96,8 +96,10 @@ ${bundle_b_str}
 
 #define ACCEL_COUNTS      40    // 40 frames between accel reads (50hz)
 #define ACCEL_BINS        64    // 32 bins gives 33 velocity states
-#define ACCEL_ONEG        512   // +- 4g range
-#define ACCEL_MAX_GS      4
+// #define ACCEL_ONEG        512   // +- 4g range
+// #define ACCEL_MAX_GS      4
+#define ACCEL_ONEG        256   // +- 4g range
+#define ACCEL_MAX_GS      8
 uint32_t ACCEL_BIN_SIZE = (ACCEL_MAX_GS * ACCEL_ONEG) / ACCEL_BINS;
 float ACCEL_COEF =        378.24 / ACCEL_BINS;  // For normalizing pitch and roll
 
@@ -572,7 +574,7 @@ void pattern_tracer(PatternState *state, bool rend) {
 void pattern_morph(PatternState *state, bool rend) {
   uint8_t numc = constrain(state->numc, 1, 16);
 
-  uint8_t steps = constrain(state->args[0], 1, 100);
+  uint8_t steps = constrain(state->args[0], 1, 200);
   uint8_t direc = constrain(state->args[1], 0, 1);
 
   uint8_t st = state->timings[0];
