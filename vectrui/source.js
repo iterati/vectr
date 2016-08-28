@@ -99,7 +99,7 @@ ${bundle_b_str}
 // #define ACCEL_ONEG        512   // +- 4g range
 // #define ACCEL_MAX_GS      4
 #define ACCEL_ONEG        256   // +- 4g range
-#define ACCEL_MAX_GS      8
+#define ACCEL_MAX_GS      12
 uint32_t ACCEL_BIN_SIZE = (ACCEL_MAX_GS * ACCEL_ONEG) / ACCEL_BINS;
 float ACCEL_COEF =        378.24 / ACCEL_BINS;  // For normalizing pitch and roll
 
