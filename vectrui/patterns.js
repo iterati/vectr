@@ -20,7 +20,7 @@ var Patterns = function() {
     {
       name: "Repeat Group",
       min: 1,
-      max: 100,
+      max: 200,
       tooltip: "Times set is repeated before skipping.",
       default: 1
     }
@@ -62,9 +62,16 @@ var Patterns = function() {
     },
     {
       min: 1,
-      max: 100,
+      max: 200,
       name: "Repeat Tracer",
       tooltip: "Times tracer is repeated before next color set is shown.",
+      default: 1
+    },
+    {
+      min: 1,
+      max: 200,
+      name: "Repeat Color(s)",
+      tooltip: "Times color(s) are repeated before next color set is shown.",
       default: 1
     }
     ],
@@ -106,7 +113,7 @@ var Patterns = function() {
     args: [
     {
       min: 1,
-      max: 100,
+      max: 200,
       name: "Morph Steps",
       tooltip: "Steps from one color to the next.",
       default: 16
@@ -181,7 +188,7 @@ var Patterns = function() {
     args: [
     {
       min: 1,
-      max: 100,
+      max: 200,
       name: "Steps",
       tooltip: "Steps in the wave pattern. If direction is 2 (both), there are double the steps.",
       default: 32
@@ -231,7 +238,7 @@ var Patterns = function() {
     args: [
     {
       min: 1,
-      max: 100,
+      max: 200,
       name: "Steps",
       tooltip: "Steps in the stretch pattern. If direction is 2 (both), there are double the steps.",
       default: 20
@@ -274,7 +281,7 @@ var Patterns = function() {
     args: [
     {
       min: 1,
-      max: 100,
+      max: 200,
       name: "Steps",
       tooltip: "Steps in the shift pattern. If direction is 2 (both), there are double the steps.",
       default: 4
@@ -315,21 +322,21 @@ var Patterns = function() {
     args: [
     {
       min: 1,
-      max: 100,
+      max: 200,
       name: "Repeat A",
       tooltip: "Times to repeat first timing set.",
       default: 2
     },
     {
       min: 1,
-      max: 100,
+      max: 200,
       name: "Repeat B",
       tooltip: "Times to repeat second timing set.",
       default: 2
     },
     {
       min: 0,
-      max: 100,
+      max: 200,
       name: "Repeat C",
       tooltip: "Times to repeat third timing set.",
       default: 2

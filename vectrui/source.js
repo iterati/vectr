@@ -162,6 +162,7 @@ typedef struct PatternState {
   uint16_t trip;                              // Frames until next segment
   uint8_t cidx;                               // Current color index
   uint8_t cntr;                               // Counter for tracking pattern segment state
+  uint8_t cntr2;
   uint8_t segm;                               // Current pattern segment
 } PatternState;
 
@@ -453,7 +454,7 @@ void pattern_strobe(PatternState *state, bool rend) {
 
   uint8_t pick = constrain((state->args[0] == 0) ? numc : state->args[0], 1, numc);
   uint8_t skip = constrain((state->args[1] == 0) ? pick : state->args[1], 1, pick);
-  uint8_t repeat = constrain(state->args[2], 1, 100);
+  uint8_t repeat = constrain(state->args[2], 1, 200);
 
   uint8_t st = state->timings[0];
   uint8_t bt = state->timings[1];
@@ -506,7 +507,8 @@ void pattern_tracer(PatternState *state, bool rend) {
 
   uint8_t pick = constrain((state->args[0] == 0) ? numc : state->args[0], 1, numc);
   uint8_t skip = constrain((state->args[1] == 0) ? pick : state->args[1], 1, pick);
-  uint8_t repeat = constrain(state->args[2], 1, 100);
+  uint8_t repeat_t = constrain(state->args[2], 1, 200);
+  uint8_t repeat_c = constrain(state->args[3], 1, 200);
 
   uint8_t cst = state->timings[0];
   uint8_t cbt = state->timings[1];
@@ -522,10 +524,14 @@ void pattern_tracer(PatternState *state, bool rend) {
     if (state->segm >= 2) {
       state->segm = 0;
       state->cntr++;
-      if (state->cntr >= pick + repeat) {
+      if (state->cntr >= pick + repeat_t) {
         state->cntr = 0;
-        state->cidx += skip;
-        while (state->cidx >= numc) state->cidx -= numc;
+        state->cntr2++;
+        if (state->cntr2 >= repeat_c) {
+          state->cntr2 = 0;
+          state->cidx += skip;
+          while (state->cidx >= numc) state->cidx -= numc;
+        }
       }
     }
 
@@ -720,7 +726,7 @@ void pattern_sword(PatternState *state, bool rend) {
 void pattern_wave(PatternState *state, bool rend) {
   uint8_t numc = constrain(state->numc, 1, 16);
 
-  uint8_t steps = constrain(state->args[0], 1, 100);
+  uint8_t steps = constrain(state->args[0], 1, 200);
   uint8_t direc = constrain(state->args[1], 0, 2);
   uint8_t alter = constrain(state->args[2], 0, 1);
   uint8_t every = constrain(state->args[3], 0, 1);
@@ -797,7 +803,7 @@ void pattern_wave(PatternState *state, bool rend) {
 void pattern_dynamo(PatternState *state, bool rend) {
   uint8_t numc = constrain(state->numc, 1, 16);
 
-  uint8_t steps = constrain(state->args[0], 1, 100);
+  uint8_t steps = constrain(state->args[0], 1, 200);
   uint8_t direc = constrain(state->args[1], 0, 2);
   uint8_t every = constrain(state->args[2], 0, 1);
 
@@ -867,7 +873,7 @@ void pattern_dynamo(PatternState *state, bool rend) {
 void pattern_shifter(PatternState *state, bool rend) {
   uint8_t numc = constrain(state->numc, 1, 16);
 
-  uint8_t steps = constrain(state->args[0], 1, 100);
+  uint8_t steps = constrain(state->args[0], 1, 200);
   uint8_t direc = constrain(state->args[1], 0, 2);
 
   uint8_t st = state->timings[0];
@@ -929,9 +935,9 @@ void pattern_shifter(PatternState *state, bool rend) {
 void pattern_triple(PatternState *state, bool rend) {
   uint8_t numc = constrain(state->numc, 1, 16);
 
-  uint8_t repeat_a = constrain(state->args[0], 1, 100);
-  uint8_t repeat_b = constrain(state->args[1], 1, 100);
-  uint8_t repeat_c = constrain(state->args[2], 1, 100);
+  uint8_t repeat_a = constrain(state->args[0], 1, 200);
+  uint8_t repeat_b = constrain(state->args[1], 1, 200);
+  uint8_t repeat_c = constrain(state->args[2], 1, 200);
   uint8_t skip = constrain(state->args[3], 0, numc - 1);
 
   uint8_t ast = state->timings[0];
@@ -1103,6 +1109,7 @@ void init_state(uint8_t dst, uint8_t src) {
   states[dst].trip = 0;
   states[dst].cidx = 0;
   states[dst].cntr = 0;
+  states[dst].cntr2 = 0;
   states[dst].segm = 0;
 }
 
@@ -1274,6 +1281,7 @@ uint8_t accel_variant() {
     states[active_pattern].trip = states[!active_pattern].trip;       // Copy over pattern tracking variables
     states[active_pattern].cidx = states[!active_pattern].cidx;
     states[active_pattern].cntr = states[!active_pattern].cntr;
+    states[active_pattern].cntr2 = states[!active_pattern].cntr2;
     states[active_pattern].segm = states[!active_pattern].segm;
   }
 }

@@ -32,6 +32,10 @@ var VectrUI = function() {
   var close = document.getElementById("close-dialog");
   var header = document.getElementById("header-title");
 
+  var vectr_c1;
+  var vectr_c2;
+  var vectr_c3;
+
   var mode_bundles = [
     [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []],
     [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
@@ -100,27 +104,6 @@ var VectrUI = function() {
     {name: '320',         r: 130 / 255, g:   0 / 255, b:  75 / 255},
     {name: '340',         r: 162 / 255, g:   0 / 255, b:  37 / 255},
   ];
-
-  dragula([modes, bundle0, bundle1], {
-    copy: true,
-    removeOnSpill: true,
-    accepts: function(el, target, source, sibling) {
-      if (target === modes) {
-        return false;
-      } else if (target.childElementCount > MAX_MODES) {
-        return false;
-      }
-      return true;
-    }
-  }).on("drop", function(el, target, source, sibling) {
-    el.data = {};
-    el.data.id = el.id;
-    el.setAttribute("id", "mode-item-" + Math.floor(Math.random() * Math.pow(2, 16)));
-  }).on("cancel", function(el, container, source) {
-    if (source === bundle0 || source === bundle1) {
-      $(source).find("#" + el.getAttribute('id')).remove()
-    }
-  });
 
   var data = [
     0,                                // type
@@ -1522,6 +1505,27 @@ var VectrUI = function() {
   initSettings();
   initUI();
   initDragDrop();
+
+  dragula([modes, bundle0, bundle1], {
+    copy: true,
+    removeOnSpill: true,
+    accepts: function(el, target, source, sibling) {
+      if (target === modes) {
+        return false;
+      } else if (target.childElementCount > MAX_MODES) {
+        return false;
+      }
+      return true;
+    }
+  }).on("drop", function(el, target, source, sibling) {
+    el.data = {};
+    el.data.id = el.id;
+    el.setAttribute("id", "mode-item-" + Math.floor(Math.random() * Math.pow(2, 16)));
+  }).on("cancel", function(el, container, source) {
+    if (source === bundle0 || source === bundle1) {
+      $(source).find("#" + el.getAttribute('id')).remove()
+    }
+  });
 
   close.onclick = function () { dialog.close(); }
 
