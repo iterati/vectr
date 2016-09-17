@@ -1,7 +1,7 @@
 var VectrUI = function() {
   'use strict';
 
-  var version = "0.3.4";
+  var version = "0.4.0";
   var SER_VERSION    = 34;
   var SER_WRITE      = 100;
   var SER_HANDSHAKE  = 200;
@@ -44,9 +44,6 @@ var VectrUI = function() {
     [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []],
     [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
   ];
-
-  var modetypes = ["Vectr", "Primer"];
-  var triggers = ["Off", "Velocity", "Pitch", "Roll", "Flip"];
 
   jQuery.colorpicker.swatches.custom_array = [
     {name: 'red',         r: 208 / 255, g:   0 / 255, b:   0 / 255},
@@ -105,30 +102,9 @@ var VectrUI = function() {
     {name: '340',         r: 162 / 255, g:   0 / 255, b:  37 / 255},
   ];
 
-  var data = [
-    0,                                // type
-    1, 0,                             // pattern
-    1, 1, 5, 0,                       // args1
-    0, 0, 0, 0,                       // args2
-    5, 5, 5, 5, 5, 0, 0, 0,           // timings1
-    6, 6, 6, 6, 6, 0, 0, 0,           // timings2
-    7, 7, 7, 7, 7, 0, 0, 0,           // timings3
-    1, 3, 1,                          // numc
-    255, 0, 0, 0, 0, 0, 0, 0, 0,      // colors1
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    255, 0, 0, 0, 255, 0, 0, 0, 255,  // colors2
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 255, 0, 0, 0, 0, 0, 0,      // colors3
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    4, 14, 18, 28,                    // pattern thresh
-    8, 8, 20, 20,                     // color thresh
-    0
-  ];
+  var data = [];
 
-  for (var i = 0; i < 191; i++) {
+  for (var i = 0; i < 256; i++) {
     readListeners[i] = [];
     updateListeners[i] = [];
   }
@@ -160,7 +136,7 @@ var VectrUI = function() {
     if (cmd[0] == SER_HANDSHAKE && cmd[1] == SER_VERSION && cmd[2] == cmd[3] && delay_send) {
       var now = new Date().getTime();
       while (new Date().getTime() < now + 500) {}
-      for (var i = 0; i < 191; i++) {
+      for (var i = 0; i < 256; i++) {
         sendData(i, data[i]);
       }
       sendCommand([SER_INIT, 0, 0, 0]);
@@ -193,75 +169,94 @@ var VectrUI = function() {
   function arrayToMode(arr) {
     // array to json mode
     return {
-      type: arr[0],
-      pattern: [arr[1], arr[2]],
-      args: [
-        [arr[3], arr[4], arr[5], arr[6]],
-        [arr[7], arr[8], arr[9], arr[10]]
-      ],
+      pattern: arr[0],
+      args: [arr[1], arr[2], arr[3], arr[4]],
       timings: [
-        [arr[11], arr[12], arr[13], arr[14], arr[15], arr[16], arr[17], arr[18]],
-        [arr[19], arr[20], arr[21], arr[22], arr[23], arr[24], arr[25], arr[26]],
-        [arr[27], arr[28], arr[29], arr[30], arr[31], arr[32], arr[33], arr[34]]
+        [arr[5], arr[6], arr[7], arr[8], arr[9], arr[10], arr[11], arr[12]],
+        [arr[13], arr[14], arr[15], arr[16], arr[17], arr[18], arr[19], arr[20]],
+        [arr[21], arr[22], arr[23], arr[24], arr[25], arr[26], arr[27], arr[28]]
       ],
-      numc: [arr[35], arr[36], arr[37]],
-      thresh0: [arr[38], arr[39], arr[40], arr[41]],
-      thresh1: [arr[42], arr[43], arr[44], arr[45]],
-      trigger: arr[46],
+      meta: [arr[29], arr[30], arr[31], arr[32]],
+      flux: [arr[33], arr[34], arr[35], arr[36]],
+      numc: [arr[37], arr[38], arr[39]],
       colors: [
         [
-          [arr[47], arr[48], arr[49]],
-          [arr[50], arr[51], arr[52]],
-          [arr[53], arr[54], arr[55]],
-          [arr[56], arr[57], arr[58]],
-          [arr[59], arr[60], arr[61]],
-          [arr[62], arr[63], arr[64]],
-          [arr[65], arr[66], arr[67]],
-          [arr[68], arr[69], arr[70]],
-          [arr[71], arr[72], arr[73]],
-          [arr[74], arr[75], arr[76]],
-          [arr[77], arr[78], arr[79]],
-          [arr[80], arr[81], arr[82]],
-          [arr[83], arr[84], arr[85]],
-          [arr[86], arr[87], arr[88]],
-          [arr[89], arr[90], arr[91]],
-          [arr[92], arr[93], arr[94]]
+          [arr[40],  arr[41],  arr[42]],
+          [arr[43],  arr[44],  arr[45]],
+          [arr[46],  arr[47],  arr[48]],
+          [arr[49],  arr[50],  arr[51]],
+          [arr[52],  arr[53],  arr[54]],
+          [arr[55],  arr[56],  arr[57]],
+          [arr[58],  arr[59],  arr[60]],
+          [arr[61],  arr[62],  arr[63]],
+          [arr[64],  arr[65],  arr[66]],
+          [arr[67],  arr[68],  arr[69]],
+          [arr[70],  arr[71],  arr[72]],
+          [arr[73],  arr[74],  arr[75]],
+          [arr[76],  arr[77],  arr[78]],
+          [arr[79],  arr[80],  arr[81]],
+          [arr[82],  arr[83],  arr[84]],
+          [arr[85],  arr[86],  arr[87]],
+          [arr[88],  arr[89],  arr[90]],
+          [arr[91],  arr[92],  arr[93]],
+          [arr[94],  arr[95],  arr[96]],
+          [arr[97],  arr[98],  arr[99]],
+          [arr[100], arr[101], arr[102]],
+          [arr[103], arr[104], arr[105]],
+          [arr[106], arr[107], arr[108]],
+          [arr[109], arr[110], arr[111]]
         ],
         [
-          [arr[95], arr[96], arr[97]],
-          [arr[98], arr[99], arr[100]],
-          [arr[101], arr[102], arr[103]],
-          [arr[104], arr[105], arr[106]],
-          [arr[107], arr[108], arr[109]],
-          [arr[110], arr[111], arr[112]],
-          [arr[113], arr[114], arr[115]],
-          [arr[116], arr[117], arr[118]],
-          [arr[119], arr[120], arr[121]],
-          [arr[122], arr[123], arr[124]],
-          [arr[125], arr[126], arr[127]],
-          [arr[128], arr[129], arr[130]],
-          [arr[131], arr[132], arr[133]],
-          [arr[134], arr[135], arr[136]],
-          [arr[137], arr[138], arr[139]],
-          [arr[140], arr[141], arr[142]]
+          [arr[112], arr[113], arr[114]],
+          [arr[115], arr[116], arr[117]],
+          [arr[118], arr[119], arr[120]],
+          [arr[121], arr[122], arr[123]],
+          [arr[124], arr[125], arr[126]],
+          [arr[127], arr[128], arr[129]],
+          [arr[130], arr[131], arr[132]],
+          [arr[133], arr[134], arr[135]],
+          [arr[136], arr[137], arr[138]],
+          [arr[139], arr[140], arr[141]],
+          [arr[142], arr[143], arr[144]],
+          [arr[145], arr[146], arr[147]],
+          [arr[148], arr[149], arr[150]],
+          [arr[151], arr[152], arr[153]],
+          [arr[154], arr[155], arr[156]],
+          [arr[157], arr[158], arr[159]],
+          [arr[160], arr[161], arr[162]],
+          [arr[163], arr[164], arr[165]],
+          [arr[166], arr[167], arr[168]],
+          [arr[169], arr[170], arr[171]],
+          [arr[172], arr[173], arr[174]],
+          [arr[175], arr[176], arr[177]],
+          [arr[178], arr[179], arr[180]],
+          [arr[181], arr[182], arr[183]]
         ],
         [
-          [arr[143], arr[144], arr[145]],
-          [arr[146], arr[147], arr[148]],
-          [arr[149], arr[150], arr[151]],
-          [arr[152], arr[153], arr[154]],
-          [arr[155], arr[156], arr[157]],
-          [arr[158], arr[159], arr[160]],
-          [arr[161], arr[162], arr[163]],
-          [arr[164], arr[165], arr[166]],
-          [arr[167], arr[168], arr[169]],
-          [arr[170], arr[171], arr[172]],
-          [arr[173], arr[174], arr[175]],
-          [arr[176], arr[177], arr[178]],
-          [arr[179], arr[180], arr[181]],
-          [arr[182], arr[183], arr[184]],
-          [arr[185], arr[186], arr[187]],
-          [arr[188], arr[189], arr[190]]
+          [arr[184], arr[185], arr[186]],
+          [arr[187], arr[188], arr[189]],
+          [arr[190], arr[191], arr[192]],
+          [arr[193], arr[194], arr[195]],
+          [arr[196], arr[197], arr[198]],
+          [arr[199], arr[200], arr[201]],
+          [arr[202], arr[203], arr[204]],
+          [arr[205], arr[206], arr[207]],
+          [arr[208], arr[209], arr[210]],
+          [arr[211], arr[212], arr[213]],
+          [arr[214], arr[215], arr[216]],
+          [arr[217], arr[218], arr[219]],
+          [arr[220], arr[221], arr[222]],
+          [arr[223], arr[224], arr[225]],
+          [arr[226], arr[227], arr[228]],
+          [arr[229], arr[230], arr[231]],
+          [arr[232], arr[233], arr[234]],
+          [arr[235], arr[236], arr[237]],
+          [arr[238], arr[239], arr[240]],
+          [arr[241], arr[242], arr[243]],
+          [arr[244], arr[245], arr[246]],
+          [arr[247], arr[248], arr[249]],
+          [arr[250], arr[251], arr[252]],
+          [arr[253], arr[254], arr[255]]
         ]
       ]
     };
@@ -270,21 +265,16 @@ var VectrUI = function() {
   function modeToArray(m) {
     // json mode to array
     return [
-      m.type,
-      m.pattern[0], m.pattern[1],
-
-      m.args[0][0], m.args[0][1], m.args[0][2], m.args[0][3],
-      m.args[1][0], m.args[1][1], m.args[1][2], m.args[1][3],
+      m.pattern,
+      m.args[0], m.args[1], m.args[2], m.args[3],
 
       m.timings[0][0], m.timings[0][1], m.timings[0][2], m.timings[0][3], m.timings[0][4], m.timings[0][5], m.timings[0][6], m.timings[0][7],
       m.timings[1][0], m.timings[1][1], m.timings[1][2], m.timings[1][3], m.timings[1][4], m.timings[1][5], m.timings[1][6], m.timings[1][7],
       m.timings[2][0], m.timings[2][1], m.timings[2][2], m.timings[2][3], m.timings[2][4], m.timings[2][5], m.timings[2][6], m.timings[2][7],
 
+      m.meta[0], m.meta[1], m.meta[2], m.meta[3],
+      m.flux[0], m.flux[1], m.flux[2], m.flux[3],
       m.numc[0], m.numc[1], m.numc[2],
-
-      m.thresh0[0], m.thresh0[1], m.thresh0[2], m.thresh0[3],
-      m.thresh1[0], m.thresh1[1], m.thresh1[2], m.thresh1[3],
-      m.trigger,
 
       m.colors[0][0][0],  m.colors[0][0][1],  m.colors[0][0][2],
       m.colors[0][1][0],  m.colors[0][1][1],  m.colors[0][1][2],
@@ -302,6 +292,14 @@ var VectrUI = function() {
       m.colors[0][13][0], m.colors[0][13][1], m.colors[0][13][2],
       m.colors[0][14][0], m.colors[0][14][1], m.colors[0][14][2],
       m.colors[0][15][0], m.colors[0][15][1], m.colors[0][15][2],
+      m.colors[0][16][0], m.colors[0][16][1], m.colors[0][16][2],
+      m.colors[0][17][0], m.colors[0][17][1], m.colors[0][17][2],
+      m.colors[0][18][0], m.colors[0][18][1], m.colors[0][18][2],
+      m.colors[0][19][0], m.colors[0][19][1], m.colors[0][19][2],
+      m.colors[0][20][0], m.colors[0][20][1], m.colors[0][20][2],
+      m.colors[0][21][0], m.colors[0][21][1], m.colors[0][21][2],
+      m.colors[0][22][0], m.colors[0][22][1], m.colors[0][22][2],
+      m.colors[0][23][0], m.colors[0][23][1], m.colors[0][23][2],
 
       m.colors[1][0][0],  m.colors[1][0][1],  m.colors[1][0][2],
       m.colors[1][1][0],  m.colors[1][1][1],  m.colors[1][1][2],
@@ -319,6 +317,14 @@ var VectrUI = function() {
       m.colors[1][13][0], m.colors[1][13][1], m.colors[1][13][2],
       m.colors[1][14][0], m.colors[1][14][1], m.colors[1][14][2],
       m.colors[1][15][0], m.colors[1][15][1], m.colors[1][15][2],
+      m.colors[1][16][0], m.colors[1][16][1], m.colors[1][16][2],
+      m.colors[1][17][0], m.colors[1][17][1], m.colors[1][17][2],
+      m.colors[1][18][0], m.colors[1][18][1], m.colors[1][18][2],
+      m.colors[1][19][0], m.colors[1][19][1], m.colors[1][19][2],
+      m.colors[1][20][0], m.colors[1][20][1], m.colors[1][20][2],
+      m.colors[1][21][0], m.colors[1][21][1], m.colors[1][21][2],
+      m.colors[1][22][0], m.colors[1][22][1], m.colors[1][22][2],
+      m.colors[1][23][0], m.colors[1][23][1], m.colors[1][23][2],
 
       m.colors[2][0][0],  m.colors[2][0][1],  m.colors[2][0][2],
       m.colors[2][1][0],  m.colors[2][1][1],  m.colors[2][1][2],
@@ -335,7 +341,15 @@ var VectrUI = function() {
       m.colors[2][12][0], m.colors[2][12][1], m.colors[2][12][2],
       m.colors[2][13][0], m.colors[2][13][1], m.colors[2][13][2],
       m.colors[2][14][0], m.colors[2][14][1], m.colors[2][14][2],
-      m.colors[2][15][0], m.colors[2][15][1], m.colors[2][15][2]
+      m.colors[2][15][0], m.colors[2][15][1], m.colors[2][15][2],
+      m.colors[2][16][0], m.colors[2][16][1], m.colors[2][16][2],
+      m.colors[2][17][0], m.colors[2][17][1], m.colors[2][17][2],
+      m.colors[2][18][0], m.colors[2][18][1], m.colors[2][18][2],
+      m.colors[2][19][0], m.colors[2][19][1], m.colors[2][19][2],
+      m.colors[2][20][0], m.colors[2][20][1], m.colors[2][20][2],
+      m.colors[2][21][0], m.colors[2][21][1], m.colors[2][21][2],
+      m.colors[2][22][0], m.colors[2][22][1], m.colors[2][22][2],
+      m.colors[2][23][0], m.colors[2][23][1], m.colors[2][23][2]
     ];
   };
 
@@ -355,17 +369,17 @@ var VectrUI = function() {
   };
 
   function getColorHex(set, slot) {
-    var red = data[(48 * set) + (3 * slot) + 47];
+    var red = data[(72 * set) + (3 * slot) + 40];
     if (red === null || red === undefined) {
       red = 0;
     }
 
-    var green = data[(48 * set) + (3 * slot) + 48];
+    var green = data[(72 * set) + (3 * slot) + 41];
     if (green === null || green === undefined) {
       green = 0;
     }
 
-    var blue = data[(48 * set) + (3 * slot) + 49];
+    var blue = data[(72 * set) + (3 * slot) + 42];
     if (blue === null || blue === undefined) {
       blue = 0;
     }
@@ -482,12 +496,12 @@ var VectrUI = function() {
   };
 
 
-  function PatternRow(parent, pattern_idx) {
+  function PatternRow(parent) {
     // Pattern dropdown + arg sliderfields
 
     function ArgElement(parent, arg_idx) {
       // Arg label + sliderfield
-      var addr = 3 + (4 * pattern_idx) + arg_idx;
+      var addr = 1 + arg_idx;
       var elem = document.createElement("div");
       elem.title = "Defines the pattern.";
       elem.style.width = "175px";
@@ -496,7 +510,7 @@ var VectrUI = function() {
       parent.appendChild(elem);
 
       var label = document.createElement("span");
-      label.textContent = "Arg " + pattern_idx + " " +  arg_idx;
+      label.textContent = "Arg " +  arg_idx;
       label.style.width = "100%";
       elem.appendChild(label);
 
@@ -524,8 +538,8 @@ var VectrUI = function() {
         };
       };
 
-      readListeners[1 + pattern_idx].push(listener(false));
-      updateListeners[1 + pattern_idx].push(listener(true));
+      readListeners[0].push(listener(false));
+      updateListeners[0].push(listener(true));
     };
 
     function PatternElement(parent) {
@@ -547,7 +561,7 @@ var VectrUI = function() {
       dropdown.style.display = "inline-block";
       dropdown.onchange = function() {
         return function(event) {
-          updateData(1 + pattern_idx, Number(this.value));
+          updateData(0, Number(this.value));
           sendCommand([SER_INIT, 0, 0, 0]);
         };
       }();
@@ -567,7 +581,7 @@ var VectrUI = function() {
         };
       }();
 
-      readListeners[1 + pattern_idx].push(listener);
+      readListeners[0].push(listener);
     };
 
     var elem = document.createElement("div");
@@ -584,7 +598,7 @@ var VectrUI = function() {
     // Column of 8 timing sliderfields with optional label
     function TimingElement(parent, timing_idx) {
       // Timing sliderfield with optional label
-      var addr = 11 + (8 * pattern_idx) + (8 * timing_group) + timing_idx;
+      var addr = 5 + (8 * pattern_idx) + (8 * timing_group) + timing_idx;
       var width = (show_label) ? 460 : 230;
       var elem = document.createElement("div");
       elem.title = "Timing for the pattern.";
@@ -633,8 +647,8 @@ var VectrUI = function() {
         };
       };
 
-      readListeners[1 + pattern_idx].push(listener(false));
-      updateListeners[1 + pattern_idx].push(listener(true));
+      readListeners[0].push(listener(false));
+      updateListeners[0].push(listener(true));
     };
 
     var elem = document.createElement("div");
@@ -693,104 +707,13 @@ var VectrUI = function() {
     new TimingColumn(timing0, 0, 0, true);
     new TimingColumn(timing1, 0, 1, false);
     new TimingColumn(timing2, 0, 2, false);
-
-    var typeListener = function(send_data) {
-      return function(val) {
-        if (val == 0) {
-          elem.style.display = null;
-          if (send_data) {
-            readData(1, 0);
-          }
-        } else {
-          elem.style.display = 'none';
-        }
-      };
-    };
-
-    readListeners[0].push(typeListener(false));
-    updateListeners[0].push(typeListener(true));
   };
-
-  function PrimerEditor(parent) {
-    var elem = document.createElement("div");
-    parent.appendChild(elem);
-
-    new ThreshRow(elem, 0, 2);
-
-    var container0 = document.createElement("div");
-    elem.appendChild(container0);
-    var pattern0 = new PatternRow(container0, 0);
-    var colors0 = new ColorSetRow(container0, 0, "primer");
-
-    var spacer = document.createElement("div");
-    spacer.style.minHeight = "10px";
-    elem.appendChild(spacer);
-
-    var container1 = document.createElement("div");
-    elem.appendChild(container1);
-    var pattern1 = new PatternRow(container1, 1);
-    var colors1 = new ColorSetRow(container1, 1, "primer");
-
-    var spacer = document.createElement("div");
-    spacer.style.minHeight = "20px";
-    elem.appendChild(spacer);
-
-    var timings = document.createElement("div");
-    timings.style.display = "inline-block";
-    elem.appendChild(timings);
-
-    var timing0 = document.createElement("div");
-    timing0.style.display = "inline-block";
-    timings.appendChild(timing0);
-
-    var timing1 = document.createElement("div");
-    timing1.style.display = "inline-block";
-    timings.appendChild(timing1);
-
-    new TimingColumn(timing0, 0, 0, true);
-    new TimingColumn(timing1, 1, 0, true);
-
-    var typeListener = function(send_data) {
-      return function(val) {
-        if (val == 1) {
-          elem.style.display = null;
-          if (send_data) {
-            updateData(1, 0);
-            updateData(2, 0);
-            updateData(46, 0);
-            sendCommand([SER_INIT, 0, 0, 0]);
-          }
-        } else {
-          elem.style.display = 'none';
-        }
-      };
-    };
-
-    var triggerListener = function(send_data) {
-      return function(val) {
-        if (val == 0) {
-          container1.style.visibility = 'hidden';
-          timing1.style.display = 'none';
-        } else {
-          container1.style.visibility = 'visible';
-          timing1.style.display = 'inline-block';
-        }
-      };
-    };
-
-    readListeners[46].push(triggerListener(false));
-    updateListeners[46].push(triggerListener(false));
-
-    readListeners[0].push(typeListener(false));
-    updateListeners[0].push(typeListener(true));
-  };
-
 
   function ColorSetRow(parent, set_idx, prefix) {
     // Numc sliderfield + colorpickers
     function ColorSlot(parent, slot_idx) {
       // Color picker
-      var addr = 47 + (48 * set_idx) + (3 * slot_idx);
+      var addr = 40 + (72 * set_idx) + (3 * slot_idx);
       var id = prefix + "-color-" + set_idx + "-" + slot_idx;
 
       var color_elem = document.createElement("div");
@@ -887,20 +810,20 @@ var VectrUI = function() {
       readListeners[addr + 2].push(updateColor(2));
 
       // listener on numc change
-      readListeners[35 + set_idx].push(showOrHide);
-      updateListeners[35 + set_idx].push(showOrHide);
+      readListeners[37 + set_idx].push(showOrHide);
+      updateListeners[37 + set_idx].push(showOrHide);
     };
 
     var elem = document.createElement("div");
     elem.style.margin = "0 auto";
-    elem.style.width = "785px";
+    elem.style.width = "820px";
     parent.appendChild(elem);
 
     var slider = new SliderField(elem, {
       min: 1,
-      max: 16,
+      max: 24,
       width: 200,
-      addr: 35 + set_idx
+      addr: 37 + set_idx
     });
 
     var slots = [];
@@ -909,7 +832,7 @@ var VectrUI = function() {
     color_container.style.display = "inline-block";
     elem.appendChild(color_container);
 
-    for (var i = 0; i < 16; i++) {
+    for (var i = 0; i < 24; i++) {
       var color_slot = new ColorSlot(color_container, i);
       slots.push(color_slot);
     }
@@ -931,73 +854,18 @@ var VectrUI = function() {
     var value_elems = [];
 
     var slider = document.createElement("div");
-    var ranges;
-    var def_values;
-    if (thresh_vals == 2) {
-      ranges = [
-        {styleClass: 'trigger-0'},
-        {styleClass: 'trigger-01'},
-        {styleClass: 'trigger-1'}
-      ];
-      def_values = [4, 28];
-
-      var dropdown_container = document.createElement("div");
-      elem.appendChild(dropdown_container);
-
-      var label = document.createElement("span");
-      label.textContent = "Trigger Type";
-      label.style.display = "inline-block";
-      label.style.margin = "5px";
-      dropdown_container.appendChild(label);
-
-      var dropdown = document.createElement("select");
-      dropdown.style.display = "inline-block";
-      dropdown.onchange = function() {
-        return function(event) {
-          if (this.value == 0) {
-            $(slider).limitslider("disable");
-          } else {
-            $(slider).limitslider("enable");
-          }
-          updateData(46, this.value);
-          sendCommand([SER_INIT, 0, 0, 0]);
-        };
-      }();
-      dropdown_container.appendChild(dropdown);
-
-      for (var i = 0; i < triggers.length; i++) {
-        var trigger = document.createElement("option");
-        trigger.value = i;
-        trigger.textContent = triggers[i];
-        dropdown.appendChild(trigger);
-      }
-
-      var listener = function() {
-        return function(val) {
-          dropdown.value = val;
-          if (val == 0) {
-            $(slider).limitslider("disable");
-          } else {
-            $(slider).limitslider("enable");
-          }
-        };
-      }();
-
-      readListeners[46].push(listener);
-    } else {
-      ranges = [
-        {styleClass: 'range-0'},
-        {styleClass: 'range-01'},
-        {styleClass: 'range-1'},
-        {styleClass: 'range-12'},
-        {styleClass: 'range-2'}
-      ];
-      def_values = [4, 12, 20, 28];
-    }
+    var def_values = [4, 12, 20, 28];
+    var ranges = [
+      {styleClass: 'range-0'},
+      {styleClass: 'range-01'},
+      {styleClass: 'range-1'},
+      {styleClass: 'range-12'},
+      {styleClass: 'range-2'}
+    ];
 
     elem.appendChild(slider);
 
-    var addr = 38 + (4 * thresh_idx);
+    var addr = 29 + (4 * thresh_idx);
     var values_container = document.createElement("div");
     values_container.style.display = "flex";
     values_container.style.justifyContent = "space-between";
@@ -1005,12 +873,7 @@ var VectrUI = function() {
     elem.appendChild(values_container);
 
     for (var i = 0; i < thresh_vals; i++) {
-      var value_addr = 38;
-      if (thresh_vals == 2) {
-        value_addr += 1 - i;
-      } else {
-        value_addr += (4 * thresh_idx) + i;
-      }
+      var value_addr = 29 + (4 * thresh_idx) + i;
       var valueChange = function(idx) {
         return function(event) {
           var val = Number(event.target.value);
@@ -1028,11 +891,7 @@ var VectrUI = function() {
           event.target.value = val;
           values[idx] = val;
           $(slider).limitslider("values", values);
-          if (thresh_vals == 2) {
-            sendData(39 - idx, val);
-          } else {
-            sendData(38 + (4 * thresh_idx) + idx, val);
-          }
+          sendData(value_addr, val);
         }
       }(i);
 
@@ -1068,7 +927,7 @@ var VectrUI = function() {
     }();
 
     $(slider).limitslider({
-      min: 0, max: 64, gap: 0,
+      min: 0, max: 100, gap: 0,
       values: def_values,
       ranges: ranges,
       slide: threshChange,
@@ -1123,7 +982,7 @@ var VectrUI = function() {
       var field = document.querySelector("#mode-save");
       field.value = this.data.filename;
       var arr = modeToArray(this.data);
-      for (var i = 0; i < 191; i++) {
+      for (var i = 0; i < 256; i++) {
         readData(i, arr[i]);
       }
       sendCommand([SER_INIT, 0, 0, 0]);
@@ -1135,6 +994,19 @@ var VectrUI = function() {
   function translateMode(modeobj) {
     if (modeobj.version != version) {
       console.log("version mismatch: " + modeobj.version);
+    }
+
+    if (modeobj.type && modeobj.type == 1) {
+      console.log("unable to translate primer mode");
+      return {};
+    }
+
+    if (modeobj.pattern.length) {
+      modeobj.pattern = modeobj.pattern[0];
+    }
+
+    if (modeobj.args.length == 2) {
+      modeobj.args = modeobj.args[0];
     }
 
     // < 0.2.5, tracer only had one gap
@@ -1155,9 +1027,18 @@ var VectrUI = function() {
       }
     }
 
+
+    if (modeobj.thresh0) {
+      modeobj.meta = modeobj.thresh0;
+    }
+
+    if (modeobj.thresh1) {
+      modeobj.flux = modeobj.thresh1;
+    }
+
     for (var s = 0; s < 3; s++) {
-      if (modeobj.colors[s].length < 16) {
-        for (var i = modeobj.colors[s].length - 1; i < 16; i++) {
+      if (modeobj.colors[s].length < 24) {
+        for (var i = modeobj.colors[s].length - 1; i < 24; i++) {
           modeobj.colors[s].push([0, 0, 0]);
         }
       }
@@ -1186,9 +1067,7 @@ var VectrUI = function() {
 
   function initUI() {
     var serialElement = new SerialElement(editor);
-    var typeDropdown = new TypeDropdown(editor);
     var vectrUi = new VectrEditor(editor);
-    var primerUi = new PrimerEditor(editor);
 
     var modeControls = new ModeControls(document.querySelector("#mode-controls"));
     var bundleControls = new BundleControls(document.querySelector("#bundle-controls"));
@@ -1209,15 +1088,14 @@ var VectrUI = function() {
         chrome.fileSystem.chooseEntry({type: "openDirectory"}, function(entry) {
           data.vectr.dir_id = chrome.fileSystem.retainEntry(entry);
           dir_root = entry;
-          chrome.storage.local.set(data);
 
           var default_modes = DefaultModes.getModes();
           dir_root.getDirectory("modes", {create: true}, function(entry) {
             dir_modes = entry;
             for (var i = 0; i < default_modes.length; i++) {
               var default_mode = default_modes[i];
-
               for (var b = 0; b < default_mode.bundles.length; b++) {
+                var mode_array = modeToArray(default_mode);
                 mode_bundles[default_mode.bundles[b]][default_mode.slot] = modeToArray(default_mode);
                 mode_bundle_ids[default_mode.bundles[b]][default_mode.slot] = default_mode.id;
               }
@@ -1230,6 +1108,7 @@ var VectrUI = function() {
               }
             }
           });
+
           dir_root.getDirectory("firmwares", {create: true}, function(entry) {
             dir_firmwares = entry;
             var num_modes = [8, 8];
@@ -1251,6 +1130,8 @@ var VectrUI = function() {
             document.getElementById("firmware-save").value = "default";
             writeSource("default", num_modes, mode_bundles[0], mode_bundles[1], SER_VERSION);
           });
+
+          chrome.storage.local.set(data);
         });
       } else {
         chrome.fileSystem.restoreEntry(data.vectr.dir_id, function(entry) {
@@ -1275,36 +1156,6 @@ var VectrUI = function() {
         });
       }
     });
-  };
-
-  function TypeDropdown(parent) {
-    var elem = document.createElement("div");
-    elem.style.margin = "5px";
-    parent.appendChild(elem);
-
-    var dropdown = document.createElement("select");
-    dropdown.onchange = function() {
-      return function(event) {
-        updateData(0, Number(this.value));
-        sendCommand([SER_INIT, 0, 0, 0]);
-      };
-    }();
-    elem.appendChild(dropdown);
-
-    for (var i = 0; i < modetypes.length; i++) {
-      var modetype = document.createElement("option");
-      modetype.value = i;
-      modetype.textContent = modetypes[i];
-      dropdown.appendChild(modetype);
-    }
-
-    var listener = function() {
-      return function(val) {
-        dropdown.value = val;
-      };
-    }();
-
-    readListeners[0].push(listener);
   };
 
   function SerialElement(parent) {
@@ -1535,5 +1386,7 @@ var VectrUI = function() {
     modelib: modelib,
     data: data,
     defaults: DefaultModes.getModes(),
+    arrayToMode: arrayToMode,
+    modeToArray: modeToArray
   };
 }();

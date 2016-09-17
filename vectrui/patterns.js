@@ -6,14 +6,14 @@ var Patterns = function() {
     {
       name: "Group Size",
       min: 0,
-      max: 16,
+      max: 24,
       tooltip: "Colors used in each set. If 0 or more than the number of colors, all the colors are used.",
       default: 0
     },
     {
       name: "Skip After",
       min: 0,
-      max: 16,
+      max: 24,
       tooltip: "Colors skipped after each set. If 0, it's the same as group size.",
       default: 0
     },
@@ -22,6 +22,13 @@ var Patterns = function() {
       min: 1,
       max: 200,
       tooltip: "Times set is repeated before skipping.",
+      default: 1
+    },
+    {
+      min: 1,
+      max: 200,
+      name: "Repeat Color(s)",
+      tooltip: "Times color(s) are repeated before next color set is shown.",
       default: 1
     }
     ],
@@ -277,117 +284,6 @@ var Patterns = function() {
     ]
   },
   {
-    name: "Shift",
-    args: [
-    {
-      min: 1,
-      max: 200,
-      name: "Steps",
-      tooltip: "Steps in the shift pattern. If direction is 2 (both), there are double the steps.",
-      default: 4
-    },
-    {
-      min: 0,
-      max: 2,
-      name: "Direction",
-      tooltip: "If 0, the shift length increases. If 1, the shift length decreases. If 2, the shift length increases then decreases.",
-      default: 2
-    }
-    ],
-    timings: [
-    {
-      name: "Base Strobe",
-      tooltip: "Minimum length color is shown.",
-      default: 5
-    },
-    {
-      name: "Base Blank",
-      tooltip: "Minimum length blank is shown.",
-      default: 25
-    },
-    {
-      name: "Step Length",
-      tooltip: "Length of each step in shift.",
-      default: 5
-    },
-    {
-      name: "Gap",
-      tooltip: "Length blank is shown after all colors.",
-      default: 100
-    }
-    ]
-  },
-  {
-    name: "Triple",
-    args: [
-    {
-      min: 1,
-      max: 200,
-      name: "Repeat A",
-      tooltip: "Times to repeat first timing set.",
-      default: 2
-    },
-    {
-      min: 1,
-      max: 200,
-      name: "Repeat B",
-      tooltip: "Times to repeat second timing set.",
-      default: 2
-    },
-    {
-      min: 0,
-      max: 200,
-      name: "Repeat C",
-      tooltip: "Times to repeat third timing set.",
-      default: 2
-    },
-    {
-      min: 0,
-      max: 15,
-      name: "Skip Colors",
-      tooltip: "Colors to skip between patterns.",
-      default: 1
-    }
-    ],
-    timings: [
-    {
-      name: "A Strobe",
-      tooltip: "Length color is shown for first pattern.",
-      default: 25
-    },
-    {
-      name: "A Blank",
-      tooltip: "Length blank is shown between strobes in first pattern. If repeat A is 1, this is not shown.",
-      default: 25
-    },
-    {
-      name: "B Strobe",
-      tooltip: "Length color is shown for second pattern.",
-      default: 10
-    },
-    {
-      name: "B Blank",
-      tooltip: "Length blank is shown between strobes in second pattern. If repeat B is 1, this is not shown.",
-      default: 40
-    },
-    {
-      name: "C Strobe",
-      tooltip: "Length color is shown for third pattern.",
-      default: 3
-    },
-    {
-      name: "C Blank",
-      tooltip: "Length blank is shown between strobes in third pattern. If repeat C is 1, this is not shown.",
-      default: 47
-    },
-    {
-      name: "Gap",
-      tooltip: "Length blank is shown between patterns.",
-      default: 25
-    }
-    ]
-  },
-  {
     name: "Stepper",
     args: [
     {
@@ -459,47 +355,6 @@ var Patterns = function() {
       name: "Step 7",
       tooltip: "Length color or blank is shown for step 7.",
       default: 35
-    }
-    ]
-  },
-  {
-    name: "Random",
-    args: [
-    {
-      min: 0,
-      max: 1,
-      name: "Random Color",
-      tooltip: "If 0, colors are shown in order. If 1, colors are shown at random.",
-      default: 0
-    },
-    {
-      min: 1,
-      max: 25,
-      name: "Multiplier",
-      tooltip: "Multiplies the strobe and blank times.",
-      default: 1
-    }
-    ],
-    timings: [
-    {
-      name: "Strobe Low",
-      tooltip: "Minimum length color is shown.",
-      default: 5
-    },
-    {
-      name: "Strobe High",
-      tooltip: "Maximum length color is shown.",
-      default: 25
-    },
-    {
-      name: "Blank Low",
-      tooltip: "Minimum length blank is shown.",
-      default: 5
-    },
-    {
-      name: "Blank High",
-      tooltip: "Maximum length blank is shown.",
-      default: 25
     }
     ]
   }
