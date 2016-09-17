@@ -895,9 +895,9 @@ void init_state(uint8_t dst) {
   for (uint8_t i = 0; i < NUM_COLORS; i++) {
     if (i < 4) states[dst].args[i] = mode.args[i];
     if (i < 8) states[dst].timings[i] = mode.timings[0][i];
-    states[dst].colors[i][0] = mode.colors[0][0][i];
-    states[dst].colors[i][1] = mode.colors[0][1][i];
-    states[dst].colors[i][2] = mode.colors[0][2][i];
+    states[dst].colors[i][0] = mode.colors[0][i][0];
+    states[dst].colors[i][1] = mode.colors[0][i][1];
+    states[dst].colors[i][2] = mode.colors[0][i][2];
   }
   states[dst].trip = 0;
   states[dst].cidx = 0;
