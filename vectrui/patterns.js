@@ -7,28 +7,21 @@ var Patterns = function() {
       name: "Group Size",
       min: 0,
       max: 24,
-      tooltip: "Colors used in each set. If 0 or more than the number of colors, all the colors are used.",
+      tooltip: "Colors used in each group. If 0 or more than the number of colors, all the colors are used.",
       default: 0
     },
     {
       name: "Skip After",
       min: 0,
       max: 24,
-      tooltip: "Colors skipped after each set. If 0, it's the same as group size.",
+      tooltip: "Colors skipped after each group. If 0, it's the same as group size.",
       default: 0
     },
     {
       name: "Repeat Group",
       min: 1,
-      max: 200,
-      tooltip: "Times set is repeated before skipping.",
-      default: 1
-    },
-    {
-      min: 1,
-      max: 200,
-      name: "Repeat Color(s)",
-      tooltip: "Times color(s) are repeated before next color set is shown.",
+      max: 250,
+      tooltip: "Times group is repeated before skipping.",
       default: 1
     }
     ],
@@ -45,7 +38,7 @@ var Patterns = function() {
     },
     {
       name: "Gap",
-      tooltip: "Length blank is shown after last blank in set.",
+      tooltip: "Length blank is shown after last blank in group.",
       default: 0
     }
     ]
@@ -57,28 +50,28 @@ var Patterns = function() {
       min: 0,
       max: 16,
       name: "Group Size",
-      tooltip: "Colors used in each set. If 0 or more than the number of colors, all the colors are used.",
+      tooltip: "Colors used in each group. If 0 or more than the number of colors, all the colors are used.",
       default: 1
     },
     {
       min: 0,
       max: 16,
       name: "Skip After",
-      tooltip: "Colors skipped after each set. If 0, it's the same as group size.",
+      tooltip: "Colors skipped after each group. If 0, it's the same as group size.",
       default: 0
     },
     {
       min: 1,
-      max: 200,
+      max: 250,
       name: "Repeat Tracer",
-      tooltip: "Times tracer is repeated before next color set is shown.",
+      tooltip: "Times tracer is repeated before next color group is shown.",
       default: 1
     },
     {
       min: 1,
-      max: 200,
+      max: 250,
       name: "Repeat Color(s)",
-      tooltip: "Times color(s) are repeated before next color set is shown.",
+      tooltip: "Times color(s) are repeated before next color group is shown.",
       default: 1
     }
     ],
@@ -90,7 +83,7 @@ var Patterns = function() {
     },
     {
       name: "Color Blank",
-      tooltip: "Length blank is shown between colors in set. If group size is 1, this is never shown.",
+      tooltip: "Length blank is shown between colors in group. If group size is 1, this is never shown.",
       default: 0
     },
     {
@@ -120,7 +113,7 @@ var Patterns = function() {
     args: [
     {
       min: 1,
-      max: 200,
+      max: 250,
       name: "Morph Steps",
       tooltip: "Steps from one color to the next.",
       default: 16
@@ -163,9 +156,16 @@ var Patterns = function() {
       min: 0,
       max: 16,
       name: "Group Size",
-      tooltip: "Colors used in each set. If the last set is not full, blanks are shown.",
+      tooltip: "Colors used in each group. If the last group is not full, blanks are shown.",
       default: 0
     },
+    {
+      name: "Repeat Group",
+      min: 1,
+      max: 250,
+      tooltip: "Times group is repeated before skipping.",
+      default: 1
+    }
     ],
     timings: [
     {
@@ -195,7 +195,7 @@ var Patterns = function() {
     args: [
     {
       min: 1,
-      max: 200,
+      max: 250,
       name: "Steps",
       tooltip: "Steps in the wave pattern. If direction is 2 (both), there are double the steps.",
       default: 32
@@ -245,7 +245,7 @@ var Patterns = function() {
     args: [
     {
       min: 1,
-      max: 200,
+      max: 250,
       name: "Steps",
       tooltip: "Steps in the stretch pattern. If direction is 2 (both), there are double the steps.",
       default: 20

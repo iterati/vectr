@@ -90,7 +90,7 @@ PROGMEM const uint8_t modes[NUM_BUNDLES][NUM_MODES][MODE_SIZE] = {
 uint32_t ACCEL_BIN_SIZE = (ACCEL_MAX_GS * ACCEL_ONEG) / ACCEL_BINS;
 
 #define ACCEL_FALLOFF     8     // 20ms cycles before falloff
-#define ACCEL_TARGET      1     // 20ms cycles before triggering
+#define ACCEL_TARGET      0     // 20ms cycles before triggering
 
 #define PATTERN_STROBE    0     // Tracer patterrn
 #define PATTERN_TRACER    1     // Tracer patterrn

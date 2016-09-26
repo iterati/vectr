@@ -637,6 +637,7 @@ void pattern_sword(PatternState *state) {
   uint8_t numc = constrain(state->numc, 1, NUM_COLORS);
 
   uint8_t pick = constrain((state->args[0] == 0) ? numc : state->args[0], 1, numc);
+  uint8_t repeat = constrain(state->args[1], 1, 250);
 
   uint8_t st = state->timings[0];
   uint8_t bt = state->timings[1];
@@ -652,9 +653,13 @@ void pattern_sword(PatternState *state) {
       state->cnt0++;
       if (state->cnt0 >= (pick * 2) - 1) {
         state->cnt0 = 0;
-        state->cidx += pick;
-        if (state->cidx >= numc) {
-          state->cidx -= numc;
+        state->cnt1++;
+        if (state->cnt1 >= repeat) {
+          state->cnt1 = 0;
+          state->cidx += pick;
+          if (state->cidx >= numc) {
+            state->cidx -= numc;
+          }
         }
       }
     }
