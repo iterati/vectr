@@ -1,7 +1,7 @@
 var VectrUI = function() {
   'use strict';
 
-  var version = "0.3.4";
+  var version = "0.3.5";
   var SER_VERSION    = 34;
   var SER_WRITE      = 100;
   var SER_HANDSHAKE  = 200;
