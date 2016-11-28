@@ -1371,69 +1371,81 @@ void handle_serial() {
 }
 
 void handle_button() {
-  bool pressed = digitalRead(PIN_BUTTON) == LOW;              // Button is pressed when pin is low
-  bool changed = pressed != was_pressed;                      // If pressed state has changed, we might need to act
+    bool pressed = digitalRead(PIN_BUTTON) == LOW;                          // Button is pressed when pin is low
+    bool changed = pressed != was_pressed;                                  // If pressed state has changed, we might need to act
 
-  if (op_state == STATE_PLAY) {                               // If playing
-    if (pressed) {                                              // and pressed
-      if (since_press == 1000)      flash(32, 32, 32);            // Flash white when chip will sleep (500ms)
-      else if (since_press == 4000) flash(0, 0, 128);             // Flash blue when conjure will toggle (2s)
-      else if (since_press == 8000) flash(128, 0, 0);             // Flash red when chip will lock and sleep (4s)
-    } else if (changed) {                                       // if not pressed and changed (just released)
-      if (since_press < 1000) {                                   // if less than 500ms, sleep if conjuring and change mode if not
-        if (settings.conjure) enter_sleep();
-        else                  next_mode();
-      } else if (since_press < 4000) {                            // if less than 2s, sleep
-        enter_sleep();
-      } else if (since_press < 8000) {                            // if less than 4s, toggle conjure
-        settings.conjure = (settings.conjure == 0) ? 1 : 0;         // toggle conjure
-      } else {                                                    // if more than 4s, lock light
-        settings.locked = 1;                                        // set locked bit
-        enter_sleep();                                              // go to sleep
-      }
-    }
-  } else if (op_state == STATE_WAKE) {                        // If waking
-    if (settings.locked) {                                      // and locked
-      if (pressed) {                                              // and pressed
-        if (since_press == 4000)      flash(0, 128, 0);             // Flash green when light will wake (2s)
-        else if (since_press == 8000) flash(128, 0, 0);             // Flash red when light will stay locked (4s)
-      } else if (changed) {                                       // if not pressed and changed (just released)
-        if (since_press < 4000) {                                   // if less than 2s, stay locked
-          flash(128, 0, 0);                                           // flash red
-          enter_sleep();                                              // go to sleep
-        } else if (since_press < 8000) {                            // if less than 4s, unlock
-          settings.locked = 0;                                        // unset locked bit
-          op_state = STATE_PLAY;                                      // wake up and play
-        } else {                                                    // if more than 4s, stay locked
-          flash(128, 0, 0);                                           // flash red
-          enter_sleep();                                              // go to sleep
+    // STATE_PLAY
+    if (op_state == STATE_PLAY) {                                           // If playing
+        if (pressed) {                                                      // and pressed
+            if (since_press == 2000) flash(8, 8, 8);                        // Flash white when chip will sleep (500ms)
+            else if (since_press == 4000) flash(0, 0, 128);                 // Flash blue when conjure will toggle (2s)
+            else if (since_press == 8000) flash(32, 0, 0);                  // Flash red when chip will lock and sleep (4s)
         }
-      }
-    } else {                                                    // if not locked
-      if (pressed) {                                              // and pressed
-        if (since_press == 4000)      flash(56, 0, 56);             // flash magenta after 2s (bundle switch)
-        else if (since_press == 8000) flash(128, 0, 0);             // flash red after 4s (lock light)
-      } else if (changed) {                                       // if not pressed and changed (just released)
-        if (since_press < 4000) {                                   // if less than 2s, wake up and play
-          op_state = STATE_PLAY;
-        } else if (since_press < 8000) {                            // if less than 4s, switch bundles
-          settings.bundle = (settings.bundle == 0) ? 1 : 0;           // toggle bundle 1/2
-          settings.conjure = 0;                                       // deactivate conjure
-          settings.mode = 0;                                          // reset mode
-          change_mode(0);                                             // change to mode 0
-          op_state = STATE_PLAY;
-        } else {                                                    // if more than 4s, lock light
-          settings.locked = 1;                                        // set lock bit
-          enter_sleep();                                              // go to sleep
-        }
-      }
-    }
-  }
+        else if (changed) {                                                 // if not pressed and changed (just released)
+            if (since_press < 1000) {                                       // if less than 500ms, sleep if conjuring or initialize the mode if not
+                if (settings.conjure) enter_sleep();
+                else init_mode();
+                }
+            else if (since_press < 2000) {                                  // if less than 500ms,
+	                if (settings.conjure) enter_sleep();
+                    else next_mode();
+                }
+                else if (since_press < 4000) {                              // if less than 2s, sleep
+	                enter_sleep();
+                }
+                else if (since_press < 8000) {                              // if less than 4s, toggle conjure
+	                settings.conjure = (settings.conjure == 0) ? 1: 0;      // toggle conjure
+                }
+                else {                                                      // if more than 4s, lock light
+		        settings.locked = 1;                                        // set locked bit
+                enter_sleep();                                              // go to sleep
+                }
+            }
 
-  since_press++;
-  if (changed) since_press = 0;                               // If state changed we need to reset since_press
-  was_pressed  = pressed;                                     // Update was_pressed to this frame's button status
-}
+         // STATE_WAKE
+         } else if (op_state == STATE_WAKE) {                                // If waking
+             if (settings.locked) {                                          // and locked
+                 if (pressed) {                                              // and pressed
+                     if (since_press == 4000) flash(0, 128, 0);              // Flash green when light will wake (2s)
+                     else if (since_press == 8000) flash(128, 0, 0);         // Flash red when light will stay locked (4s)
+                 }
+                 else if (changed) {                                         // if not pressed and changed (just released)
+                     if (since_press < 4000) {                               // if less than 2s, stay locked
+                         flash(128, 0, 0);                                   // flash red
+                         enter_sleep();                                      // go to sleep
+                     } else if (since_press < 8000) {                        // if less than 4s, unlock
+                         settings.locked = 0;                                // unset locked bit
+                         op_state = STATE_PLAY;                              // wake up and play
+                     } else {                                                // if more than 4s, stay locked
+                         flash(128, 0, 0);                                   // flash red
+                         enter_sleep();                                      // go to sleep
+                     }
+                 }
+             } else {                                                        // if not locked
+                 if (pressed) {                                              // and pressed
+                     if (since_press == 4000) flash(56, 0, 56);              // flash magenta after 2s (bundle switch)
+                     else if (since_press == 8000) flash(128, 0, 0);         // flash red after 4s (lock light)
+                     } else if (changed) {                                   // if not pressed and changed (just released)
+                         if (since_press < 4000) {                           // if less than 2s, wake up and play
+                             op_state = STATE_PLAY;
+                         }
+                         else if (since_press < 8000) {                      // if less than 4s, switch bundles
+                             settings.bundle = (settings.bundle == 0) ? 1: 0;// toggle bundle 1/2
+                             settings.conjure = 0;                           // deactivate conjure
+                             settings.mode = 0;                              // reset mode
+                             change_mode(0);                                 // change to mode 0
+                             op_state = STATE_PLAY;
+                         } else {                                            // if more than 4s, lock light
+                             settings.locked = 1;                            // set lock bit
+                             enter_sleep();                                  // go to sleep
+                         }
+                     }
+                 }
+             }
+             since_press++;
+             if (changed) since_press = 0;                                   // If state changed we need to reset since_press
+             was_pressed  = pressed;                                         // Update was_pressed to this frame's button status
+         }                                                                   // END OF handle_button()
 
 void handle_accel() {
   if (accel_tick == 0) {                                      // Tick 0: request y axis (x and y are swapped on v2s)

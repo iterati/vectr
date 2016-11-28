@@ -1,7 +1,7 @@
 {
-    "name": "VectrUI",
+    "name": "VectrUI-clickResistant",
     "description": "VectrUI Chrome App",
-    "version": "0.3.3",
+    "version": "0.3.5",
     "manifest_version": 2,
     "app": {
         "background": {
