@@ -1374,10 +1374,17 @@ void handle_button() {
     bool pressed = digitalRead(PIN_BUTTON) == LOW;                          // Button is pressed when pin is low
     bool changed = pressed != was_pressed;                                  // If pressed state has changed, we might need to act
 
+    // Primary different in clickResistant
+    // If playing, clicking the button on the chip for under 500ms will initialize the mode or put the chip to sleep if set to conjure.
+    // Holding between 0.5 and 1 seconds - Change the mode or put the chip to sleep if set to conjure. Flashes white at 1 seconds.
+    // Holding between 1 and 2 seconds - Turns off light on release. Flashes blue at 2 seconds.
+    // Hold between 2 and 4 seconds - Toggles conjure mode on release. Flashes red at 4 seconds.
+    // Hold 4 seconds or more - Locks and turns off light on release. 
+
     // STATE_PLAY
     if (op_state == STATE_PLAY) {                                           // If playing
         if (pressed) {                                                      // and pressed
-            if (since_press == 2000) flash(8, 8, 8);                        // Flash white when chip will sleep (500ms)
+            if (since_press == 2000) flash(8, 8, 8);                        // Flash white when chip will sleep (1000ms)
             else if (since_press == 4000) flash(0, 0, 128);                 // Flash blue when conjure will toggle (2s)
             else if (since_press == 8000) flash(32, 0, 0);                  // Flash red when chip will lock and sleep (4s)
         }
@@ -1445,7 +1452,7 @@ void handle_button() {
              since_press++;
              if (changed) since_press = 0;                                   // If state changed we need to reset since_press
              was_pressed  = pressed;                                         // Update was_pressed to this frame's button status
-         }                                                                   // END OF handle_button()
+        }
 
 void handle_accel() {
   if (accel_tick == 0) {                                      // Tick 0: request y axis (x and y are swapped on v2s)
