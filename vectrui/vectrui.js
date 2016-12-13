@@ -1,1534 +1,2734 @@
 var VectrUI = function() {
-  'use strict';
-
-  var version = "0.3.5";
-  var SER_VERSION    = 34;
-  var SER_WRITE      = 100;
-  var SER_HANDSHAKE  = 200;
-  var SER_DISCONNECT = 210;
-  var SER_VIEW_MODE  = 220;
-  var SER_VIEW_COLOR = 230;
-  var SER_INIT       = 240;
-
-  var MAX_MODES      = 16;
-
-  var dir_root;
-  var dir_firmwares;
-  var dir_modes;
-  var connection_id;
-  var connected = false;
-  var input_buffer = [];
-  var readListeners = [];
-  var updateListeners = [];
-  var modelib = {};
-
-  var main = document.getElementById("main");
-  var editor = document.getElementById("editor");
-  var bundles = document.getElementById("bundles");
-  var bundle0 = document.getElementById("bundle0");
-  var bundle1 = document.getElementById("bundle1");
-  var modes = document.getElementById("mode-list");
-  var dialog = document.querySelector("dialog");
-  var close = document.getElementById("close-dialog");
-  var header = document.getElementById("header-title");
-
-  var mode_bundles = [
-    [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
-  ];
-  var mode_bundle_ids = [
-    [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
-  ];
-
-  var modetypes = ["Vectr", "Primer"];
-  var triggers = ["Off", "Velocity", "Pitch", "Roll", "Flip"];
-
-  jQuery.colorpicker.swatches.custom_array = [
-    {name: 'red',         r: 208 / 255, g:   0 / 255, b:   0 / 255},
-    {name: 'sunrise',     r: 182 / 255, g:  28 / 255, b:   0 / 255},
-    {name: 'orange',      r: 156 / 255, g:  56 / 255, b:   0 / 255},
-    {name: 'gold',        r: 130 / 255, g:  84 / 255, b:   0 / 255},
-    {name: 'yellow',      r: 104 / 255, g: 112 / 255, b:   0 / 255},
-    {name: 'lemon',       r:  78 / 255, g: 140 / 255, b:   0 / 255},
-    {name: 'lime',        r:  52 / 255, g: 168 / 255, b:   0 / 255},
-    {name: 'virus',       r:  26 / 255, g: 196 / 255, b:   0 / 255},
-
-    {name: 'green',       r:   0 / 255, g: 224 / 255, b:   0 / 255},
-    {name: 'sea',         r:   0 / 255, g: 196 / 255, b:  30 / 255},
-    {name: 'aqua',        r:   0 / 255, g: 168 / 255, b:  60 / 255},
-    {name: 'turqoise',    r:   0 / 255, g: 140 / 255, b:  90 / 255},
-    {name: 'cyan',        r:   0 / 255, g: 112 / 255, b: 120 / 255},
-    {name: 'baby blue',   r:   0 / 255, g:  84 / 255, b: 150 / 255},
-    {name: 'sky',         r:   0 / 255, g:  56 / 255, b: 180 / 255},
-    {name: 'royal blue',  r:   0 / 255, g:  28 / 255, b: 210 / 255},
-
-    {name: 'blue',        r:   0 / 255, g:   0 / 255, b: 240 / 255},
-    {name: 'indigo',      r:  26 / 255, g:   0 / 255, b: 210 / 255},
-    {name: 'purple',      r:  52 / 255, g:   0 / 255, b: 180 / 255},
-    {name: 'violet',      r:  78 / 255, g:   0 / 255, b: 150 / 255},
-    {name: 'magenta',     r: 104 / 255, g:   0 / 255, b: 120 / 255},
-    {name: 'blush',       r: 130 / 255, g:   0 / 255, b:  90 / 255},
-    {name: 'pink',        r: 156 / 255, g:   0 / 255, b:  60 / 255},
-    {name: 'sunset',      r: 182 / 255, g:   0 / 255, b:  30 / 255},
-
-    {name: 'black',       r:   0 / 255, g:   0 / 255, b:   0 / 255},
-    {name: 'white',       r:  65 / 255, g:  70 / 255, b:  75 / 255},
-    {name: 'dim red',     r:   4 / 255, g:   0 / 255, b:   0 / 255},
-    {name: 'dim yellow',  r:   2 / 255, g:   2 / 255, b:   0 / 255},
-    {name: 'dim green',   r:   0 / 255, g:   4 / 255, b:   0 / 255},
-    {name: 'dim cyan',    r:   0 / 255, g:   2 / 255, b:   2 / 255},
-    {name: 'dim blue',    r:   0 / 255, g:   0 / 255, b:   4 / 255},
-    {name: 'dim purple',  r:   2 / 255, g:   0 / 255, b:   2 / 255},
-
-    {name: '0',           r: 195 / 255, g:   0 / 255, b:   0 / 255},
-    {name: '20',          r: 162 / 255, g:  35 / 255, b:   0 / 255},
-    {name: '40',          r: 130 / 255, g:  70 / 255, b:   0 / 255},
-    {name: '60',          r:  97 / 255, g: 105 / 255, b:   0 / 255},
-    {name: '80',          r:  65 / 255, g: 140 / 255, b:   0 / 255},
-    {name: '100',         r:  32 / 255, g: 175 / 255, b:   0 / 255},
-    {name: '120',         r:   0 / 255, g: 210 / 255, b:   0 / 255},
-    {name: '140',         r:   0 / 255, g: 175 / 255, b:  37 / 255},
-    {name: '160',         r:   0 / 255, g: 140 / 255, b:  75 / 255},
-    {name: '180',         r:   0 / 255, g: 105 / 255, b: 112 / 255},
-    {name: '200',         r:   0 / 255, g:  70 / 255, b: 150 / 255},
-    {name: '220',         r:   0 / 255, g:  35 / 255, b: 188 / 255},
-    {name: '240',         r:   0 / 255, g:   0 / 255, b: 225 / 255},
-    {name: '260',         r:  32 / 255, g:   0 / 255, b: 188 / 255},
-    {name: '280',         r:  65 / 255, g:   0 / 255, b: 150 / 255},
-    {name: '300',         r:  97 / 255, g:   0 / 255, b: 112 / 255},
-    {name: '320',         r: 130 / 255, g:   0 / 255, b:  75 / 255},
-    {name: '340',         r: 162 / 255, g:   0 / 255, b:  37 / 255},
-  ];
-
-  dragula([modes, bundle0, bundle1], {
-    copy: true,
-    removeOnSpill: true,
-    accepts: function(el, target, source, sibling) {
-      if (target === modes) {
-        return false;
-      } else if (target.childElementCount > MAX_MODES) {
-        return false;
-      }
-      return true;
-    }
-  }).on("drop", function(el, target, source, sibling) {
-    el.data = {};
-    el.data.id = el.id;
-    el.setAttribute("id", "mode-item-" + Math.floor(Math.random() * Math.pow(2, 16)));
-  }).on("cancel", function(el, container, source) {
-    if (source === bundle0 || source === bundle1) {
-      $(source).find("#" + el.getAttribute('id')).remove()
-    }
-  });
-
-  var data = [
-    0,                                // type
-    1, 0,                             // pattern
-    1, 1, 5, 0,                       // args1
-    0, 0, 0, 0,                       // args2
-    5, 5, 5, 5, 5, 0, 0, 0,           // timings1
-    6, 6, 6, 6, 6, 0, 0, 0,           // timings2
-    7, 7, 7, 7, 7, 0, 0, 0,           // timings3
-    1, 3, 1,                          // numc
-    255, 0, 0, 0, 0, 0, 0, 0, 0,      // colors1
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    255, 0, 0, 0, 255, 0, 0, 0, 255,  // colors2
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 255, 0, 0, 0, 0, 0, 0,      // colors3
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    4, 14, 18, 28,                    // pattern thresh
-    8, 8, 20, 20,                     // color thresh
-    0
-  ];
-
-  for (var i = 0; i < 191; i++) {
-    readListeners[i] = [];
-    updateListeners[i] = [];
-  }
-
-  function sendCommand(cmd, force) {
-    if (connected || force) {
-      console.log("sent: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
-      var buf = new ArrayBuffer(4);
-      var view = new DataView(buf);
-      view.setInt8(0, cmd[0]);
-      view.setInt8(1, cmd[1]);
-      view.setInt8(2, cmd[2]);
-      view.setInt8(3, cmd[3]);
-      chrome.serial.send(connection_id, buf, function() {});
-    }
-  };
-
-  var delay_send = false;
-  function handleCommand(cmd) {
-    console.log("got: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
-    if (cmd[0] == SER_HANDSHAKE && cmd[1] == SER_VERSION && cmd[2] == cmd[3] && !connected) {
-      connected = true;
-      sendCommand([SER_HANDSHAKE, SER_VERSION, 42, 42], true);
-      var now = new Date().getTime();
-      while (new Date().getTime() < now + 500) {}
-      delay_send = true;
-    }
-    // If on windows, or rebooting, you'll get the handshake first
-    if (cmd[0] == SER_HANDSHAKE && cmd[1] == SER_VERSION && cmd[2] == cmd[3] && delay_send) {
-      var now = new Date().getTime();
-      while (new Date().getTime() < now + 500) {}
-      for (var i = 0; i < 191; i++) {
-        sendData(i, data[i]);
-      }
-      sendCommand([SER_INIT, 0, 0, 0]);
-      delay_send = false;
-    }
-  };
-
-  function sendData(addr, val) {
-    // Updates in-memory array and sends value to light
-    data[addr] = val;
-    sendCommand([SER_WRITE, addr, val, 0]);
-  };
-
-  function updateData(addr, val) {
-    // UX changed value
-    sendData(addr, val);
-    for (var i = 0; i < updateListeners[addr].length; i++) {
-      updateListeners[addr][i](val);
-    }
-  };
-
-  function readData(addr, val) {
-    // Read in new value
-    sendData(addr, val);
-    for (var i = 0; i < readListeners[addr].length; i++) {
-      readListeners[addr][i](val);
-    }
-  };
-
-  function arrayToMode(arr) {
-    // array to json mode
-    return {
-      type: arr[0],
-      pattern: [arr[1], arr[2]],
-      args: [
-        [arr[3], arr[4], arr[5], arr[6]],
-        [arr[7], arr[8], arr[9], arr[10]]
-      ],
-      timings: [
-        [arr[11], arr[12], arr[13], arr[14], arr[15], arr[16], arr[17], arr[18]],
-        [arr[19], arr[20], arr[21], arr[22], arr[23], arr[24], arr[25], arr[26]],
-        [arr[27], arr[28], arr[29], arr[30], arr[31], arr[32], arr[33], arr[34]]
-      ],
-      numc: [arr[35], arr[36], arr[37]],
-      thresh0: [arr[38], arr[39], arr[40], arr[41]],
-      thresh1: [arr[42], arr[43], arr[44], arr[45]],
-      trigger: arr[46],
-      colors: [
-        [
-          [arr[47], arr[48], arr[49]],
-          [arr[50], arr[51], arr[52]],
-          [arr[53], arr[54], arr[55]],
-          [arr[56], arr[57], arr[58]],
-          [arr[59], arr[60], arr[61]],
-          [arr[62], arr[63], arr[64]],
-          [arr[65], arr[66], arr[67]],
-          [arr[68], arr[69], arr[70]],
-          [arr[71], arr[72], arr[73]],
-          [arr[74], arr[75], arr[76]],
-          [arr[77], arr[78], arr[79]],
-          [arr[80], arr[81], arr[82]],
-          [arr[83], arr[84], arr[85]],
-          [arr[86], arr[87], arr[88]],
-          [arr[89], arr[90], arr[91]],
-          [arr[92], arr[93], arr[94]]
-        ],
-        [
-          [arr[95], arr[96], arr[97]],
-          [arr[98], arr[99], arr[100]],
-          [arr[101], arr[102], arr[103]],
-          [arr[104], arr[105], arr[106]],
-          [arr[107], arr[108], arr[109]],
-          [arr[110], arr[111], arr[112]],
-          [arr[113], arr[114], arr[115]],
-          [arr[116], arr[117], arr[118]],
-          [arr[119], arr[120], arr[121]],
-          [arr[122], arr[123], arr[124]],
-          [arr[125], arr[126], arr[127]],
-          [arr[128], arr[129], arr[130]],
-          [arr[131], arr[132], arr[133]],
-          [arr[134], arr[135], arr[136]],
-          [arr[137], arr[138], arr[139]],
-          [arr[140], arr[141], arr[142]]
-        ],
-        [
-          [arr[143], arr[144], arr[145]],
-          [arr[146], arr[147], arr[148]],
-          [arr[149], arr[150], arr[151]],
-          [arr[152], arr[153], arr[154]],
-          [arr[155], arr[156], arr[157]],
-          [arr[158], arr[159], arr[160]],
-          [arr[161], arr[162], arr[163]],
-          [arr[164], arr[165], arr[166]],
-          [arr[167], arr[168], arr[169]],
-          [arr[170], arr[171], arr[172]],
-          [arr[173], arr[174], arr[175]],
-          [arr[176], arr[177], arr[178]],
-          [arr[179], arr[180], arr[181]],
-          [arr[182], arr[183], arr[184]],
-          [arr[185], arr[186], arr[187]],
-          [arr[188], arr[189], arr[190]]
-        ]
-      ]
-    };
-  };
-
-  function modeToArray(m) {
-    // json mode to array
-    return [
-      m.type,
-      m.pattern[0], m.pattern[1],
-
-      m.args[0][0], m.args[0][1], m.args[0][2], m.args[0][3],
-      m.args[1][0], m.args[1][1], m.args[1][2], m.args[1][3],
-
-      m.timings[0][0], m.timings[0][1], m.timings[0][2], m.timings[0][3], m.timings[0][4], m.timings[0][5], m.timings[0][6], m.timings[0][7],
-      m.timings[1][0], m.timings[1][1], m.timings[1][2], m.timings[1][3], m.timings[1][4], m.timings[1][5], m.timings[1][6], m.timings[1][7],
-      m.timings[2][0], m.timings[2][1], m.timings[2][2], m.timings[2][3], m.timings[2][4], m.timings[2][5], m.timings[2][6], m.timings[2][7],
-
-      m.numc[0], m.numc[1], m.numc[2],
-
-      m.thresh0[0], m.thresh0[1], m.thresh0[2], m.thresh0[3],
-      m.thresh1[0], m.thresh1[1], m.thresh1[2], m.thresh1[3],
-      m.trigger,
-
-      m.colors[0][0][0],  m.colors[0][0][1],  m.colors[0][0][2],
-      m.colors[0][1][0],  m.colors[0][1][1],  m.colors[0][1][2],
-      m.colors[0][2][0],  m.colors[0][2][1],  m.colors[0][2][2],
-      m.colors[0][3][0],  m.colors[0][3][1],  m.colors[0][3][2],
-      m.colors[0][4][0],  m.colors[0][4][1],  m.colors[0][4][2],
-      m.colors[0][5][0],  m.colors[0][5][1],  m.colors[0][5][2],
-      m.colors[0][6][0],  m.colors[0][6][1],  m.colors[0][6][2],
-      m.colors[0][7][0],  m.colors[0][7][1],  m.colors[0][7][2],
-      m.colors[0][8][0],  m.colors[0][8][1],  m.colors[0][8][2],
-      m.colors[0][9][0],  m.colors[0][9][1],  m.colors[0][9][2],
-      m.colors[0][10][0], m.colors[0][10][1], m.colors[0][10][2],
-      m.colors[0][11][0], m.colors[0][11][1], m.colors[0][11][2],
-      m.colors[0][12][0], m.colors[0][12][1], m.colors[0][12][2],
-      m.colors[0][13][0], m.colors[0][13][1], m.colors[0][13][2],
-      m.colors[0][14][0], m.colors[0][14][1], m.colors[0][14][2],
-      m.colors[0][15][0], m.colors[0][15][1], m.colors[0][15][2],
-
-      m.colors[1][0][0],  m.colors[1][0][1],  m.colors[1][0][2],
-      m.colors[1][1][0],  m.colors[1][1][1],  m.colors[1][1][2],
-      m.colors[1][2][0],  m.colors[1][2][1],  m.colors[1][2][2],
-      m.colors[1][3][0],  m.colors[1][3][1],  m.colors[1][3][2],
-      m.colors[1][4][0],  m.colors[1][4][1],  m.colors[1][4][2],
-      m.colors[1][5][0],  m.colors[1][5][1],  m.colors[1][5][2],
-      m.colors[1][6][0],  m.colors[1][6][1],  m.colors[1][6][2],
-      m.colors[1][7][0],  m.colors[1][7][1],  m.colors[1][7][2],
-      m.colors[1][8][0],  m.colors[1][8][1],  m.colors[1][8][2],
-      m.colors[1][9][0],  m.colors[1][9][1],  m.colors[1][9][2],
-      m.colors[1][10][0], m.colors[1][10][1], m.colors[1][10][2],
-      m.colors[1][11][0], m.colors[1][11][1], m.colors[1][11][2],
-      m.colors[1][12][0], m.colors[1][12][1], m.colors[1][12][2],
-      m.colors[1][13][0], m.colors[1][13][1], m.colors[1][13][2],
-      m.colors[1][14][0], m.colors[1][14][1], m.colors[1][14][2],
-      m.colors[1][15][0], m.colors[1][15][1], m.colors[1][15][2],
-
-      m.colors[2][0][0],  m.colors[2][0][1],  m.colors[2][0][2],
-      m.colors[2][1][0],  m.colors[2][1][1],  m.colors[2][1][2],
-      m.colors[2][2][0],  m.colors[2][2][1],  m.colors[2][2][2],
-      m.colors[2][3][0],  m.colors[2][3][1],  m.colors[2][3][2],
-      m.colors[2][4][0],  m.colors[2][4][1],  m.colors[2][4][2],
-      m.colors[2][5][0],  m.colors[2][5][1],  m.colors[2][5][2],
-      m.colors[2][6][0],  m.colors[2][6][1],  m.colors[2][6][2],
-      m.colors[2][7][0],  m.colors[2][7][1],  m.colors[2][7][2],
-      m.colors[2][8][0],  m.colors[2][8][1],  m.colors[2][8][2],
-      m.colors[2][9][0],  m.colors[2][9][1],  m.colors[2][9][2],
-      m.colors[2][10][0], m.colors[2][10][1], m.colors[2][10][2],
-      m.colors[2][11][0], m.colors[2][11][1], m.colors[2][11][2],
-      m.colors[2][12][0], m.colors[2][12][1], m.colors[2][12][2],
-      m.colors[2][13][0], m.colors[2][13][1], m.colors[2][13][2],
-      m.colors[2][14][0], m.colors[2][14][1], m.colors[2][14][2],
-      m.colors[2][15][0], m.colors[2][15][1], m.colors[2][15][2]
-    ];
-  };
-
-  function rgb2hex(rgb) {
-    var r = ("0" + rgb.r.toString(16)).slice(-2);
-    var g = ("0" + rgb.g.toString(16)).slice(-2);
-    var b = ("0" + rgb.b.toString(16)).slice(-2);
-    return "#" + r + g + b;
-  };
-
-  function hex2rgb(hex) {
-    return {
-      r: parseInt(hex.substr(0, 2), 16),
-      g: parseInt(hex.substr(2, 2), 16),
-      b: parseInt(hex.substr(4, 2), 16)
-    };
-  };
-
-  function getColorHex(set, slot) {
-    var red = data[(48 * set) + (3 * slot) + 47];
-    if (red === null || red === undefined) {
-      red = 0;
-    }
-
-    var green = data[(48 * set) + (3 * slot) + 48];
-    if (green === null || green === undefined) {
-      green = 0;
-    }
-
-    var blue = data[(48 * set) + (3 * slot) + 49];
-    if (blue === null || blue === undefined) {
-      blue = 0;
-    }
-
-    var rgb = {
-      r: red,
-      g: green,
-      b: blue
-    };
-
-    return rgb2hex(rgb);
-  };
-
-  function normColor(hex) {
-    var rgb = hex2rgb(hex);
-    if (rgb.r > 0) {
-      rgb.r = Math.round(64 + ((rgb.r * 3) / 4));
-    }
-    if (rgb.g > 0) {
-      rgb.g = Math.round(64 + ((rgb.g * 3) / 4));
-    }
-    if (rgb.b > 0) {
-      rgb.b = Math.round(64 + ((rgb.b * 3) / 4));
-    }
-    return rgb2hex(rgb);
-  };
-
-  function SliderField(parent, opts) {
-    var opts = opts || {};
-    if (opts.min === void 0) { opts.min = 0; }
-    if (opts.max === void 0) { opts.max = 100; }
-    if (opts.value === void 0) { opts.value = opts.min; }
-    if (opts.step === void 0) { opts.step = 1; }
-    if (opts.addr === void 0) { opts.addr = 0; }
-    if (opts.multiplier === void 0) { opts.multiplier = 1; }
-    if (opts.width === void 0) { opts.size = 200; }
-
-    var sliderChange = function () {
-      return function(event, ui) {
-        field.value = ui.value;
-        if (event.originalEvent) {
-          updateData(opts.addr, ui.value * opts.multiplier);
-          sendCommand([SER_INIT, 0, 0, 0]);
-        }
-      }
-    }();
-
-    var fieldChange = function() {
-      return function(event) {
-        if (event.target.value < $(slider).slider("option", "min")) {
-          event.target.value = slider.slider("option", "min");
-        } else if (event.target.value > $(slider).slider("option", "max")) {
-          event.target.value = slider.slider("option", "max");
-        }
-        $(slider).slider("value", event.target.value);
-        updateData(opts.addr, event.target.value * opts.multiplier);
-        sendCommand([SER_INIT, 0, 0, 0]);
-      };
-    }();
-
-    var listener = function() {
-      return function(val) {
-        val = Number(val);
-        field.value = val / opts.multiplier;
-        $(slider).slider("value", field.value);
-      }
-    }();
-
-    var elem = document.createElement("div");
-    elem.style.display = "inline-block";
-    elem.style.width = opts.width + "px";
-    parent.appendChild(elem);
-
-    var field = document.createElement("input");
-    field.type = "text";
-    field.value = opts.value;
-    field.onchange = fieldChange;
-    field.style.width = "30px";
-    field.style.float = "left";
-    elem.appendChild(field);
-
-    var slider = document.createElement("div");
-    slider.style.width = (opts.width - 60) + "px";
-    slider.style.float = "right";
-    $(slider).slider({
-      min: opts.min,
-      max: opts.max,
-      step: opts.step,
-      value: opts.value,
-      slide: sliderChange,
-      change: sliderChange
-    });
-    elem.appendChild(slider);
-
-    readListeners[opts.addr].push(listener);
-
-    this.setMin = function(val) {
-      $(slider).slider("option", "min", val);
-      if (field.value < val) {
-        field.value = val;
-      }
-    };
-
-    this.setMax = function(val) {
-      $(slider).slider("option", "max", val);
-      if (field.value > val) {
-        field.value = val;
-      }
-    };
-
-    this.setValue = function(val) {
-      $(slider).slider("value", val);
-    };
-  };
-
-
-  function PatternRow(parent, pattern_idx) {
-    // Pattern dropdown + arg sliderfields
-
-    function ArgElement(parent, arg_idx) {
-      // Arg label + sliderfield
-      var addr = 3 + (4 * pattern_idx) + arg_idx;
-      var elem = document.createElement("div");
-      elem.title = "Defines the pattern.";
-      elem.style.width = "175px";
-      elem.style.display = "inline-block";
-      elem.style.marginLeft = "20px";
-      parent.appendChild(elem);
-
-      var label = document.createElement("span");
-      label.textContent = "Arg " + pattern_idx + " " +  arg_idx;
-      label.style.width = "100%";
-      elem.appendChild(label);
-
-      var slider = new SliderField(elem, {
-        addr: addr,
-        width: 175
-      });
-
-      var listener = function(send_data) {
-        return function(val) {
-          var pattern = Patterns.getPattern(val);
-          if (arg_idx >= pattern.args.length) {
-            elem.style.display = 'none';
-          } else {
-            elem.style.display = 'inline-block';
-            elem.title = pattern.args[arg_idx].tooltip;
-            label.textContent = pattern.args[arg_idx].name;
-            slider.setMin(pattern.args[arg_idx].min);
-            slider.setMax(pattern.args[arg_idx].max);
-            if (send_data) {
-              slider.setValue(pattern.args[arg_idx].default);
-              sendData(addr, pattern.args[arg_idx].default);
-            }
-          }
-        };
-      };
-
-      readListeners[1 + pattern_idx].push(listener(false));
-      updateListeners[1 + pattern_idx].push(listener(true));
-    };
-
-    function PatternElement(parent) {
-      // Pattern label + dropdown
-      var elem = document.createElement("div");
-      elem.title = "Base pattern.";
-      elem.style.width = "115px";
-      elem.style.display = "inline-block";
-      elem.style.verticalAlign = "top";
-      parent.appendChild(elem);
-
-      var label = document.createElement("span");
-      label.textContent = "Base Pattern";
-      label.style.width = "100%";
-      elem.appendChild(label);
-
-      var dropdown = document.createElement("select");
-      dropdown.style.width = "100%";
-      dropdown.style.display = "inline-block";
-      dropdown.onchange = function() {
-        return function(event) {
-          updateData(1 + pattern_idx, Number(this.value));
-          sendCommand([SER_INIT, 0, 0, 0]);
-        };
-      }();
-      elem.appendChild(dropdown);
-
-      var patterns = Patterns.getPatterns();
-      for (var i = 0; i < patterns.length; i++) {
-        var pattern = document.createElement("option");
-        pattern.value = i;
-        pattern.textContent = patterns[i].name;
-        dropdown.appendChild(pattern);
-      }
-
-      var listener = function() {
-        return function(val) {
-          dropdown.value = val;
-        };
-      }();
-
-      readListeners[1 + pattern_idx].push(listener);
-    };
-
-    var elem = document.createElement("div");
-    elem.style.margin = "10px";
-    parent.appendChild(elem);
-
-    var pattern = new PatternElement(elem);
-    for (var i = 0; i < 4; i++) {
-      var arg = new ArgElement(elem, i);
-    }
-  };
-
-  function TimingColumn(parent, pattern_idx, timing_group, show_label) {
-    // Column of 8 timing sliderfields with optional label
-    function TimingElement(parent, timing_idx) {
-      // Timing sliderfield with optional label
-      var addr = 11 + (8 * pattern_idx) + (8 * timing_group) + timing_idx;
-      var width = (show_label) ? 460 : 230;
-      var elem = document.createElement("div");
-      elem.title = "Timing for the pattern.";
-      elem.style.width = width + "px";
-      elem.setAttribute("timing_group", timing_group);
-      elem.setAttribute("timing_idx", timing_idx);
-      parent.appendChild(elem);
-
-      if (show_label) {
-        var label = document.createElement("span");
-        label.textContent = "Timing " + pattern_idx + " " + timing_idx;
-        label.style.width = "210px";
-        label.style.margin = "0px 10px 0px 10px";
-        label.style.float = "left";
-        label.style.verticalAlign = "top";
-        elem.appendChild(label);
-      }
-
-      var slider = new SliderField(elem, {
-        min: 0,
-        max: 125,
-        step: 0.5,
-        multiplier: 2,
-        width: 210,
-        addr: addr
-      });
-
-      var listener = function(send_data) {
-        return function(val) {
-          var pattern = Patterns.getPattern(val);
-          if (timing_idx >= pattern.timings.length) {
-            // elem.style.display = 'none';
-            elem.style.visibility = 'hidden';
-          } else {
-            // elem.style.display = null;
-            elem.style.visibility = 'visible';
-            elem.title = pattern.timings[timing_idx].tooltip;
-            if (show_label) {
-              label.textContent = pattern.timings[timing_idx].name;
-            }
-            if (send_data) {
-              slider.setValue(pattern.timings[timing_idx].default);
-              sendData(addr, pattern.timings[timing_idx].default);
-            }
-          }
-        };
-      };
-
-      readListeners[1 + pattern_idx].push(listener(false));
-      updateListeners[1 + pattern_idx].push(listener(true));
-    };
-
-    var elem = document.createElement("div");
-    elem.style.verticalAlign = "text-top";
-    parent.appendChild(elem);
-
-    for (var i = 0; i < 8; i++) {
-      var timing = new TimingElement(elem, i);
-    };
-  };
-
-  function VectrEditor(parent) {
-    var elem = document.createElement("div");
-    parent.appendChild(elem);
-
-    new PatternRow(elem, 0);
-    new ThreshRow(elem, 1, 4);
-
-    var spacer = document.createElement("div");
-    spacer.style.minHeight = "15px";
-    elem.appendChild(spacer);
-
-    var colors = document.createElement("div");
-    elem.appendChild(colors);
-
-    new ColorSetRow(colors, 0, "vectr");
-    new ColorSetRow(colors, 1, "vectr");
-    new ColorSetRow(colors, 2, "vectr");
-
-    var spacer = document.createElement("div");
-    spacer.style.minHeight = "15px";
-    elem.appendChild(spacer);
-
-    var timingThresh = ThreshRow(elem, 0, 4);
-
-    var spacer = document.createElement("div");
-    spacer.style.minHeight = "15px";
-    elem.appendChild(spacer);
-
-    var timings = document.createElement("div");
-    timings.style.display = "inline-block";
-    elem.appendChild(timings);
-
-    var timing0 = document.createElement("div");
-    timing0.style.display = "inline-block";
-    timings.appendChild(timing0);
-
-    var timing1 = document.createElement("div");
-    timing1.style.display = "inline-block";
-    timings.appendChild(timing1);
-
-    var timing2 = document.createElement("div");
-    timing2.style.display = "inline-block";
-    timings.appendChild(timing2);
-
-    new TimingColumn(timing0, 0, 0, true);
-    new TimingColumn(timing1, 0, 1, false);
-    new TimingColumn(timing2, 0, 2, false);
-
-    var typeListener = function(send_data) {
-      return function(val) {
-        if (val == 0) {
-          elem.style.display = null;
-          if (send_data) {
-            readData(1, 0);
-          }
-        } else {
-          elem.style.display = 'none';
-        }
-      };
-    };
-
-    readListeners[0].push(typeListener(false));
-    updateListeners[0].push(typeListener(true));
-  };
-
-  function PrimerEditor(parent) {
-    var elem = document.createElement("div");
-    parent.appendChild(elem);
-
-    new ThreshRow(elem, 0, 2);
-
-    var container0 = document.createElement("div");
-    elem.appendChild(container0);
-    var pattern0 = new PatternRow(container0, 0);
-    var colors0 = new ColorSetRow(container0, 0, "primer");
-
-    var spacer = document.createElement("div");
-    spacer.style.minHeight = "10px";
-    elem.appendChild(spacer);
-
-    var container1 = document.createElement("div");
-    elem.appendChild(container1);
-    var pattern1 = new PatternRow(container1, 1);
-    var colors1 = new ColorSetRow(container1, 1, "primer");
-
-    var spacer = document.createElement("div");
-    spacer.style.minHeight = "20px";
-    elem.appendChild(spacer);
-
-    var timings = document.createElement("div");
-    timings.style.display = "inline-block";
-    elem.appendChild(timings);
-
-    var timing0 = document.createElement("div");
-    timing0.style.display = "inline-block";
-    timings.appendChild(timing0);
-
-    var timing1 = document.createElement("div");
-    timing1.style.display = "inline-block";
-    timings.appendChild(timing1);
-
-    new TimingColumn(timing0, 0, 0, true);
-    new TimingColumn(timing1, 1, 0, true);
-
-    var typeListener = function(send_data) {
-      return function(val) {
-        if (val == 1) {
-          elem.style.display = null;
-          if (send_data) {
-            updateData(1, 0);
-            updateData(2, 0);
-            updateData(46, 0);
-            sendCommand([SER_INIT, 0, 0, 0]);
-          }
-        } else {
-          elem.style.display = 'none';
-        }
-      };
-    };
-
-    var triggerListener = function(send_data) {
-      return function(val) {
-        if (val == 0) {
-          container1.style.visibility = 'hidden';
-          timing1.style.display = 'none';
-        } else {
-          container1.style.visibility = 'visible';
-          timing1.style.display = 'inline-block';
-        }
-      };
-    };
-
-    readListeners[46].push(triggerListener(false));
-    updateListeners[46].push(triggerListener(false));
-
-    readListeners[0].push(typeListener(false));
-    updateListeners[0].push(typeListener(true));
-  };
-
-
-  function ColorSetRow(parent, set_idx, prefix) {
-    // Numc sliderfield + colorpickers
-    function ColorSlot(parent, slot_idx) {
-      // Color picker
-      var addr = 47 + (48 * set_idx) + (3 * slot_idx);
-      var id = prefix + "-color-" + set_idx + "-" + slot_idx;
-
-      var color_elem = document.createElement("div");
-      color_elem.style.display = "inline-block";
-      parent.appendChild(color_elem);
-
-      var color_input = document.createElement("input");
-      color_input.id = id;
-      color_input.type = "text";
-      color_input.setAttribute("set", set_idx);
-      color_input.setAttribute("slot", slot_idx);
-      color_input.style.display = 'none';
-      color_elem.appendChild(color_input);
-
-      var color_target = document.createElement("div");
-      color_target.id = id + "-target";
-      color_target.className = "color";
-      color_elem.appendChild(color_target);
-
-      var sendColor = function() {
-        return function(event, color) {
-          if (color.formatted && color.colorPicker.generated) {
-            var rgb = hex2rgb(color.formatted);
-            sendData(addr + 0, rgb.r);
-            sendData(addr + 1, rgb.g);
-            sendData(addr + 2, rgb.b);
-            color_target.style.background = normColor(color.formatted);
-          }
-        };
-      }();
-
-      var viewColor = function() {
-        return function(event, ui) {
-          sendCommand([SER_VIEW_COLOR, set_idx, slot_idx, 0]);
-        };
-      }();
-
-      var viewMode = function() {
-        return function(event, ui) {
-          sendCommand([SER_VIEW_MODE, 0, 0, 0]);
-        };
-      }();
-
-      var picker = $(color_input).colorpicker({
-        alpha: false,
-        closeOnOutside: false,
-        swatches: 'custom_array',
-        swatchesWidth: 96,
-        colorFormat: 'HEX',
-        altField: color_target.id,
-        altProperties: "background-color",
-        parts: ['header', 'preview', 'map', 'bar', 'rgb', 'hsv', 'swatches', 'footer'],
-        layout: {
-          map: [0, 0, 1, 3],
-          bar: [1, 0, 1, 3],
-          preview: [2, 0, 1, 1],
-          rgb: [2, 1, 1, 1],
-          hsv: [2, 2, 1, 1],
-          swatches: [3, 0, 1, 3]
-        },
-        select: sendColor,
-        open: viewColor,
-        close: viewMode
-      });
-
-      var onclick = function() {
-        return function() {
-          $(color_input).colorpicker("open");
-        };
-      }();
-      color_target.onclick = onclick;
-
-      var updateColor = function(channel) {
-        return function(val) {
-          var hex = getColorHex(set_idx, slot_idx);
-          color_target.style.background = hex;
-          $(color_input).val(hex);
-        };
-      };
-
-      var showOrHide = function() {
-        return function(val) {
-          if (slot_idx >= val) {
-            color_target.style.display = 'none';
-          } else {
-            color_target.style.display = null;
-          }
-        }
-      }();
-
-      // listeners for RGB changes
-      readListeners[addr + 0].push(updateColor(0));
-      readListeners[addr + 1].push(updateColor(1));
-      readListeners[addr + 2].push(updateColor(2));
-
-      // listener on numc change
-      readListeners[35 + set_idx].push(showOrHide);
-      updateListeners[35 + set_idx].push(showOrHide);
-    };
-
-    var elem = document.createElement("div");
-    elem.style.margin = "0 auto";
-    elem.style.width = "785px";
-    parent.appendChild(elem);
-
-    var slider = new SliderField(elem, {
-      min: 1,
-      max: 16,
-      width: 200,
-      addr: 35 + set_idx
-    });
-
-    var slots = [];
-    var color_container = document.createElement("div");
-    color_container.style.marginLeft = "20px";
-    color_container.style.display = "inline-block";
-    elem.appendChild(color_container);
-
-    for (var i = 0; i < 16; i++) {
-      var color_slot = new ColorSlot(color_container, i);
-      slots.push(color_slot);
-    }
-
-    var listener = function() {
-      return function(val) {
-        slider.setValue(val);
-      }
-    }();
-
-    readListeners[35 + set_idx].push(listener);
-  };
-
-  function ThreshRow(parent, thresh_idx, thresh_vals) {
-    var elem = document.createElement("div");
-    elem.style.margin = "10px";
-    parent.appendChild(elem);
-
-    var value_elems = [];
-
-    var slider = document.createElement("div");
-    var ranges;
-    var def_values;
-    if (thresh_vals == 2) {
-      ranges = [
-        {styleClass: 'trigger-0'},
-        {styleClass: 'trigger-01'},
-        {styleClass: 'trigger-1'}
-      ];
-      def_values = [4, 28];
-
-      var dropdown_container = document.createElement("div");
-      elem.appendChild(dropdown_container);
-
-      var label = document.createElement("span");
-      label.textContent = "Trigger Type";
-      label.style.display = "inline-block";
-      label.style.margin = "5px";
-      dropdown_container.appendChild(label);
-
-      var dropdown = document.createElement("select");
-      dropdown.style.display = "inline-block";
-      dropdown.onchange = function() {
-        return function(event) {
-          if (this.value == 0) {
-            $(slider).limitslider("disable");
-          } else {
-            $(slider).limitslider("enable");
-          }
-          updateData(46, this.value);
-          sendCommand([SER_INIT, 0, 0, 0]);
-        };
-      }();
-      dropdown_container.appendChild(dropdown);
-
-      for (var i = 0; i < triggers.length; i++) {
-        var trigger = document.createElement("option");
-        trigger.value = i;
-        trigger.textContent = triggers[i];
-        dropdown.appendChild(trigger);
-      }
-
-      var listener = function() {
-        return function(val) {
-          dropdown.value = val;
-          if (val == 0) {
-            $(slider).limitslider("disable");
-          } else {
-            $(slider).limitslider("enable");
-          }
-        };
-      }();
-
-      readListeners[46].push(listener);
-    } else {
-      ranges = [
-        {styleClass: 'range-0'},
-        {styleClass: 'range-01'},
-        {styleClass: 'range-1'},
-        {styleClass: 'range-12'},
-        {styleClass: 'range-2'}
-      ];
-      def_values = [4, 12, 20, 28];
-    }
-
-    elem.appendChild(slider);
-
-    var addr = 38 + (4 * thresh_idx);
-    var values_container = document.createElement("div");
-    values_container.style.display = "flex";
-    values_container.style.justifyContent = "space-between";
-    values_container.style.listStyleType = "none";
-    elem.appendChild(values_container);
-
-    for (var i = 0; i < thresh_vals; i++) {
-      var value_addr = 38;
-      if (thresh_vals == 2) {
-        value_addr += 1 - i;
-      } else {
-        value_addr += (4 * thresh_idx) + i;
-      }
-      var valueChange = function(idx) {
-        return function(event) {
-          var val = Number(event.target.value);
-          var values = $(slider).limitslider("values");
-          var checks = [$(slider).limitslider("option", "min")]
-                        .concat(values)
-                        .concat([$(slider).limitslider("option", "max")]);
-
-          if (val < checks[idx]) {
-            val = checks[idx];
-          } else if (val > checks[idx + 2]) {
-            val = checks[idx + 2];
-          }
-
-          event.target.value = val;
-          values[idx] = val;
-          $(slider).limitslider("values", values);
-          if (thresh_vals == 2) {
-            sendData(39 - idx, val);
-          } else {
-            sendData(38 + (4 * thresh_idx) + idx, val);
-          }
-        }
-      }(i);
-
-      var value = document.createElement("input");
-      value.type = "text";
-      value.value = def_values[i];
-      value.style.width = "30px";
-      value.style.margin = "5px 50px";
-      value.onchange = valueChange;
-      value_elems.push(value);
-      values_container.appendChild(value);
-
-      var valueListener = function(idx) {
-        return function(val) {
-          var values = $(slider).limitslider("values");
-          values[idx] = val;
-          value_elems[idx].value = val;
-          $(slider).limitslider("values", values);
-        }
-      }(i);
-
-      readListeners[value_addr].push(valueListener);
-    }
-
-    var threshChange = function() {
-      return function(event, ui) {
-        if (event.originalEvent) {
-          var idx = $(ui.handle).data("ui-slider-handle-index");
-          value_elems[idx].value = ui.values[idx];
-          sendData(addr + idx, ui.values[idx]);
-        }
-      };
-    }();
-
-    $(slider).limitslider({
-      min: 0, max: 64, gap: 0,
-      values: def_values,
-      ranges: ranges,
-      slide: threshChange,
-      change: threshChange
-    });
-  };
-
-  function writeFile(dir, filename, content) {
-    dir.getFile(filename, {create: true}, function(entry) {
-      entry.createWriter(function(writer) {
-        writer.onwriteend = function(e) {
-          if (writer.length === 0) {
-            writer.write(blob);
-            // console.log("Write success!");
-          }
-        };
-
-        writer.onerror = function(e) {
-          console.log("Write failed: " + e.toString());
-        };
-
-        writer.truncate(0);
-        var blob = new Blob([content], {type: 'text/plain'});
-        writer.write(blob);
-      });
-    });
-  };
-
-  function writeMode(mode) {
-    var modecopy = JSON.parse(JSON.stringify(mode));
-    delete modecopy.id;
-    modecopy.version = version;
-    var content = JSON.stringify(modecopy, null, 2);
-    writeFile(dir_modes, modecopy.name + ".mode", content);
-  };
-
-  function writeSource(name, num_modes, bundle_a, bundle_b) {
-    var content = getSource(num_modes, bundle_a, bundle_b, SER_VERSION);
-    dir_firmwares.getDirectory(name, {create: true}, function(entry) {
-      writeFile(entry, name + ".ino", content);
-    });
-  };
-
-  function makeModeItem(modeobj) {
-    var modeitem = document.createElement("div");
-    modeitem.className = "mode";
-    modeitem.id = modeobj.id;
-    modeitem.textContent = modeobj.name;
-    modeitem.data = modeobj;
-    modeitem.data.filename = modeobj.name;
-    modeitem.onclick = function(e) {
-      var field = document.querySelector("#mode-save");
-      field.value = this.data.filename;
-      var arr = modeToArray(this.data);
-      for (var i = 0; i < 191; i++) {
-        readData(i, arr[i]);
-      }
-      sendCommand([SER_INIT, 0, 0, 0]);
-    };
-
-    modes.appendChild(modeitem);
-  };
-
-  function translateMode(modeobj) {
-    if (modeobj.version != version) {
-      console.log("version mismatch: " + modeobj.version);
-    }
-
-    // < 0.2.5, tracer only had one gap
-    if (modeobj.version === null || modeobj.version === undefined) {
-      if (modeobj.type == 0) {
-        if (modeobj.pattern[0] == 1) {
-          modeobj.timings[0][5] = modeobj.timings[0][4];
-        }
-        if (modeobj.pattern[1] == 1) {
-          modeobj.timings[1][5] = modeobj.timings[1][4];
-        }
-      } else {
-        if (modeobj.pattern[0] == 1) {
-          modeobj.timings[0][5] = modeobj.timings[0][4];
-          modeobj.timings[1][5] = modeobj.timings[1][4];
-          modeobj.timings[2][5] = modeobj.timings[2][4];
-        }
-      }
-    }
-
-    for (var s = 0; s < 3; s++) {
-      if (modeobj.colors[s].length < 16) {
-        for (var i = modeobj.colors[s].length - 1; i < 16; i++) {
-          modeobj.colors[s].push([0, 0, 0]);
-        }
-      }
-    }
-
-    writeMode(modeobj);
-    return modeobj;
-  };
-
-  function readModeFile(i, file) {
-    file.file(function(file) {
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var contents = e.target.result;
-        var modeobj = JSON.parse(contents);
-        modeobj = translateMode(modeobj);
-        modeobj.name = file.name.replace(".mode", "");
-        modeobj.id = modeobj.name.replace(/\s/g, "-").toLowerCase();
-        modelib[modeobj.id] = modeobj;
-        makeModeItem(modeobj);
-        if (i == 0) document.getElementById(modeobj.id).click();
-      };
-      reader.readAsText(file);
-    });
-  };
-
-  function initUI() {
-    var serialElement = new SerialElement(editor);
-    var typeDropdown = new TypeDropdown(editor);
-    var vectrUi = new VectrEditor(editor);
-    var primerUi = new PrimerEditor(editor);
-
-    var modeControls = new ModeControls(document.querySelector("#mode-controls"));
-    var bundleControls = new BundleControls(document.querySelector("#bundle-controls"));
-    serialElement.updatePorts();
-  };
-
-  function initSettings() {
-    chrome.storage.local.get("vectr", function(data) {
-      if (!data.vectr) {
-        data.vectr = {};
-      }
-      if (data.vectr.version != version) {
-        data.vectr = {};
-        data.vectr.version = version;
-        chrome.storage.local.set(data);
-      }
-      if (!data.vectr.dir_id) {
-        chrome.fileSystem.chooseEntry({type: "openDirectory"}, function(entry) {
-          data.vectr.dir_id = chrome.fileSystem.retainEntry(entry);
-          dir_root = entry;
-          chrome.storage.local.set(data);
-
-          var default_modes = DefaultModes.getModes();
-          dir_root.getDirectory("modes",     {create: true}, function(entry) {
-            dir_modes = entry;
-            for (var i = 0; i < default_modes.length; i++) {
-              var default_mode = default_modes[i];
-
-              for (var b = 0; b < default_mode.bundles.length; b++) {
-                mode_bundles[default_mode.bundles[b]][default_mode.slot] = modeToArray(default_mode);
-                mode_bundle_ids[default_mode.bundles[b]][default_mode.slot] = default_mode.id;
-              }
-
-              modelib[default_mode.id] = default_mode;
-              makeModeItem(default_mode);
-              writeMode(default_mode);
-              if (i == 0) {
-                document.getElementById(default_mode.id).click();
-              }
-            }
-          });
-          dir_root.getDirectory("firmwares", {create: true}, function(entry) {
-            dir_firmwares = entry;
-            var num_modes = [8, 8];
-            for (var i = 0; i < 8; i++) {
-              var child0 = document.getElementById(mode_bundle_ids[0][i]);
-              var el0 = child0.cloneNode();
-              el0.data = {id: child0.id};
-              el0.textContent = child0.textContent;
-              el0.setAttribute("id", "mode-item-" + Math.floor(Math.random() * Math.pow(2, 16)));
-              bundle0.appendChild(el0);
-
-              var child1 = document.getElementById(mode_bundle_ids[1][i]);
-              var el1 = child1.cloneNode();
-              el1.data = {id: child1.id};
-              el1.textContent = child1.textContent;
-              el1.setAttribute("id", "mode-item-" + Math.floor(Math.random() * Math.pow(2, 16)));
-              bundle1.appendChild(el1);
-            }
-            document.getElementById("firmware-save").value = "default";
-            writeSource("default", num_modes, mode_bundles[0], mode_bundles[1], SER_VERSION);
-          });
-        });
-      } else {
-        chrome.fileSystem.restoreEntry(data.vectr.dir_id, function(entry) {
-          dir_root = entry;
-          dir_root.getDirectory("firmwares", {create: false}, function(entry) { dir_firmwares = entry; });
-          dir_root.getDirectory("modes",     {create: false}, function(entry) {
-            dir_modes = entry;
-            var reader = entry.createReader();
-            reader.readEntries(function(entries) {
-              var c = 0;
-              for (var i = 0; i < entries.length; i++) {
-                if (entries[i].name.endsWith(".mode")) {
-                  readModeFile(c, entries[i]);
-                  c++;
-                }
-              }
-            },
-            function(e) {
-              console.log(e);
-            });
-          });
-        });
-      }
-    });
-  };
-
-  function TypeDropdown(parent) {
-    var elem = document.createElement("div");
-    elem.style.margin = "5px";
-    parent.appendChild(elem);
-
-    var dropdown = document.createElement("select");
-    dropdown.onchange = function() {
-      return function(event) {
-        updateData(0, Number(this.value));
-        sendCommand([SER_INIT, 0, 0, 0]);
-      };
-    }();
-    elem.appendChild(dropdown);
-
-    for (var i = 0; i < modetypes.length; i++) {
-      var modetype = document.createElement("option");
-      modetype.value = i;
-      modetype.textContent = modetypes[i];
-      dropdown.appendChild(modetype);
-    }
-
-    var listener = function() {
-      return function(val) {
-        dropdown.value = val;
-      };
-    }();
-
-    readListeners[0].push(listener);
-  };
-
-  function SerialElement(parent) {
-    var elem = document.createElement("div");
-    elem.style.margin = "5px";
-    parent.appendChild(elem);
-
-    var dropdown = document.createElement("select");
-    elem.appendChild(dropdown);
-
-    function onReceiveCallback(info) {
-      if (info.connectionId == connection_id && info.data) {
-        var view = new Uint8Array(info.data);
-        for (var i = 0; i < view.length; i++) {
-          input_buffer.push(view[i]);
-        }
-
-        while (input_buffer.length >= 4) {
-          handleCommand(input_buffer.splice(0, 4));
-        }
-      }
-    };
-
-    var connect_button = document.createElement("input");
-    connect_button.type = "button";
-    connect_button.value = "Connect";
-    connect_button.style.width = "120px";
-    connect_button.onclick = function() {
-      return function(event) {
-        if (this.value === "Connect") {
-          var port = dropdown.childNodes[dropdown.value].textContent;
-          chrome.serial.connect(port, {bitrate: 115200}, function(info) {
-            connection_id = info.connectionId;
-            chrome.serial.onReceive.addListener(onReceiveCallback);
-            sendCommand([SER_HANDSHAKE, SER_VERSION, 42, 42], true);
-          });
-          this.value = "Disconnect";
-        } else {
-          sendCommand([SER_DISCONNECT, 0, 0, 0]);
-          connected = false;
-          chrome.serial.disconnect(connection_id, function(result) {});
-          connection_id = null;
-          this.value = "Connect";
-        }
-      };
-    }();
-    elem.appendChild(connect_button);
-
-    var refresh_button = document.createElement("input");
-    refresh_button.type = "button";
-    refresh_button.value = "Refresh Ports";
-    refresh_button.style.width = "120px";
-    refresh_button.onclick = function() {
-      return function(event) {
-        this.updatePorts();
-      };
-    }().bind(this);
-    elem.appendChild(refresh_button);
-
-    this.updatePorts = function() {
-      return function() {
-        dropdown.innerHTML = "";
-        chrome.serial.getDevices(function(devices) {
-          for (var i = 0; i < devices.length; i++) {
-            var port = document.createElement("option");
-            port.value = i;
-            port.textContent = devices[i].path;
-            dropdown.appendChild(port);
-          }
-        });
-      };
-    }();
-  };
-
-  function ModeControls(parent) {
-    var elem = document.createElement("div");
-    elem.style.margin = "5px";
-    elem.style.textAlign = "center";
-    parent.appendChild(elem);
-
-    var field = document.createElement("input");
-    field.id = "mode-save";
-    field.type = "text";
-    field.style.display = "block";
-    field.style.width =  "170px";
-    elem.appendChild(field);
-
-    var button = document.createElement("button");
-    button.type = "button";
-    button.textContent = "Save Mode";
-    button.style.width =  "100px";
-    button.style.display = "block";
-    button.style.margin = "0 auto";
-    elem.appendChild(button);
-
-    button.onclick = function(e) {
-      // Save mode
-      var name = field.value.replace(/\s/g, "-").toLowerCase();
-      var modeobj = arrayToMode(data);
-      modeobj.name = field.value;
-      modeobj.id = name;
-
-      // Update modelib with new mode data
-      modelib[modeobj.id] = modeobj;
-
-      // If no existing modeitem, create a new one!
-      var elem = document.querySelector("#" + name);
-      if (elem === null) {
-        makeModeItem(modeobj);
-      }
-
-      var modeitem = document.getElementById(modeobj.id);
-      modeitem.data = modeobj;
-
-      // Write the file
-      writeMode(modeobj);
-    };
-  };
-
-  function BundleControls(parent) {
-    var elem = document.createElement("div");
-    elem.style.margin = "5px";
-    elem.style.textAlign = "center";
-    parent.appendChild(elem);
-
-    var field = document.createElement("input");
-    field.id = "firmware-save";
-    field.type = "text";
-    field.style.display = "block";
-    field.style.width =  "150px";
-    elem.appendChild(field);
-
-    var button = document.createElement("button");
-    button.type = "button";
-    button.textContent = "Save Firmware";
-    button.style.width =  "100px";
-    button.style.display = "block";
-    button.style.margin = "0 auto";
-    elem.appendChild(button);
-
-    button.onclick = function(e) {
-      var num_modes = [bundle0.children.length, bundle1.children.length];
-
-      var bundle_a = [];
-      for (var i = 0; i < bundle0.children.length; i++) {
-        var modeitem = bundle0.children[i];
-        var modeobj = modelib[modeitem.data.id];
-        bundle_a.push(modeToArray(modeobj));
-      }
-
-      var bundle_b = [];
-      for (var i = 0; i < bundle1.children.length; i++) {
-        var modeitem = bundle1.children[i];
-        var modeobj = modelib[modeitem.data.id];
-        bundle_b.push(modeToArray(modeobj));
-      }
-
-      if (field.value == "") {
-        dialog.children[0].textContent = "Firmware must have a name.";
-      } else if (field.value.includes(" ")) {
-        dialog.children[0].textContent = "Firmware name must not have spaces.";
-      } else {
-        writeSource(field.value, num_modes, bundle_a, bundle_b);
-        dialog.children[0].textContent = "Firmware saved.";
-      }
-      dialog.show();
-    };
-  };
-
-  function initDragDrop() {
-    var dnd = new DnDFileController('body', function(data) {
-      var fileEntry = data.items[0].webkitGetAsEntry();
-
-      fileEntry.file(function(file) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          var contents = e.target.result;
-          var modeobj = JSON.parse(contents);
-          modeobj = translateMode(modeobj);
-          modeobj.name = file.name.replace(".mode", "");
-          modeobj.id = modeobj.name.replace(/\s/g, "-").toLowerCase();
-
-          if (modelib[modeobj.id]) {
-            modelib[modeobj.id] = modeobj;
-            writeMode(modeobj);
-          } else {
-            modelib[modeobj.id] = modeobj;
-            makeModeItem(modeobj);
-            writeMode(modeobj);
-          }
-        }
-        reader.readAsText(file);
-      });
-    });
-  };
-
-  header.textContent = "Vectr (" + version + ")";
-  initSettings();
-  initUI();
-  initDragDrop();
-
-  close.onclick = function () { dialog.close(); }
-
-  return {
-    writeMode: writeMode,
-    writeSource: writeSource,
-    modelib: modelib,
-    data: data
-  };
+	'use strict';
+	
+	var version													= "0.3.6";
+	var SER_VERSION												= 34;
+	var SER_WRITE												= 100;
+	var SER_HANDSHAKE											= 200;
+	var SER_DISCONNECT											= 210;
+	var SER_VIEW_MODE											= 220;
+	var SER_VIEW_COLOR											= 230;
+	var SER_INIT												= 240;
+	
+	var MAX_MODES												= 16;
+	
+	var dir_root;
+	var dir_firmwares;
+	var dir_modes;
+	var connection_id;
+	var connected												= false;
+	var input_buffer											= [];
+	var readListeners											= [];
+	var updateListeners											= [];
+	var modelib													= {};
+	
+	var main													= document.getElementById("main");
+	var editor													= document.getElementById("editor");
+	var bundles													= document.getElementById("bundles");
+	var bundle0													= document.getElementById("bundle0");
+	var bundle1													= document.getElementById("bundle1");
+	var modes													= document.getElementById("mode-list");
+	var dialog													= document.querySelector("dialog");
+	var close													= document.getElementById("close-dialog");
+	var header													= document.getElementById("header-title");
+	
+	var mode_bundles = [
+		[[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []],
+		[[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
+	];
+	var mode_bundle_ids = [
+		[[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []],
+		[[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
+	];
+
+	var modetypes												= ["Vectr", "Primer"];
+	var triggers												= ["Off", "Velocity", "Pitch", "Roll", "Flip"];
+
+	jQuery.colorpicker.swatches.spectra_columns					= 13;
+	jQuery.colorpicker.swatches.spectra_width					= 156;
+	
+	jQuery.colorpicker.swatches.spectra = [
+		{name: 'Red',						r: 236 / 255, g: 0 / 255, b: 0 / 255},
+		{name: 'Orange',					r: 253 / 255, g: 118 / 255, b: 0 / 255},
+		{name: 'Bright Yellow',				r: 255 / 255, g: 255 / 255, b: 10 / 255},
+		{name: 'Green',						r: 0 / 255, g: 187 / 255, b: 0 / 255},
+		{name: 'Primary Blue',				r: 0 / 255, g: 0 / 255, b: 255 / 255},
+		{name: 'Purple',					r: 126 / 255, g: 0 / 255, b: 184 / 255},
+		{name: 'Pink',						r: 255 / 255, g: 123 / 255, b: 186 / 255},
+		{name: 'Cherry Red',				r: 255 / 255, g: 0 / 255, b: 40 / 255},
+		{name: 'Blood Orange',				r: 239 / 255, g: 73 / 255, b: 3 / 255},
+		{name: 'Bright Yellow',				r: 255 / 255, g: 255 / 255, b: 0 / 255},
+		{name: 'Fluro Green',				r: 9 / 255, g: 255 / 255, b: 4 / 255},
+		{name: 'Vibrant Blue',				r: 0 / 255, g: 47 / 255, b: 255 / 255},
+		{name: 'Barney Purple',				r: 152 / 255, g: 0 / 255, b: 186 / 255},
+		
+		{name: 'Hot Magenta',				r: 215 / 255, g: 0 / 255, b: 190 / 255},
+		{name: 'Tomato Red',				r: 255 / 255, g: 29 / 255, b: 0 / 255},
+		{name: 'Rusty Orange',				r: 199 / 255, g: 95 / 255, b: 5 / 255},
+		{name: 'Poison Green',				r: 70 / 255, g: 255 / 255, b: 0 / 255},
+		{name: 'Vomit Yellow',				r: 195 / 255, g: 192 / 255, b: 8 / 255},
+		{name: 'Deep Sky Blue',				r: 0 / 255, g: 123 / 255, b: 255 / 255},
+		{name: 'Electric Purple',			r: 170 / 255, g: 34 / 255, b: 255 / 255},
+		{name: 'Raspberry',					r: 175 / 255, g: 0 / 255, b: 76 / 255},
+		{name: 'Bright Pink',				r: 242 / 255, g: 0 / 255, b: 184 / 255},
+		{name: 'Periwinkle Blue',			r: 133 / 255, g: 160 / 255, b: 255 / 255},
+		{name: 'Easter Purple',				r: 214 / 255, g: 124 / 255, b: 255 / 255},
+		{name: 'Butter',					r: 255 / 255, g: 254 / 255, b: 130 / 255},
+		{name: 'Peachy Pink',				r: 253 / 255, g: 144 / 255, b: 130 / 255},
+		
+		{name: 'Wheat',						r: 254 / 255, g: 213 / 255, b: 132 / 255},
+		{name: 'Light Grass Green',			r: 135 / 255, g: 242 / 255, b: 105 / 255},
+		{name: 'Light Aquamarine',			r: 136 / 255, g: 255 / 255, b: 197 / 255},
+		{name: 'Sky',						r: 134 / 255, g: 202 / 255, b: 255 / 255},
+		{name: 'Soft Blue',					r: 94 / 255, g: 161 / 255, b: 255 / 255},
+		{name: 'Blueberry',					r: 73 / 255, g: 45 / 255, b: 124 / 255},
+		{name: 'Gunmetal',					r: 92 / 255, g: 92 / 255, b: 92 / 255},
+		{name: 'Purple Brown',				r: 107 / 255, g: 58 / 255, b: 69 / 255},
+		{name: 'Dark Periwinkle',			r: 104 / 255, g: 83 / 255, b: 227 / 255},
+		{name: 'Dark',						r: 42 / 255, g: 42 / 255, b: 42 / 255},
+		{name: 'Lemon Yellow',				r: 244 / 255, g: 255 / 255, b: 61 / 255},
+		{name: 'Spring Green',				r: 174 / 255, g: 242 / 255, b: 114 / 255},
+		{name: 'Rose Pink',					r: 252 / 255, g: 143 / 255, b: 145 / 255},
+		{name: 'Pastel Red',					r: 213 / 255, g: 95 / 255, b: 97 / 255},
+		
+		{name: 'Lightblue',					r: 120 / 255, g: 198 / 255, b: 255 / 255},
+		{name: 'Dark Pastel Green',			r: 88 / 255, g: 184 / 255, b: 88 / 255},
+		{name: 'Pastel Yellow',				r: 255 / 255, g: 248 / 255, b: 112 / 255},
+		{name: 'Pastel Purple',				r: 195 / 255, g: 153 / 255, b: 255 / 255},
+		{name: 'Pastel Orange',				r: 253 / 255, g: 143 / 255, b: 95 / 255},
+		{name: 'Pastel Pink',				r: 252 / 255, g: 186 / 255, b: 206 / 255},
+		{name: 'Red Orange',				r: 249 / 255, g: 66 / 255, b: 8 / 255},
+		{name: 'Orange Pink',				r: 252 / 255, g: 109 / 255, b: 78 / 255},
+		{name: 'Orangey Yellow',			r: 253 / 255, g: 180 / 255, b: 19 / 255},
+		{name: 'Yellowish Orange',			r: 253 / 255, g: 171 / 255, b: 25 / 255},
+		{name: 'Yellow/Green',				r: 201 / 255, g: 255 / 255, b: 62 / 255},
+		
+		{name: 'Greenblue',					r: 25 / 255, g: 194 / 255, b: 151 / 255},		
+		{name: 'Greenish Cyan',				r: 42 / 255, g: 255 / 255, b: 188 / 255},
+		{name: 'Bluish Purple',				r: 120 / 255, g: 56 / 255, b: 255 / 255},
+		{name: 'Purplish Blue',				r: 102 / 255, g: 35 / 255, b: 255 / 255},
+		{name: 'Blue/Purple',				r: 104 / 255, g: 2 / 255, b: 255 / 255},
+		{name: 'Violet Blue',				r: 103 / 255, g: 0 / 255, b: 189 / 255},
+		{name: 'Blue Violet',				r: 106 / 255, g: 0 / 255, b: 209 / 255},
+		{name: 'Violet Red',				r: 170 / 255, g: 0 / 255, b: 89 / 255},
+		{name: 'Purple Red',				r: 159 / 255, g: 0 / 255, b: 77 / 255},
+		{name: 'Pink/Purple',				r: 252 / 255, g: 40 / 255, b: 238 / 255},
+		{name: 'Pink Red',					r: 248 / 255, g: 0 / 255, b: 81 / 255},
+		{name: 'Brown Orange',			r: 185 / 255, g: 103 / 255, b: 81 / 255},
+	];
+	
+	jQuery.colorpicker.swatches.pantone_1000_columns			= 54;
+	jQuery.colorpicker.swatches.pantone_1000_width				= 656;
+	
+	jQuery.colorpicker.swatches.pantone_1000 = [	
+		{name: '100',					r: 0.956862745098039, g: 0.929411764705882, b: 0.486274509803922},
+		{name: '102',					r: 0.976470588235294, g: 0.909803921568627, b: 0.0784313725490196},
+		{name: '103',					r: 0.776470588235294, g: 0.67843137254902, b: 0.0588235294117647},
+		{name: '104',					r: 0.67843137254902, g: 0.607843137254902, b: 0.0470588235294118},
+		{name: '106',					r: 0.968627450980392, g: 0.909803921568627, b: 0.349019607843137},
+		{name: '105',					r: 0.509803921568627, g: 0.458823529411765, b: 0.0588235294117647},
+		{name: '107',					r: 0.976470588235294, g: 0.898039215686275, b: 0.149019607843137},
+		{name: '108',					r: 0.976470588235294, g: 0.866666666666667, b: 0.0862745098039216},
+		{name: '109',					r: 0.976470588235294, g: 0.83921568627451, b: 0.0862745098039216},
+		{name: '110',					r: 0.847058823529412, g: 0.709803921568627, b: 0.0666666666666667},
+		{name: '111',					r: 0.666666666666667, g: 0.576470588235294, b: 0.0392156862745098},
+		{name: '112',					r: 0.6, g: 0.517647058823529, b: 0.0392156862745098},
+		{name: '113',					r: 0.976470588235294, g: 0.898039215686275, b: 0.356862745098039},
+		{name: '114',					r: 0.976470588235294, g: 0.886274509803922, b: 0.298039215686275},
+		{name: '115',					r: 0.976470588235294, g: 0.87843137254902, b: 0.298039215686275},
+		{name: '116',					r: 0.988235294117647, g: 0.819607843137255, b: 0.0862745098039216},
+		{name: '116 2X',				r: 0.968627450980392, g: 0.709803921568627, b: 0.0470588235294118},
+		{name: '117',					r: 0.776470588235294, g: 0.627450980392157, b: 0.0470588235294118},
+		{name: '118',					r: 0.666666666666667, g: 0.556862745098039, b: 0.0392156862745098},
+		{name: '119',					r: 0.537254901960784, g: 0.466666666666667, b: 0.0980392156862745},
+		{name: '120',					r: 0.976470588235294, g: 0.886274509803922, b: 0.498039215686275},
+		{name: '1205',					r: 0.968627450980392, g: 0.909803921568627, b: 0.666666666666667},
+		{name: '121',					r: 0.976470588235294, g: 0.87843137254902, b: 0.43921568627451},
+		{name: '1215',					r: 0.976470588235294, g: 0.87843137254902, b: 0.549019607843137},
+		{name: '122',					r: 0.988235294117647, g: 0.847058823529412, b: 0.337254901960784},
+		{name: '1225',					r: 1, g: 0.8, b: 0.286274509803922},
+		{name: '123',					r: 1, g: 0.776470588235294, b: 0.117647058823529},
+		{name: '1235',					r: 0.988235294117647, g: 0.709803921568627, b: 0.0784313725490196},
+		{name: '124',					r: 0.87843137254902, g: 0.666666666666667, b: 0.0588235294117647},
+		{name: '1245',					r: 0.749019607843137, g: 0.568627450980392, b: 0.0470588235294118},
+		{name: '125',					r: 0.709803921568627, g: 0.549019607843137, b: 0.0392156862745098},
+		{name: '1255',					r: 0.63921568627451, g: 0.498039215686275, b: 0.0784313725490196},
+		{name: '126',					r: 0.63921568627451, g: 0.509803921568627, b: 0.0196078431372549},
+		{name: '1265',					r: 0.486274509803922, g: 0.388235294117647, b: 0.0862745098039216},
+		{name: '127',					r: 0.956862745098039, g: 0.886274509803922, b: 0.529411764705882},
+		{name: '128',					r: 0.956862745098039, g: 0.858823529411765, b: 0.376470588235294},
+		{name: '129',					r: 0.949019607843137, g: 0.819607843137255, b: 0.23921568627451},
+		{name: '130',					r: 0.917647058823529, g: 0.686274509803922, b: 0.0588235294117647},
+		{name: '130 2X',				r: 0.886274509803922, g: 0.568627450980392, b: 0},
+		{name: '131',					r: 0.776470588235294, g: 0.576470588235294, b: 0.0392156862745098},
+		{name: '132',					r: 0.619607843137255, g: 0.486274509803922, b: 0.0392156862745098},
+		{name: '133',					r: 0.43921568627451, g: 0.356862745098039, b: 0.0392156862745098},
+		{name: '134',					r: 1, g: 0.847058823529412, b: 0.498039215686275},
+		{name: '1345',					r: 1, g: 0.83921568627451, b: 0.568627450980392},
+		{name: '135',					r: 0.988235294117647, g: 0.788235294117647, b: 0.388235294117647},
+		{name: '1355',					r: 0.988235294117647, g: 0.807843137254902, b: 0.529411764705882},
+		{name: '136',					r: 0.988235294117647, g: 0.749019607843137, b: 0.286274509803922},
+		{name: '1365',					r: 0.988235294117647, g: 0.729411764705882, b: 0.368627450980392},
+		{name: '137',					r: 0.988235294117647, g: 0.63921568627451, b: 0.0666666666666667},
+		{name: '1375',					r: 0.976470588235294, g: 0.607843137254902, b: 0.0470588235294118},
+		{name: '138',					r: 0.847058823529412, g: 0.549019607843137, b: 0.00784313725490196},
+		{name: '1385',					r: 0.8, g: 0.47843137254902, b: 0.00784313725490196},
+		{name: '139',					r: 0.686274509803922, g: 0.458823529411765, b: 0.0196078431372549},
+		{name: '1395',					r: 0.6, g: 0.376470588235294, b: 0.0274509803921569},
+		{name: '140',					r: 0.47843137254902, g: 0.356862745098039, b: 0.0666666666666667},
+		{name: '1405',					r: 0.419607843137255, g: 0.27843137254902, b: 0.0784313725490196},
+		{name: '141',					r: 0.949019607843137, g: 0.807843137254902, b: 0.407843137254902},
+		{name: '142',					r: 0.949019607843137, g: 0.749019607843137, b: 0.286274509803922},
+		{name: '143',					r: 0.937254901960784, g: 0.698039215686274, b: 0.176470588235294},
+		{name: '144',					r: 0.886274509803922, g: 0.549019607843137, b: 0.0196078431372549},
+		{name: '145',					r: 0.776470588235294, g: 0.498039215686275, b: 0.0274509803921569},
+		{name: '146',					r: 0.619607843137255, g: 0.419607843137255, b: 0.0196078431372549},
+		{name: '147',					r: 0.447058823529412, g: 0.368627450980392, b: 0.149019607843137},
+		{name: '148',					r: 1, g: 0.83921568627451, b: 0.607843137254902},
+		{name: '1485',					r: 1, g: 0.717647058823529, b: 0.466666666666667},
+		{name: '149',					r: 0.988235294117647, g: 0.8, b: 0.576470588235294},
+		{name: '1495',					r: 1, g: 0.6, b: 0.247058823529412},
+		{name: '150',					r: 0.988235294117647, g: 0.67843137254902, b: 0.337254901960784},
+		{name: '1505',					r: 0.956862745098039, g: 0.486274509803922, b: 0},
+		{name: '151',					r: 0.968627450980392, g: 0.498039215686275, b: 0},
+		{name: '152',					r: 0.866666666666667, g: 0.458823529411765, b: 0},
+		{name: '1525',					r: 0.709803921568627, g: 0.329411764705882, b: 0},
+		{name: '153',					r: 0.737254901960784, g: 0.427450980392157, b: 0.0392156862745098},
+		{name: '1535',					r: 0.549019607843137, g: 0.266666666666667, b: 0},
+		{name: '154',					r: 0.6, g: 0.349019607843137, b: 0.0196078431372549},
+		{name: '1545',					r: 0.27843137254902, g: 0.133333333333333, b: 0},
+		{name: '155',					r: 0.956862745098039, g: 0.858823529411765, b: 0.666666666666667},
+		{name: '1555',					r: 0.976470588235294, g: 0.749019607843137, b: 0.619607843137255},
+		{name: '156',					r: 0.949019607843137, g: 0.776470588235294, b: 0.549019607843137},
+		{name: '1565',					r: 0.988235294117647, g: 0.647058823529412, b: 0.466666666666667},
+		{name: '157',					r: 0.929411764705882, g: 0.627450980392157, b: 0.309803921568627},
+		{name: '1575',					r: 0.988235294117647, g: 0.529411764705882, b: 0.266666666666667},
+		{name: '158',					r: 0.909803921568627, g: 0.458823529411765, b: 0.0666666666666667},
+		{name: '1585',					r: 0.976470588235294, g: 0.419607843137255, b: 0.0274509803921569},
+		{name: '159',					r: 0.776470588235294, g: 0.376470588235294, b: 0.0196078431372549},
+		{name: '1595',					r: 0.819607843137255, g: 0.356862745098039, b: 0.0196078431372549},
+		{name: '160',					r: 0.619607843137255, g: 0.329411764705882, b: 0.0392156862745098},
+		{name: '1605',					r: 0.627450980392157, g: 0.309803921568627, b: 0.0666666666666667},
+		{name: '161',					r: 0.388235294117647, g: 0.227450980392157, b: 0.0666666666666667},
+		{name: '1615',					r: 0.517647058823529, g: 0.247058823529412, b: 0.0588235294117647},
+		{name: '162',					r: 0.976470588235294, g: 0.776470588235294, b: 0.666666666666667},
+		{name: '1625',					r: 0.976470588235294, g: 0.647058823529412, b: 0.549019607843137},
+		{name: '163',					r: 0.988235294117647, g: 0.619607843137255, b: 0.43921568627451},
+		{name: '1635',					r: 0.976470588235294, g: 0.556862745098039, b: 0.427450980392157},
+		{name: '164',					r: 0.988235294117647, g: 0.498039215686275, b: 0.247058823529412},
+		{name: '1645',					r: 0.976470588235294, g: 0.447058823529412, b: 0.258823529411765},
+		{name: '165',					r: 0.976470588235294, g: 0.388235294117647, b: 0.00784313725490196},
+		{name: '165 2X',				r: 0.917647058823529, g: 0.309803921568627, b: 0},
+		{name: '1655',					r: 0.976470588235294, g: 0.337254901960784, b: 0.00784313725490196},
+		{name: '166',					r: 0.866666666666667, g: 0.349019607843137, b: 0},
+		{name: '101',					r: 0.956862745098039, g: 0.929411764705882, b: 0.27843137254902},
+		{name: '1665',					r: 0.866666666666667, g: 0.309803921568627, b: 0.0196078431372549},
+		{name: '167',					r: 0.737254901960784, g: 0.309803921568627, b: 0.0274509803921569},
+		{name: '1675',					r: 0.647058823529412, g: 0.247058823529412, b: 0.0588235294117647},
+		{name: '168',					r: 0.427450980392157, g: 0.188235294117647, b: 0.0666666666666667},
+		{name: '1685',					r: 0.517647058823529, g: 0.207843137254902, b: 0.0666666666666667},
+		{name: '169',					r: 0.976470588235294, g: 0.729411764705882, b: 0.666666666666667},
+		{name: '170',					r: 0.976470588235294, g: 0.537254901960784, b: 0.447058823529412},
+		{name: '171',					r: 0.976470588235294, g: 0.376470588235294, b: 0.227450980392157},
+		{name: '172',					r: 0.968627450980392, g: 0.286274509803922, b: 0.00784313725490196},
+		{name: '173',					r: 0.819607843137255, g: 0.266666666666667, b: 0.0784313725490196},
+		{name: '174',					r: 0.576470588235294, g: 0.2, b: 0.0666666666666667},
+		{name: '175',					r: 0.427450980392157, g: 0.2, b: 0.129411764705882},
+		{name: '176',					r: 0.976470588235294, g: 0.686274509803922, b: 0.67843137254902},
+		{name: '1765',					r: 0.976470588235294, g: 0.619607843137255, b: 0.63921568627451},
+		{name: '1767',					r: 0.976470588235294, g: 0.698039215686274, b: 0.717647058823529},
+		{name: '177',					r: 0.976470588235294, g: 0.509803921568627, b: 0.498039215686275},
+		{name: '1775',					r: 0.976470588235294, g: 0.517647058823529, b: 0.556862745098039},
+		{name: '1777',					r: 0.988235294117647, g: 0.4, b: 0.458823529411765},
+		{name: '178',					r: 0.976470588235294, g: 0.368627450980392, b: 0.349019607843137},
+		{name: '1785',					r: 0.988235294117647, g: 0.309803921568627, b: 0.349019607843137},
+		{name: '1787',					r: 0.956862745098039, g: 0.247058823529412, b: 0.309803921568627},
+		{name: '1788',					r: 0.937254901960784, g: 0.168627450980392, b: 0.176470588235294},
+		{name: '1788 2X',				r: 0.83921568627451, g: 0.129411764705882, b: 0},
+		{name: '179',					r: 0.886274509803922, g: 0.23921568627451, b: 0.156862745098039},
+		{name: '1795',					r: 0.83921568627451, g: 0.156862745098039, b: 0.156862745098039},
+		{name: '1797',					r: 0.8, g: 0.176470588235294, b: 0.188235294117647},
+		{name: '180',					r: 0.756862745098039, g: 0.219607843137255, b: 0.156862745098039},
+		{name: '1805',					r: 0.686274509803922, g: 0.149019607843137, b: 0.149019607843137},
+		{name: '1807',					r: 0.627450980392157, g: 0.188235294117647, b: 0.2},
+		{name: '181',					r: 0.486274509803922, g: 0.176470588235294, b: 0.137254901960784},
+		{name: '1810',					r: 0.486274509803922, g: 0.129411764705882, b: 0.117647058823529},
+		{name: '1817',					r: 0.356862745098039, g: 0.176470588235294, b: 0.156862745098039},
+		{name: '182',					r: 0.976470588235294, g: 0.749019607843137, b: 0.756862745098039},
+		{name: '183',					r: 0.988235294117647, g: 0.549019607843137, b: 0.6},
+		{name: '184',					r: 0.988235294117647, g: 0.368627450980392, b: 0.447058823529412},
+		{name: '185',					r: 0.909803921568627, g: 0.0666666666666667, b: 0.176470588235294},
+		{name: '185 2X',				r: 0.819607843137255, g: 0.0862745098039216, b: 0},
+		{name: '186',					r: 0.807843137254902, g: 0.0666666666666667, b: 0.149019607843137},
+		{name: '187',					r: 0.686274509803922, g: 0.117647058823529, b: 0.176470588235294},
+		{name: '188',					r: 0.486274509803922, g: 0.129411764705882, b: 0.156862745098039},
+		{name: '189',					r: 1, g: 0.63921568627451, b: 0.698039215686274},
+		{name: '1895',					r: 0.988235294117647, g: 0.749019607843137, b: 0.788235294117647},
+		{name: '190',					r: 0.988235294117647, g: 0.458823529411765, b: 0.556862745098039},
+		{name: '1905',					r: 0.988235294117647, g: 0.607843137254902, b: 0.698039215686274},
+		{name: '191',					r: 0.956862745098039, g: 0.27843137254902, b: 0.419607843137255},
+		{name: '1915',					r: 0.956862745098039, g: 0.329411764705882, b: 0.486274509803922},
+		{name: '192',					r: 0.898039215686275, g: 0.0196078431372549, b: 0.227450980392157},
+		{name: '1925',					r: 0.87843137254902, g: 0.0274509803921569, b: 0.27843137254902},
+		{name: '193',					r: 0.768627450980392, g: 0, b: 0.262745098039216},
+		{name: '1935',					r: 0.756862745098039, g: 0.0196078431372549, b: 0.219607843137255},
+		{name: '194',					r: 0.6, g: 0.129411764705882, b: 0.207843137254902},
+		{name: '1945',					r: 0.658823529411765, g: 0.0470588235294118, b: 0.207843137254902},
+		{name: '1955',					r: 0.576470588235294, g: 0.0862745098039216, b: 0.219607843137255},
+		{name: '196',					r: 0.980392156862745, g: 0.835294117647059, b: 0.882352941176471},
+		{name: '197',					r: 0.964705882352941, g: 0.647058823529412, b: 0.745098039215686},
+		{name: '198',					r: 0.937254901960784, g: 0.356862745098039, b: 0.517647058823529},
+		{name: '199',					r: 0.627450980392157, g: 0.152941176470588, b: 0.294117647058824},
+		{name: '200',					r: 0.768627450980392, g: 0.117647058823529, b: 0.227450980392157},
+		{name: '201',					r: 0.63921568627451, g: 0.149019607843137, b: 0.219607843137255},
+		{name: '202',					r: 0.549019607843137, g: 0.149019607843137, b: 0.2},
+		{name: '203',					r: 0.949019607843137, g: 0.686274509803922, b: 0.756862745098039},
+		{name: '204',					r: 0.929411764705882, g: 0.47843137254902, b: 0.619607843137255},
+		{name: '205',					r: 0.898039215686275, g: 0.298039215686275, b: 0.486274509803922},
+		{name: '206',					r: 0.827450980392157, g: 0.0196078431372549, b: 0.27843137254902},
+		{name: '207',					r: 0.752941176470588, g: 0, b: 0.305882352941176},
+		{name: '208',					r: 0.556862745098039, g: 0.137254901960784, b: 0.266666666666667},
+		{name: '209',					r: 0.458823529411765, g: 0.149019607843137, b: 0.23921568627451},
+		{name: '210',					r: 1, g: 0.627450980392157, b: 0.749019607843137},
+		{name: '211',					r: 1, g: 0.466666666666667, b: 0.658823529411765},
+		{name: '212',					r: 0.976470588235294, g: 0.309803921568627, b: 0.556862745098039},
+		{name: '213',					r: 0.917647058823529, g: 0.0588235294117647, b: 0.419607843137255},
+		{name: '214',					r: 0.8, g: 0.00784313725490196, b: 0.337254901960784},
+		{name: '215',					r: 0.647058823529412, g: 0.0196078431372549, b: 0.266666666666667},
+		{name: '216',					r: 0.486274509803922, g: 0.117647058823529, b: 0.247058823529412},
+		{name: '217',					r: 0.956862745098039, g: 0.749019607843137, b: 0.819607843137255},
+		{name: '218',					r: 0.929411764705882, g: 0.447058823529412, b: 0.666666666666667},
+		{name: '219',					r: 0.886274509803922, g: 0.156862745098039, b: 0.509803921568627},
+		{name: '220',					r: 0.666666666666667, g: 0, b: 0.309803921568627},
+		{name: '221',					r: 0.576470588235294, g: 0, b: 0.258823529411765},
+		{name: '222',					r: 0.43921568627451, g: 0.0980392156862745, b: 0.23921568627451},
+		{name: '223',					r: 0.976470588235294, g: 0.576470588235294, b: 0.768627450980392},
+		{name: '224',					r: 0.956862745098039, g: 0.419607843137255, b: 0.686274509803922},
+		{name: '225',					r: 0.929411764705882, g: 0.156862745098039, b: 0.576470588235294},
+		{name: '226',					r: 0.83921568627451, g: 0.00784313725490196, b: 0.43921568627451},
+		{name: '227',					r: 0.67843137254902, g: 0, b: 0.356862745098039},
+		{name: '228',					r: 0.549019607843137, g: 0, b: 0.298039215686275},
+		{name: '229',					r: 0.427450980392157, g: 0.129411764705882, b: 0.247058823529412},
+		{name: '230',					r: 1, g: 0.627450980392157, b: 0.8},
+		{name: '231',					r: 0.988235294117647, g: 0.43921568627451, b: 0.729411764705882},
+		{name: '232',					r: 0.956862745098039, g: 0.247058823529412, b: 0.647058823529412},
+		{name: '233',					r: 0.807843137254902, g: 0, b: 0.486274509803922},
+		{name: '234',					r: 0.666666666666667, g: 0, b: 0.4},
+		{name: '235',					r: 0.556862745098039, g: 0.0196078431372549, b: 0.329411764705882},
+		{name: '236',					r: 0.976470588235294, g: 0.686274509803922, b: 0.827450980392157},
+		{name: '2365',					r: 0.968627450980392, g: 0.768627450980392, b: 0.847058823529412},
+		{name: '237',					r: 0.956862745098039, g: 0.517647058823529, b: 0.768627450980392},
+		{name: '2375',					r: 0.917647058823529, g: 0.419607843137255, b: 0.749019607843137},
+		{name: '238',					r: 0.929411764705882, g: 0.309803921568627, b: 0.686274509803922},
+		{name: '2385',					r: 0.858823529411765, g: 0.156862745098039, b: 0.647058823529412},
+		{name: '239',					r: 0.87843137254902, g: 0.129411764705882, b: 0.619607843137255},
+		{name: '2395',					r: 0.768627450980392, g: 0, b: 0.549019607843137},
+		{name: '240',					r: 0.768627450980392, g: 0.0588235294117647, b: 0.537254901960784},
+		{name: '2405',					r: 0.658823529411765, g: 0, b: 0.47843137254902},
+		{name: '241',					r: 0.67843137254902, g: 0, b: 0.458823529411765},
+		{name: '2415',					r: 0.607843137254902, g: 0, b: 0.43921568627451},
+		{name: '242',					r: 0.486274509803922, g: 0.109803921568627, b: 0.317647058823529},
+		{name: '2425',					r: 0.529411764705882, g: 0, b: 0.356862745098039},
+		{name: '243',					r: 0.949019607843137, g: 0.729411764705882, b: 0.847058823529412},
+		{name: '244',					r: 0.929411764705882, g: 0.627450980392157, b: 0.827450980392157},
+		{name: '245',					r: 0.909803921568627, g: 0.498039215686275, b: 0.788235294117647},
+		{name: '246',					r: 0.8, g: 0, b: 0.627450980392157},
+		{name: '247',					r: 0.717647058823529, g: 0, b: 0.556862745098039},
+		{name: '248',					r: 0.63921568627451, g: 0.0196078431372549, b: 0.498039215686275},
+		{name: '249',					r: 0.498039215686275, g: 0.156862745098039, b: 0.376470588235294},
+		{name: '250',					r: 0.929411764705882, g: 0.768627450980392, b: 0.866666666666667},
+		{name: '251',					r: 0.886274509803922, g: 0.619607843137255, b: 0.83921568627451},
+		{name: '252',					r: 0.827450980392157, g: 0.419607843137255, b: 0.776470588235294},
+		{name: '253',					r: 0.686274509803922, g: 0.137254901960784, b: 0.647058823529412},
+		{name: '254',					r: 0.627450980392157, g: 0.176470588235294, b: 0.588235294117647},
+		{name: '255',					r: 0.466666666666667, g: 0.176470588235294, b: 0.419607843137255},
+		{name: '256',					r: 0.898039215686275, g: 0.768627450980392, b: 0.83921568627451},
+		{name: '2562',					r: 0.847058823529412, g: 0.658823529411765, b: 0.847058823529412},
+		{name: '2563',					r: 0.819607843137255, g: 0.627450980392157, b: 0.8},
+		{name: '2567',					r: 0.749019607843137, g: 0.576470588235294, b: 0.8},
+		{name: '257',					r: 0.827450980392157, g: 0.647058823529412, b: 0.788235294117647},
+		{name: '2572',					r: 0.776470588235294, g: 0.529411764705882, b: 0.819607843137255},
+		{name: '2573',					r: 0.729411764705882, g: 0.486274509803922, b: 0.737254901960784},
+		{name: '2577',					r: 0.666666666666667, g: 0.447058823529412, b: 0.749019607843137},
+		{name: '258',					r: 0.607843137254902, g: 0.309803921568627, b: 0.588235294117647},
+		{name: '2582',					r: 0.666666666666667, g: 0.27843137254902, b: 0.729411764705882},
+		{name: '2583',					r: 0.619607843137255, g: 0.309803921568627, b: 0.647058823529412},
+		{name: '2587',					r: 0.556862745098039, g: 0.27843137254902, b: 0.67843137254902},
+		{name: '259',					r: 0.447058823529412, g: 0.0862745098039216, b: 0.419607843137255},
+		{name: '2592',					r: 0.576470588235294, g: 0.0588235294117647, b: 0.647058823529412},
+		{name: '2593',					r: 0.529411764705882, g: 0.168627450980392, b: 0.576470588235294},
+		{name: '2597',					r: 0.4, g: 0, b: 0.549019607843137},
+		{name: '260',					r: 0.407843137254902, g: 0.117647058823529, b: 0.356862745098039},
+		{name: '2602',					r: 0.509803921568627, g: 0.0470588235294118, b: 0.556862745098039},
+		{name: '2603',					r: 0.43921568627451, g: 0.0784313725490196, b: 0.47843137254902},
+		{name: '2607',					r: 0.356862745098039, g: 0.00784313725490196, b: 0.47843137254902},
+		{name: '261',					r: 0.368627450980392, g: 0.129411764705882, b: 0.329411764705882},
+		{name: '2612',					r: 0.43921568627451, g: 0.117647058823529, b: 0.447058823529412},
+		{name: '2613',					r: 0.4, g: 0.0666666666666667, b: 0.427450980392157},
+		{name: '2617',					r: 0.337254901960784, g: 0.0470588235294118, b: 0.43921568627451},
+		{name: '262',					r: 0.329411764705882, g: 0.137254901960784, b: 0.266666666666667},
+		{name: '2622',					r: 0.376470588235294, g: 0.176470588235294, b: 0.349019607843137},
+		{name: '2623',					r: 0.356862745098039, g: 0.0980392156862745, b: 0.368627450980392},
+		{name: '2627',					r: 0.298039215686275, g: 0.0784313725490196, b: 0.368627450980392},
+		{name: '263',					r: 0.87843137254902, g: 0.807843137254902, b: 0.87843137254902},
+		{name: '2635',					r: 0.788235294117647, g: 0.67843137254902, b: 0.847058823529412},
+		{name: '264',					r: 0.776470588235294, g: 0.666666666666667, b: 0.858823529411765},
+		{name: '2645',					r: 0.709803921568627, g: 0.568627450980392, b: 0.819607843137255},
+		{name: '265',					r: 0.588235294117647, g: 0.388235294117647, b: 0.768627450980392},
+		{name: '2655',					r: 0.607843137254902, g: 0.427450980392157, b: 0.776470588235294},
+		{name: '266',					r: 0.427450980392157, g: 0.156862745098039, b: 0.666666666666667},
+		{name: '2665',					r: 0.537254901960784, g: 0.309803921568627, b: 0.749019607843137},
+		{name: '267',					r: 0.349019607843137, g: 0.0666666666666667, b: 0.556862745098039},
+		{name: '268',					r: 0.309803921568627, g: 0.129411764705882, b: 0.43921568627451},
+		{name: '2685',					r: 0.337254901960784, g: 0, b: 0.549019607843137},
+		{name: '269',					r: 0.266666666666667, g: 0.137254901960784, b: 0.349019607843137},
+		{name: '2695',					r: 0.266666666666667, g: 0.137254901960784, b: 0.368627450980392},
+		{name: '270',					r: 0.729411764705882, g: 0.686274509803922, b: 0.827450980392157},
+		{name: '2705',					r: 0.67843137254902, g: 0.619607843137255, b: 0.827450980392157},
+		{name: '2706',					r: 0.819607843137255, g: 0.807843137254902, b: 0.866666666666667},
+		{name: '2707',					r: 0.749019607843137, g: 0.819607843137255, b: 0.898039215686275},
+		{name: '2708',					r: 0.686274509803922, g: 0.737254901960784, b: 0.858823529411765},
+		{name: '271',					r: 0.619607843137255, g: 0.568627450980392, b: 0.776470588235294},
+		{name: '2715',					r: 0.576470588235294, g: 0.47843137254902, b: 0.8},
+		{name: '2716',					r: 0.647058823529412, g: 0.627450980392157, b: 0.83921568627451},
+		{name: '2717',					r: 0.647058823529412, g: 0.729411764705882, b: 0.87843137254902},
+		{name: '2718',					r: 0.356862745098039, g: 0.466666666666667, b: 0.8},
+		{name: '272',					r: 0.537254901960784, g: 0.466666666666667, b: 0.729411764705882},
+		{name: '2725',					r: 0.447058823529412, g: 0.317647058823529, b: 0.737254901960784},
+		{name: '2726',					r: 0.4, g: 0.337254901960784, b: 0.737254901960784},
+		{name: '2727',					r: 0.368627450980392, g: 0.407843137254902, b: 0.768627450980392},
+		{name: '2728',					r: 0.188235294117647, g: 0.266666666666667, b: 0.709803921568627},
+		{name: '273',					r: 0.219607843137255, g: 0.0980392156862745, b: 0.47843137254902},
+		{name: '2735',					r: 0.309803921568627, g: 0, b: 0.576470588235294},
+		{name: '2736',					r: 0.286274509803922, g: 0.188235294117647, b: 0.67843137254902},
+		{name: '2738',					r: 0.176470588235294, g: 0, b: 0.556862745098039},
+		{name: '274',					r: 0.168627450980392, g: 0.0666666666666667, b: 0.4},
+		{name: '2745',					r: 0.247058823529412, g: 0, b: 0.466666666666667},
+		{name: '2746',					r: 0.247058823529412, g: 0.156862745098039, b: 0.576470588235294},
+		{name: '2747',					r: 0.109803921568627, g: 0.0784313725490196, b: 0.419607843137255},
+		{name: '2748',					r: 0.117647058823529, g: 0.109803921568627, b: 0.466666666666667},
+		{name: '275',					r: 0.149019607843137, g: 0.0588235294117647, b: 0.329411764705882},
+		{name: '2755',					r: 0.207843137254902, g: 0, b: 0.427450980392157},
+		{name: '2756',					r: 0.2, g: 0.156862745098039, b: 0.458823529411765},
+		{name: '2757',					r: 0.0784313725490196, g: 0.0862745098039216, b: 0.329411764705882},
+		{name: '2758',					r: 0.0980392156862745, g: 0.129411764705882, b: 0.407843137254902},
+		{name: '276',					r: 0.168627450980392, g: 0.129411764705882, b: 0.27843137254902},
+		{name: '2765',					r: 0.168627450980392, g: 0.0470588235294118, b: 0.337254901960784},
+		{name: '2766',					r: 0.168627450980392, g: 0.149019607843137, b: 0.356862745098039},
+		{name: '2767',					r: 0.0784313725490196, g: 0.129411764705882, b: 0.23921568627451},
+		{name: '2768',					r: 0.0666666666666667, g: 0.129411764705882, b: 0.317647058823529},
+		{name: '277',					r: 0.709803921568627, g: 0.819607843137255, b: 0.909803921568627},
+		{name: '278',					r: 0.6, g: 0.729411764705882, b: 0.866666666666667},
+		{name: '279',					r: 0.4, g: 0.537254901960784, b: 0.8},
+		{name: '280',					r: 0, g: 0.168627450980392, b: 0.498039215686275},
+		{name: '281',					r: 0, g: 0.156862745098039, b: 0.407843137254902},
+		{name: '282',					r: 0, g: 0.149019607843137, b: 0.329411764705882},
+		{name: '283',					r: 0.607843137254902, g: 0.768627450980392, b: 0.886274509803922},
+		{name: '284',					r: 0.458823529411765, g: 0.666666666666667, b: 0.858823529411765},
+		{name: '285',					r: 0.227450980392157, g: 0.458823529411765, b: 0.768627450980392},
+		{name: '286',					r: 0, g: 0.219607843137255, b: 0.658823529411765},
+		{name: '287',					r: 0, g: 0.219607843137255, b: 0.576470588235294},
+		{name: '288',					r: 0, g: 0.2, b: 0.498039215686275},
+		{name: '289',					r: 0, g: 0.149019607843137, b: 0.286274509803922},
+		{name: '290',					r: 0.768627450980392, g: 0.847058823529412, b: 0.886274509803922},
+		{name: '2905',					r: 0.576470588235294, g: 0.776470588235294, b: 0.87843137254902},
+		{name: '291',					r: 0.658823529411765, g: 0.807843137254902, b: 0.886274509803922},
+		{name: '2915',					r: 0.376470588235294, g: 0.686274509803922, b: 0.866666666666667},
+		{name: '292',					r: 0.458823529411765, g: 0.698039215686274, b: 0.866666666666667},
+		{name: '2925',					r: 0, g: 0.556862745098039, b: 0.83921568627451},
+		{name: '293',					r: 0, g: 0.317647058823529, b: 0.729411764705882},
+		{name: '2935',					r: 0, g: 0.356862745098039, b: 0.749019607843137},
+		{name: '294',					r: 0, g: 0.247058823529412, b: 0.529411764705882},
+		{name: '2945',					r: 0, g: 0.329411764705882, b: 0.627450980392157},
+		{name: '295',					r: 0, g: 0.219607843137255, b: 0.419607843137255},
+		{name: '2955',					r: 0, g: 0.23921568627451, b: 0.419607843137255},
+		{name: '296',					r: 0, g: 0.176470588235294, b: 0.27843137254902},
+		{name: '2965',					r: 0, g: 0.2, b: 0.298039215686275},
+		{name: '297',					r: 0.509803921568627, g: 0.776470588235294, b: 0.886274509803922},
+		{name: '2975',					r: 0.729411764705882, g: 0.87843137254902, b: 0.886274509803922},
+		{name: '298',					r: 0.317647058823529, g: 0.709803921568627, b: 0.87843137254902},
+		{name: '2985',					r: 0.317647058823529, g: 0.749019607843137, b: 0.886274509803922},
+		{name: '299',					r: 0, g: 0.63921568627451, b: 0.866666666666667},
+		{name: '2995',					r: 0, g: 0.647058823529412, b: 0.858823529411765},
+		{name: '300',					r: 0, g: 0.447058823529412, b: 0.776470588235294},
+		{name: '3005',					r: 0, g: 0.517647058823529, b: 0.788235294117647},
+		{name: '301',					r: 0, g: 0.356862745098039, b: 0.6},
+		{name: '3015',					r: 0, g: 0.43921568627451, b: 0.619607843137255},
+		{name: '302',					r: 0, g: 0.309803921568627, b: 0.427450980392157},
+		{name: '3025',					r: 0, g: 0.329411764705882, b: 0.419607843137255},
+		{name: '303',					r: 0, g: 0.247058823529412, b: 0.329411764705882},
+		{name: '3035',					r: 0, g: 0.266666666666667, b: 0.329411764705882},
+		{name: '304',					r: 0.647058823529412, g: 0.866666666666667, b: 0.886274509803922},
+		{name: '305',					r: 0.43921568627451, g: 0.807843137254902, b: 0.886274509803922},
+		{name: '306',					r: 0, g: 0.737254901960784, b: 0.886274509803922},
+		{name: '306 2X',				r: 0, g: 0.63921568627451, b: 0.819607843137255},
+		{name: '307',					r: 0, g: 0.47843137254902, b: 0.647058823529412},
+		{name: '308',					r: 0, g: 0.376470588235294, b: 0.486274509803922},
+		{name: '309',					r: 0, g: 0.247058823529412, b: 0.286274509803922},
+		{name: '310',					r: 0.447058823529412, g: 0.819607843137255, b: 0.866666666666667},
+		{name: '3105',					r: 0.498039215686275, g: 0.83921568627451, b: 0.858823529411765},
+		{name: '311',					r: 0.156862745098039, g: 0.768627450980392, b: 0.847058823529412},
+		{name: '3115',					r: 0.176470588235294, g: 0.776470588235294, b: 0.83921568627451},
+		{name: '312',					r: 0, g: 0.67843137254902, b: 0.776470588235294},
+		{name: '3125',					r: 0, g: 0.717647058823529, b: 0.776470588235294},
+		{name: '313',					r: 0, g: 0.6, b: 0.709803921568627},
+		{name: '3135',					r: 0, g: 0.607843137254902, b: 0.666666666666667},
+		{name: '314',					r: 0, g: 0.509803921568627, b: 0.607843137254902},
+		{name: '3145',					r: 0, g: 0.517647058823529, b: 0.556862745098039},
+		{name: '315',					r: 0, g: 0.419607843137255, b: 0.466666666666667},
+		{name: '3155',					r: 0, g: 0.427450980392157, b: 0.458823529411765},
+		{name: '316',					r: 0, g: 0.286274509803922, b: 0.309803921568627},
+		{name: '3165',					r: 0, g: 0.337254901960784, b: 0.356862745098039},
+		{name: '317',					r: 0.788235294117647, g: 0.909803921568627, b: 0.866666666666667},
+		{name: '318',					r: 0.576470588235294, g: 0.866666666666667, b: 0.858823529411765},
+		{name: '319',					r: 0.298039215686275, g: 0.807843137254902, b: 0.819607843137255},
+		{name: '320',					r: 0, g: 0.619607843137255, b: 0.627450980392157},
+		{name: '320 2X',				r: 0, g: 0.498039215686275, b: 0.509803921568627},
+		{name: '321',					r: 0, g: 0.529411764705882, b: 0.537254901960784},
+		{name: '322',					r: 0, g: 0.447058823529412, b: 0.447058823529412},
+		{name: '323',					r: 0, g: 0.4, b: 0.388235294117647},
+		{name: '324',					r: 0.666666666666667, g: 0.866666666666667, b: 0.83921568627451},
+		{name: '3242',					r: 0.529411764705882, g: 0.866666666666667, b: 0.819607843137255},
+		{name: '3245',					r: 0.549019607843137, g: 0.87843137254902, b: 0.819607843137255},
+		{name: '3248',					r: 0.47843137254902, g: 0.827450980392157, b: 0.756862745098039},
+		{name: '325',					r: 0.337254901960784, g: 0.788235294117647, b: 0.756862745098039},
+		{name: '3252',					r: 0.337254901960784, g: 0.83921568627451, b: 0.788235294117647},
+		{name: '3255',					r: 0.27843137254902, g: 0.83921568627451, b: 0.756862745098039},
+		{name: '3258',					r: 0.207843137254902, g: 0.768627450980392, b: 0.686274509803922},
+		{name: '326',					r: 0, g: 0.698039215686274, b: 0.666666666666667},
+		{name: '3262',					r: 0, g: 0.756862745098039, b: 0.709803921568627},
+		{name: '3265',					r: 0, g: 0.776470588235294, b: 0.698039215686274},
+		{name: '3268',					r: 0, g: 0.686274509803922, b: 0.6},
+		{name: '327',					r: 0, g: 0.549019607843137, b: 0.509803921568627},
+		{name: '327 2X',				r: 0, g: 0.537254901960784, b: 0.466666666666667},
+		{name: '3272',					r: 0, g: 0.666666666666667, b: 0.619607843137255},
+		{name: '3275',					r: 0, g: 0.698039215686274, b: 0.627450980392157},
+		{name: '3278',					r: 0, g: 0.607843137254902, b: 0.517647058823529},
+		{name: '328',					r: 0, g: 0.466666666666667, b: 0.43921568627451},
+		{name: '3282',					r: 0, g: 0.549019607843137, b: 0.509803921568627},
+		{name: '3285',					r: 0, g: 0.6, b: 0.529411764705882},
+		{name: '3288',					r: 0, g: 0.509803921568627, b: 0.43921568627451},
+		{name: '329',					r: 0, g: 0.427450980392157, b: 0.4},
+		{name: '3292',					r: 0, g: 0.376470588235294, b: 0.337254901960784},
+		{name: '3295',					r: 0, g: 0.509803921568627, b: 0.447058823529412},
+		{name: '3298',					r: 0, g: 0.419607843137255, b: 0.356862745098039},
+		{name: '330',					r: 0, g: 0.349019607843137, b: 0.317647058823529},
+		{name: '3302',					r: 0, g: 0.286274509803922, b: 0.247058823529412},
+		{name: '3305',					r: 0, g: 0.309803921568627, b: 0.258823529411765},
+		{name: '3308',					r: 0, g: 0.266666666666667, b: 0.219607843137255},
+		{name: '331',					r: 0.729411764705882, g: 0.917647058823529, b: 0.83921568627451},
+		{name: '332',					r: 0.627450980392157, g: 0.898039215686275, b: 0.807843137254902},
+		{name: '333',					r: 0.368627450980392, g: 0.866666666666667, b: 0.756862745098039},
+		{name: '334',					r: 0, g: 0.6, b: 0.486274509803922},
+		{name: '335',					r: 0, g: 0.486274509803922, b: 0.4},
+		{name: '336',					r: 0, g: 0.407843137254902, b: 0.329411764705882},
+		{name: '337',					r: 0.607843137254902, g: 0.858823529411765, b: 0.756862745098039},
+		{name: '3375',					r: 0.556862745098039, g: 0.886274509803922, b: 0.737254901960784},
+		{name: '338',					r: 0.47843137254902, g: 0.819607843137255, b: 0.709803921568627},
+		{name: '3385',					r: 0.329411764705882, g: 0.847058823529412, b: 0.658823529411765},
+		{name: '339',					r: 0, g: 0.698039215686274, b: 0.549019607843137},
+		{name: '3395',					r: 0, g: 0.788235294117647, b: 0.576470588235294},
+		{name: '340',					r: 0, g: 0.6, b: 0.466666666666667},
+		{name: '3405',					r: 0, g: 0.698039215686274, b: 0.47843137254902},
+		{name: '341',					r: 0, g: 0.47843137254902, b: 0.368627450980392},
+		{name: '3415',					r: 0, g: 0.486274509803922, b: 0.349019607843137},
+		{name: '342',					r: 0, g: 0.419607843137255, b: 0.329411764705882},
+		{name: '3425',					r: 0, g: 0.407843137254902, b: 0.27843137254902},
+		{name: '343',					r: 0, g: 0.337254901960784, b: 0.247058823529412},
+		{name: '3435',					r: 0.00784313725490196, g: 0.286274509803922, b: 0.188235294117647},
+		{name: '344',					r: 0.709803921568627, g: 0.886274509803922, b: 0.749019607843137},
+		{name: '345',					r: 0.588235294117647, g: 0.847058823529412, b: 0.686274509803922},
+		{name: '346',					r: 0.43921568627451, g: 0.807843137254902, b: 0.607843137254902},
+		{name: '347',					r: 0, g: 0.619607843137255, b: 0.376470588235294},
+		{name: '348',					r: 0, g: 0.529411764705882, b: 0.317647058823529},
+		{name: '349',					r: 0, g: 0.419607843137255, b: 0.247058823529412},
+		{name: '350',					r: 0.137254901960784, g: 0.309803921568627, b: 0.2},
+		{name: '351',					r: 0.709803921568627, g: 0.909803921568627, b: 0.749019607843137},
+		{name: '352',					r: 0.6, g: 0.898039215686275, b: 0.698039215686274},
+		{name: '353',					r: 0.517647058823529, g: 0.886274509803922, b: 0.658823529411765},
+		{name: '354',					r: 0, g: 0.717647058823529, b: 0.376470588235294},
+		{name: '355',					r: 0, g: 0.619607843137255, b: 0.286274509803922},
+		{name: '356',					r: 0, g: 0.47843137254902, b: 0.23921568627451},
+		{name: '357',					r: 0.129411764705882, g: 0.356862745098039, b: 0.2},
+		{name: '358',					r: 0.666666666666667, g: 0.866666666666667, b: 0.588235294117647},
+		{name: '359',					r: 0.627450980392157, g: 0.858823529411765, b: 0.556862745098039},
+		{name: '360',					r: 0.376470588235294, g: 0.776470588235294, b: 0.349019607843137},
+		{name: '361',					r: 0.117647058823529, g: 0.709803921568627, b: 0.227450980392157},
+		{name: '362',					r: 0.2, g: 0.619607843137255, b: 0.207843137254902},
+		{name: '363',					r: 0.23921568627451, g: 0.556862745098039, b: 0.2},
+		{name: '364',					r: 0.227450980392157, g: 0.466666666666667, b: 0.156862745098039},
+		{name: '365',					r: 0.827450980392157, g: 0.909803921568627, b: 0.63921568627451},
+		{name: '366',					r: 0.768627450980392, g: 0.898039215686275, b: 0.556862745098039},
+		{name: '367',					r: 0.666666666666667, g: 0.866666666666667, b: 0.427450980392157},
+		{name: '368',					r: 0.356862745098039, g: 0.749019607843137, b: 0.129411764705882},
+		{name: '368 2X',				r: 0, g: 0.619607843137255, b: 0.0588235294117647},
+		{name: '369',					r: 0.337254901960784, g: 0.666666666666667, b: 0.109803921568627},
+		{name: '370',					r: 0.337254901960784, g: 0.556862745098039, b: 0.0784313725490196},
+		{name: '371',					r: 0.337254901960784, g: 0.419607843137255, b: 0.129411764705882},
+		{name: '372',					r: 0.847058823529412, g: 0.929411764705882, b: 0.588235294117647},
+		{name: '373',					r: 0.807843137254902, g: 0.917647058823529, b: 0.509803921568627},
+		{name: '374',					r: 0.729411764705882, g: 0.909803921568627, b: 0.376470588235294},
+		{name: '375',					r: 0.549019607843137, g: 0.83921568627451, b: 0},
+		{name: '375 2X',				r: 0.329411764705882, g: 0.737254901960784, b: 0},
+		{name: '376',					r: 0.498039215686275, g: 0.729411764705882, b: 0},
+		{name: '377',					r: 0.43921568627451, g: 0.576470588235294, b: 0.00784313725490196},
+		{name: '378',					r: 0.337254901960784, g: 0.388235294117647, b: 0.0784313725490196},
+		{name: '379',					r: 0.87843137254902, g: 0.917647058823529, b: 0.407843137254902},
+		{name: '380',					r: 0.83921568627451, g: 0.898039215686275, b: 0.258823529411765},
+		{name: '381',					r: 0.8, g: 0.886274509803922, b: 0.149019607843137},
+		{name: '382',					r: 0.729411764705882, g: 0.847058823529412, b: 0.0392156862745098},
+		{name: '382 2X',				r: 0.619607843137255, g: 0.768627450980392, b: 0},
+		{name: '383',					r: 0.63921568627451, g: 0.686274509803922, b: 0.0274509803921569},
+		{name: '384',					r: 0.576470588235294, g: 0.6, b: 0.0196078431372549},
+		{name: '385',					r: 0.43921568627451, g: 0.43921568627451, b: 0.0784313725490196},
+		{name: '386',					r: 0.909803921568627, g: 0.929411764705882, b: 0.376470588235294},
+		{name: '387',					r: 0.87843137254902, g: 0.929411764705882, b: 0.266666666666667},
+		{name: '388',					r: 0.83921568627451, g: 0.909803921568627, b: 0.0588235294117647},
+		{name: '389',					r: 0.807843137254902, g: 0.87843137254902, b: 0.0274509803921569},
+		{name: '390',					r: 0.729411764705882, g: 0.768627450980392, b: 0.0196078431372549},
+		{name: '391',					r: 0.619607843137255, g: 0.619607843137255, b: 0.0274509803921569},
+		{name: '392',					r: 0.517647058823529, g: 0.509803921568627, b: 0.0196078431372549},
+		{name: '393',					r: 0.949019607843137, g: 0.937254901960784, b: 0.529411764705882},
+		{name: '3935',					r: 0.949019607843137, g: 0.929411764705882, b: 0.427450980392157},
+		{name: '394',					r: 0.917647058823529, g: 0.929411764705882, b: 0.207843137254902},
+		{name: '3945',					r: 0.937254901960784, g: 0.917647058823529, b: 0.0274509803921569},
+		{name: '395',					r: 0.898039215686275, g: 0.909803921568627, b: 0.0666666666666667},
+		{name: '3955',					r: 0.929411764705882, g: 0.886274509803922, b: 0.0666666666666667},
+		{name: '396',					r: 0.87843137254902, g: 0.886274509803922, b: 0.0470588235294118},
+		{name: '3965',					r: 0.909803921568627, g: 0.866666666666667, b: 0.0666666666666667},
+		{name: '397',					r: 0.756862745098039, g: 0.749019607843137, b: 0.0392156862745098},
+		{name: '3975',					r: 0.709803921568627, g: 0.658823529411765, b: 0.0470588235294118},
+		{name: '398',					r: 0.686274509803922, g: 0.658823529411765, b: 0.0392156862745098},
+		{name: '3985',					r: 0.6, g: 0.549019607843137, b: 0.0392156862745098},
+		{name: '399',					r: 0.6, g: 0.556862745098039, b: 0.0274509803921569},
+		{name: '3995',					r: 0.427450980392157, g: 0.376470588235294, b: 0.00784313725490196},
+		{name: '400',					r: 0.819607843137255, g: 0.776470588235294, b: 0.709803921568627},
+		{name: '401',					r: 0.756862745098039, g: 0.709803921568627, b: 0.647058823529412},
+		{name: '402',					r: 0.686274509803922, g: 0.647058823529412, b: 0.576470588235294},
+		{name: '403',					r: 0.6, g: 0.549019607843137, b: 0.486274509803922},
+		{name: '404',					r: 0.509803921568627, g: 0.458823529411765, b: 0.4},
+		{name: '405',					r: 0.419607843137255, g: 0.368627450980392, b: 0.309803921568627},
+		{name: '406',					r: 0.807843137254902, g: 0.756862745098039, b: 0.709803921568627},
+		{name: '408',					r: 0.658823529411765, g: 0.6, b: 0.549019607843137},
+		{name: '409',					r: 0.6, g: 0.537254901960784, b: 0.486274509803922},
+		{name: '410',					r: 0.486274509803922, g: 0.427450980392157, b: 0.388235294117647},
+		{name: '411',					r: 0.4, g: 0.349019607843137, b: 0.298039215686275},
+		{name: '412',					r: 0.23921568627451, g: 0.188235294117647, b: 0.156862745098039},
+		{name: '413',					r: 0.776470588235294, g: 0.756862745098039, b: 0.698039215686274},
+		{name: '414',					r: 0.709803921568627, g: 0.686274509803922, b: 0.627450980392157},
+		{name: '415',					r: 0.63921568627451, g: 0.619607843137255, b: 0.549019607843137},
+		{name: '416',					r: 0.556862745098039, g: 0.549019607843137, b: 0.47843137254902},
+		{name: '417',					r: 0.466666666666667, g: 0.447058823529412, b: 0.388235294117647},
+		{name: '418',					r: 0.376470588235294, g: 0.368627450980392, b: 0.309803921568627},
+		{name: '419',					r: 0.156862745098039, g: 0.156862745098039, b: 0.129411764705882},
+		{name: '420',					r: 0.819607843137255, g: 0.8, b: 0.749019607843137},
+		{name: '421',					r: 0.749019607843137, g: 0.729411764705882, b: 0.686274509803922},
+		{name: '422',					r: 0.686274509803922, g: 0.666666666666667, b: 0.63921568627451},
+		{name: '423',					r: 0.588235294117647, g: 0.576470588235294, b: 0.556862745098039},
+		{name: '424',					r: 0.509803921568627, g: 0.498039215686275, b: 0.466666666666667},
+		{name: '425',					r: 0.376470588235294, g: 0.376470588235294, b: 0.356862745098039},
+		{name: '426',					r: 0.168627450980392, g: 0.168627450980392, b: 0.156862745098039},
+		{name: '427',					r: 0.866666666666667, g: 0.858823529411765, b: 0.819607843137255},
+		{name: '428',					r: 0.819607843137255, g: 0.807843137254902, b: 0.776470588235294},
+		{name: '429',					r: 0.67843137254902, g: 0.686274509803922, b: 0.666666666666667},
+		{name: '430',					r: 0.568627450980392, g: 0.588235294117647, b: 0.576470588235294},
+		{name: '431',					r: 0.4, g: 0.427450980392157, b: 0.43921568627451},
+		{name: '432',					r: 0.266666666666667, g: 0.309803921568627, b: 0.317647058823529},
+		{name: '433',					r: 0.188235294117647, g: 0.219607843137255, b: 0.227450980392157},
+		{name: '433 2X',				r: 0.0392156862745098, g: 0.0470588235294118, b: 0.0666666666666667},
+		{name: '434',					r: 0.87843137254902, g: 0.819607843137255, b: 0.776470588235294},
+		{name: '435',					r: 0.827450980392157, g: 0.749019607843137, b: 0.717647058823529},
+		{name: '436',					r: 0.737254901960784, g: 0.647058823529412, b: 0.619607843137255},
+		{name: '437',					r: 0.549019607843137, g: 0.43921568627451, b: 0.419607843137255},
+		{name: '438',					r: 0.349019607843137, g: 0.247058823529412, b: 0.23921568627451},
+		{name: '439',					r: 0.286274509803922, g: 0.207843137254902, b: 0.2},
+		{name: '440',					r: 0.247058823529412, g: 0.188235294117647, b: 0.168627450980392},
+		{name: '441',					r: 0.819607843137255, g: 0.819607843137255, b: 0.776470588235294},
+		{name: '442',					r: 0.729411764705882, g: 0.749019607843137, b: 0.717647058823529},
+		{name: '443',					r: 0.63921568627451, g: 0.658823529411765, b: 0.63921568627451},
+		{name: '444',					r: 0.537254901960784, g: 0.556862745098039, b: 0.549019607843137},
+		{name: '445',					r: 0.337254901960784, g: 0.349019607843137, b: 0.349019607843137},
+		{name: '446',					r: 0.286274509803922, g: 0.298039215686275, b: 0.286274509803922},
+		{name: '447',					r: 0.247058823529412, g: 0.247058823529412, b: 0.219607843137255},
+		{name: '448',					r: 0.329411764705882, g: 0.27843137254902, b: 0.176470588235294},
+		{name: '4485',					r: 0.376470588235294, g: 0.298039215686275, b: 0.0666666666666667},
+		{name: '449',					r: 0.329411764705882, g: 0.27843137254902, b: 0.149019607843137},
+		{name: '4495',					r: 0.529411764705882, g: 0.458823529411765, b: 0.188235294117647},
+		{name: '450',					r: 0.376470588235294, g: 0.329411764705882, b: 0.168627450980392},
+		{name: '4505',					r: 0.627450980392157, g: 0.568627450980392, b: 0.317647058823529},
+		{name: '451',					r: 0.67843137254902, g: 0.627450980392157, b: 0.47843137254902},
+		{name: '4515',					r: 0.737254901960784, g: 0.67843137254902, b: 0.458823529411765},
+		{name: '452',					r: 0.768627450980392, g: 0.717647058823529, b: 0.588235294117647},
+		{name: '4525',					r: 0.8, g: 0.749019607843137, b: 0.556862745098039},
+		{name: '453',					r: 0.83921568627451, g: 0.8, b: 0.686274509803922},
+		{name: '4535',					r: 0.858823529411765, g: 0.807843137254902, b: 0.647058823529412},
+		{name: '454',					r: 0.886274509803922, g: 0.847058823529412, b: 0.749019607843137},
+		{name: '4545',					r: 0.898039215686275, g: 0.858823529411765, b: 0.729411764705882},
+		{name: '455',					r: 0.4, g: 0.337254901960784, b: 0.0784313725490196},
+		{name: '456',					r: 0.6, g: 0.529411764705882, b: 0.0784313725490196},
+		{name: '457',					r: 0.709803921568627, g: 0.607843137254902, b: 0.0470588235294118},
+		{name: '458',					r: 0.866666666666667, g: 0.8, b: 0.419607843137255},
+		{name: '459',					r: 0.886274509803922, g: 0.83921568627451, b: 0.486274509803922},
+		{name: '460',					r: 0.917647058823529, g: 0.866666666666667, b: 0.588235294117647},
+		{name: '461',					r: 0.929411764705882, g: 0.898039215686275, b: 0.67843137254902},
+		{name: '462',					r: 0.356862745098039, g: 0.27843137254902, b: 0.137254901960784},
+		{name: '4625',					r: 0.27843137254902, g: 0.137254901960784, b: 0.0666666666666667},
+		{name: '463',					r: 0.458823529411765, g: 0.329411764705882, b: 0.149019607843137},
+		{name: '4635',					r: 0.549019607843137, g: 0.349019607843137, b: 0.2},
+		{name: '464',					r: 0.529411764705882, g: 0.376470588235294, b: 0.156862745098039},
+		{name: '464 2X',				r: 0.43921568627451, g: 0.258823529411765, b: 0.0784313725490196},
+		{name: '4645',					r: 0.698039215686274, g: 0.509803921568627, b: 0.376470588235294},
+		{name: '465',					r: 0.756862745098039, g: 0.658823529411765, b: 0.458823529411765},
+		{name: '4655',					r: 0.768627450980392, g: 0.6, b: 0.466666666666667},
+		{name: '466',					r: 0.819607843137255, g: 0.749019607843137, b: 0.568627450980392},
+		{name: '4665',					r: 0.847058823529412, g: 0.709803921568627, b: 0.588235294117647},
+		{name: '467',					r: 0.866666666666667, g: 0.8, b: 0.647058823529412},
+		{name: '4675',					r: 0.898039215686275, g: 0.776470588235294, b: 0.666666666666667},
+		{name: '468',					r: 0.886274509803922, g: 0.83921568627451, b: 0.709803921568627},
+		{name: '4685',					r: 0.929411764705882, g: 0.827450980392157, b: 0.737254901960784},
+		{name: '469',					r: 0.376470588235294, g: 0.2, b: 0.0666666666666667},
+		{name: '4695',					r: 0.317647058823529, g: 0.149019607843137, b: 0.109803921568627},
+		{name: '470',					r: 0.607843137254902, g: 0.309803921568627, b: 0.0980392156862745},
+		{name: '4705',					r: 0.486274509803922, g: 0.317647058823529, b: 0.23921568627451},
+		{name: '471',					r: 0.737254901960784, g: 0.368627450980392, b: 0.117647058823529},
+		{name: '471 2X',				r: 0.63921568627451, g: 0.266666666666667, b: 0.00784313725490196},
+		{name: '4715',					r: 0.6, g: 0.43921568627451, b: 0.356862745098039},
+		{name: '472',					r: 0.917647058823529, g: 0.666666666666667, b: 0.47843137254902},
+		{name: '4725',					r: 0.709803921568627, g: 0.568627450980392, b: 0.486274509803922},
+		{name: '473',					r: 0.956862745098039, g: 0.768627450980392, b: 0.627450980392157},
+		{name: '4735',					r: 0.8, g: 0.686274509803922, b: 0.607843137254902},
+		{name: '474',					r: 0.956862745098039, g: 0.8, b: 0.666666666666667},
+		{name: '4745',					r: 0.847058823529412, g: 0.749019607843137, b: 0.666666666666667},
+		{name: '475',					r: 0.968627450980392, g: 0.827450980392157, b: 0.709803921568627},
+		{name: '4755',					r: 0.886274509803922, g: 0.8, b: 0.729411764705882},
+		{name: '476',					r: 0.349019607843137, g: 0.23921568627451, b: 0.168627450980392},
+		{name: '477',					r: 0.388235294117647, g: 0.219607843137255, b: 0.149019607843137},
+		{name: '478',					r: 0.47843137254902, g: 0.247058823529412, b: 0.156862745098039},
+		{name: '479',					r: 0.686274509803922, g: 0.537254901960784, b: 0.43921568627451},
+		{name: '480',					r: 0.827450980392157, g: 0.717647058823529, b: 0.63921568627451},
+		{name: '481',					r: 0.87843137254902, g: 0.8, b: 0.729411764705882},
+		{name: '482',					r: 0.898039215686275, g: 0.827450980392157, b: 0.756862745098039},
+		{name: '483',					r: 0.419607843137255, g: 0.188235294117647, b: 0.129411764705882},
+		{name: '484',					r: 0.607843137254902, g: 0.188235294117647, b: 0.109803921568627},
+		{name: '485',					r: 0.847058823529412, g: 0.117647058823529, b: 0.0196078431372549},
+		{name: '485 2X',				r: 0.8, g: 0.0470588235294118, b: 0},
+		{name: '486',					r: 0.929411764705882, g: 0.619607843137255, b: 0.517647058823529},
+		{name: '487',					r: 0.937254901960784, g: 0.709803921568627, b: 0.627450980392157},
+		{name: '488',					r: 0.949019607843137, g: 0.768627450980392, b: 0.686274509803922},
+		{name: '489',					r: 0.949019607843137, g: 0.819607843137255, b: 0.749019607843137},
+		{name: '490',					r: 0.356862745098039, g: 0.149019607843137, b: 0.149019607843137},
+		{name: '491',					r: 0.458823529411765, g: 0.156862745098039, b: 0.156862745098039},
+		{name: '492',					r: 0.568627450980392, g: 0.2, b: 0.219607843137255},
+		{name: '494',					r: 0.949019607843137, g: 0.67843137254902, b: 0.698039215686274},
+		{name: '495',					r: 0.956862745098039, g: 0.737254901960784, b: 0.749019607843137},
+		{name: '496',					r: 0.968627450980392, g: 0.788235294117647, b: 0.776470588235294},
+		{name: '497',					r: 0.317647058823529, g: 0.156862745098039, b: 0.149019607843137},
+		{name: '4975',					r: 0.266666666666667, g: 0.117647058823529, b: 0.109803921568627},
+		{name: '498',					r: 0.427450980392157, g: 0.2, b: 0.168627450980392},
+		{name: '4985',					r: 0.517647058823529, g: 0.286274509803922, b: 0.286274509803922},
+		{name: '499',					r: 0.47843137254902, g: 0.219607843137255, b: 0.176470588235294},
+		{name: '4995',					r: 0.647058823529412, g: 0.419607843137255, b: 0.427450980392157},
+		{name: '500',					r: 0.807843137254902, g: 0.537254901960784, b: 0.549019607843137},
+		{name: '5005',					r: 0.737254901960784, g: 0.529411764705882, b: 0.529411764705882},
+		{name: '501',					r: 0.917647058823529, g: 0.698039215686274, b: 0.698039215686274},
+		{name: '5015',					r: 0.847058823529412, g: 0.67843137254902, b: 0.658823529411765},
+		{name: '502',					r: 0.949019607843137, g: 0.776470588235294, b: 0.768627450980392},
+		{name: '5025',					r: 0.886274509803922, g: 0.737254901960784, b: 0.717647058823529},
+		{name: '503',					r: 0.956862745098039, g: 0.819607843137255, b: 0.8},
+		{name: '5035',					r: 0.929411764705882, g: 0.807843137254902, b: 0.776470588235294},
+		{name: '504',					r: 0.317647058823529, g: 0.117647058823529, b: 0.149019607843137},
+		{name: '505',					r: 0.4, g: 0.117647058823529, b: 0.168627450980392},
+		{name: '506',					r: 0.47843137254902, g: 0.149019607843137, b: 0.219607843137255},
+		{name: '507',					r: 0.847058823529412, g: 0.537254901960784, b: 0.607843137254902},
+		{name: '508',					r: 0.909803921568627, g: 0.647058823529412, b: 0.686274509803922},
+		{name: '509',					r: 0.949019607843137, g: 0.729411764705882, b: 0.749019607843137},
+		{name: '510',					r: 0.956862745098039, g: 0.776470588235294, b: 0.788235294117647},
+		{name: '511',					r: 0.376470588235294, g: 0.129411764705882, b: 0.266666666666667},
+		{name: '5115',					r: 0.309803921568627, g: 0.129411764705882, b: 0.227450980392157},
+		{name: '512',					r: 0.517647058823529, g: 0.129411764705882, b: 0.419607843137255},
+		{name: '5125',					r: 0.458823529411765, g: 0.27843137254902, b: 0.376470588235294},
+		{name: '513',					r: 0.619607843137255, g: 0.137254901960784, b: 0.529411764705882},
+		{name: '5135',					r: 0.576470588235294, g: 0.419607843137255, b: 0.498039215686275},
+		{name: '514',					r: 0.847058823529412, g: 0.517647058823529, b: 0.737254901960784},
+		{name: '5145',					r: 0.67843137254902, g: 0.529411764705882, b: 0.6},
+		{name: '515',					r: 0.909803921568627, g: 0.63921568627451, b: 0.788235294117647},
+		{name: '5155',					r: 0.8, g: 0.686274509803922, b: 0.717647058823529},
+		{name: '516',					r: 0.949019607843137, g: 0.729411764705882, b: 0.827450980392157},
+		{name: '5165',					r: 0.87843137254902, g: 0.788235294117647, b: 0.8},
+		{name: '517',					r: 0.956862745098039, g: 0.8, b: 0.847058823529412},
+		{name: '5175',					r: 0.909803921568627, g: 0.83921568627451, b: 0.819607843137255},
+		{name: '518',					r: 0.317647058823529, g: 0.176470588235294, b: 0.266666666666667},
+		{name: '5185',					r: 0.27843137254902, g: 0.156862745098039, b: 0.207843137254902},
+		{name: '519',					r: 0.388235294117647, g: 0.188235294117647, b: 0.368627450980392},
+		{name: '5195',					r: 0.349019607843137, g: 0.2, b: 0.266666666666667},
+		{name: '520',					r: 0.43921568627451, g: 0.207843137254902, b: 0.447058823529412},
+		{name: '5205',					r: 0.556862745098039, g: 0.407843137254902, b: 0.466666666666667},
+		{name: '521',					r: 0.709803921568627, g: 0.549019607843137, b: 0.698039215686274},
+		{name: '5215',					r: 0.709803921568627, g: 0.576470588235294, b: 0.607843137254902},
+		{name: '522',					r: 0.776470588235294, g: 0.63921568627451, b: 0.756862745098039},
+		{name: '5225',					r: 0.8, g: 0.67843137254902, b: 0.686274509803922},
+		{name: '523',					r: 0.827450980392157, g: 0.717647058823529, b: 0.8},
+		{name: '5235',					r: 0.866666666666667, g: 0.776470588235294, b: 0.768627450980392},
+		{name: '524',					r: 0.886274509803922, g: 0.8, b: 0.827450980392157},
+		{name: '5245',					r: 0.898039215686275, g: 0.827450980392157, b: 0.8},
+		{name: '525',					r: 0.317647058823529, g: 0.149019607843137, b: 0.329411764705882},
+		{name: '5255',					r: 0.207843137254902, g: 0.149019607843137, b: 0.309803921568627},
+		{name: '526',					r: 0.407843137254902, g: 0.129411764705882, b: 0.47843137254902},
+		{name: '5265',					r: 0.286274509803922, g: 0.23921568627451, b: 0.388235294117647},
+		{name: '527',					r: 0.47843137254902, g: 0.117647058823529, b: 0.6},
+		{name: '5275',					r: 0.376470588235294, g: 0.337254901960784, b: 0.466666666666667},
+		{name: '528',					r: 0.686274509803922, g: 0.447058823529412, b: 0.756862745098039},
+		{name: '5285',					r: 0.549019607843137, g: 0.509803921568627, b: 0.6},
+		{name: '529',					r: 0.807843137254902, g: 0.63921568627451, b: 0.827450980392157},
+		{name: '5295',					r: 0.698039215686274, g: 0.658823529411765, b: 0.709803921568627},
+		{name: '530',					r: 0.83921568627451, g: 0.686274509803922, b: 0.83921568627451},
+		{name: '5305',					r: 0.8, g: 0.756862745098039, b: 0.776470588235294},
+		{name: '531',					r: 0.898039215686275, g: 0.776470588235294, b: 0.858823529411765},
+		{name: '5315',					r: 0.858823529411765, g: 0.827450980392157, b: 0.827450980392157},
+		{name: '532',					r: 0.207843137254902, g: 0.219607843137255, b: 0.258823529411765},
+		{name: '533',					r: 0.207843137254902, g: 0.247058823529412, b: 0.356862745098039},
+		{name: '534',					r: 0.227450980392157, g: 0.286274509803922, b: 0.447058823529412},
+		{name: '535',					r: 0.607843137254902, g: 0.63921568627451, b: 0.717647058823529},
+		{name: '536',					r: 0.67843137254902, g: 0.698039215686274, b: 0.756862745098039},
+		{name: '537',					r: 0.768627450980392, g: 0.776470588235294, b: 0.807843137254902},
+		{name: '538',					r: 0.83921568627451, g: 0.827450980392157, b: 0.83921568627451},
+		{name: '539',					r: 0, g: 0.188235294117647, b: 0.286274509803922},
+		{name: '5395',					r: 0.00784313725490196, g: 0.156862745098039, b: 0.227450980392157},
+		{name: '540',					r: 0, g: 0.2, b: 0.356862745098039},
+		{name: '5405',					r: 0.247058823529412, g: 0.376470588235294, b: 0.458823529411765},
+		{name: '541',					r: 0, g: 0.247058823529412, b: 0.466666666666667},
+		{name: '5415',					r: 0.376470588235294, g: 0.486274509803922, b: 0.549019607843137},
+		{name: '542',					r: 0.4, g: 0.576470588235294, b: 0.737254901960784},
+		{name: '5425',					r: 0.517647058823529, g: 0.6, b: 0.647058823529412},
+		{name: '543',					r: 0.576470588235294, g: 0.717647058823529, b: 0.819607843137255},
+		{name: '5435',					r: 0.686274509803922, g: 0.737254901960784, b: 0.749019607843137},
+		{name: '544',					r: 0.717647058823529, g: 0.8, b: 0.858823529411765},
+		{name: '5445',					r: 0.768627450980392, g: 0.8, b: 0.8},
+		{name: '545',					r: 0.768627450980392, g: 0.827450980392157, b: 0.866666666666667},
+		{name: '5455',					r: 0.83921568627451, g: 0.847058823529412, b: 0.827450980392157},
+		{name: '546',					r: 0.0470588235294118, g: 0.219607843137255, b: 0.266666666666667},
+		{name: '5463',					r: 0, g: 0.207843137254902, b: 0.227450980392157},
+		{name: '5467',					r: 0.0980392156862745, g: 0.219607843137255, b: 0.2},
+		{name: '547',					r: 0, g: 0.247058823529412, b: 0.329411764705882},
+		{name: '5473',					r: 0.149019607843137, g: 0.407843137254902, b: 0.427450980392157},
+		{name: '5477',					r: 0.227450980392157, g: 0.337254901960784, b: 0.309803921568627},
+		{name: '548',					r: 0, g: 0.266666666666667, b: 0.349019607843137},
+		{name: '5483',					r: 0.376470588235294, g: 0.568627450980392, b: 0.568627450980392},
+		{name: '5487',					r: 0.4, g: 0.486274509803922, b: 0.447058823529412},
+		{name: '549',					r: 0.368627450980392, g: 0.6, b: 0.666666666666667},
+		{name: '5493',					r: 0.549019607843137, g: 0.686274509803922, b: 0.67843137254902},
+		{name: '5497',					r: 0.568627450980392, g: 0.63921568627451, b: 0.6},
+		{name: '550',					r: 0.529411764705882, g: 0.686274509803922, b: 0.749019607843137},
+		{name: '5503',					r: 0.666666666666667, g: 0.768627450980392, b: 0.749019607843137},
+		{name: '5507',					r: 0.686274509803922, g: 0.729411764705882, b: 0.698039215686274},
+		{name: '551',					r: 0.63921568627451, g: 0.756862745098039, b: 0.788235294117647},
+		{name: '5513',					r: 0.807843137254902, g: 0.847058823529412, b: 0.819607843137255},
+		{name: '5517',					r: 0.788235294117647, g: 0.807843137254902, b: 0.768627450980392},
+		{name: '552',					r: 0.768627450980392, g: 0.83921568627451, b: 0.83921568627451},
+		{name: '5523',					r: 0.83921568627451, g: 0.866666666666667, b: 0.83921568627451},
+		{name: '5527',					r: 0.807843137254902, g: 0.819607843137255, b: 0.776470588235294},
+		{name: '553',					r: 0.137254901960784, g: 0.266666666666667, b: 0.207843137254902},
+		{name: '5535',					r: 0.129411764705882, g: 0.23921568627451, b: 0.188235294117647},
+		{name: '554',					r: 0.0980392156862745, g: 0.368627450980392, b: 0.27843137254902},
+		{name: '5545',					r: 0.309803921568627, g: 0.427450980392157, b: 0.368627450980392},
+		{name: '555',					r: 0.0274509803921569, g: 0.427450980392157, b: 0.329411764705882},
+		{name: '5555',					r: 0.466666666666667, g: 0.568627450980392, b: 0.509803921568627},
+		{name: '556',					r: 0.47843137254902, g: 0.658823529411765, b: 0.568627450980392},
+		{name: '5565',					r: 0.588235294117647, g: 0.666666666666667, b: 0.6},
+		{name: '557',					r: 0.63921568627451, g: 0.756862745098039, b: 0.67843137254902},
+		{name: '5575',					r: 0.686274509803922, g: 0.749019607843137, b: 0.67843137254902},
+		{name: '558',					r: 0.717647058823529, g: 0.807843137254902, b: 0.737254901960784},
+		{name: '5585',					r: 0.768627450980392, g: 0.807843137254902, b: 0.749019607843137},
+		{name: '559',					r: 0.776470588235294, g: 0.83921568627451, b: 0.768627450980392},
+		{name: '5595',					r: 0.847058823529412, g: 0.858823529411765, b: 0.8},
+		{name: '560',					r: 0.168627450980392, g: 0.298039215686275, b: 0.247058823529412},
+		{name: '5605',					r: 0.137254901960784, g: 0.227450980392157, b: 0.176470588235294},
+		{name: '561',					r: 0.149019607843137, g: 0.4, b: 0.349019607843137},
+		{name: '5615',					r: 0.329411764705882, g: 0.407843137254902, b: 0.337254901960784},
+		{name: '562',					r: 0.117647058823529, g: 0.47843137254902, b: 0.427450980392157},
+		{name: '5625',					r: 0.447058823529412, g: 0.517647058823529, b: 0.43921568627451},
+		{name: '563',					r: 0.498039215686275, g: 0.737254901960784, b: 0.666666666666667},
+		{name: '5635',					r: 0.619607843137255, g: 0.666666666666667, b: 0.6},
+		{name: '564',					r: 0.0196078431372549, g: 0.43921568627451, b: 0.368627450980392},
+		{name: '5645',					r: 0.737254901960784, g: 0.756862745098039, b: 0.698039215686274},
+		{name: '565',					r: 0.737254901960784, g: 0.858823529411765, b: 0.8},
+		{name: '5655',					r: 0.776470588235294, g: 0.8, b: 0.729411764705882},
+		{name: '566',					r: 0.819607843137255, g: 0.886274509803922, b: 0.827450980392157},
+		{name: '5665',					r: 0.83921568627451, g: 0.83921568627451, b: 0.776470588235294},
+		{name: '567',					r: 0.149019607843137, g: 0.317647058823529, b: 0.258823529411765},
+		{name: '568',					r: 0, g: 0.447058823529412, b: 0.388235294117647},
+		{name: '569',					r: 0, g: 0.529411764705882, b: 0.447058823529412},
+		{name: '570',					r: 0.498039215686275, g: 0.776470588235294, b: 0.698039215686274},
+		{name: '571',					r: 0.666666666666667, g: 0.858823529411765, b: 0.776470588235294},
+		{name: '572',					r: 0.737254901960784, g: 0.886274509803922, b: 0.807843137254902},
+		{name: '573',					r: 0.8, g: 0.898039215686275, b: 0.83921568627451},
+		{name: '574',					r: 0.286274509803922, g: 0.349019607843137, b: 0.156862745098039},
+		{name: '5743',					r: 0.247058823529412, g: 0.286274509803922, b: 0.149019607843137},
+		{name: '5747',					r: 0.258823529411765, g: 0.27843137254902, b: 0.0862745098039216},
+		{name: '575',					r: 0.329411764705882, g: 0.466666666666667, b: 0.188235294117647},
+		{name: '5753',					r: 0.368627450980392, g: 0.4, b: 0.227450980392157},
+		{name: '5757',					r: 0.419607843137255, g: 0.43921568627451, b: 0.168627450980392},
+		{name: '576',					r: 0.376470588235294, g: 0.556862745098039, b: 0.227450980392157},
+		{name: '5763',					r: 0.466666666666667, g: 0.486274509803922, b: 0.309803921568627},
+		{name: '5767',					r: 0.549019607843137, g: 0.568627450980392, b: 0.309803921568627},
+		{name: '577',					r: 0.709803921568627, g: 0.8, b: 0.556862745098039},
+		{name: '5773',					r: 0.607843137254902, g: 0.619607843137255, b: 0.447058823529412},
+		{name: '5777',					r: 0.666666666666667, g: 0.67843137254902, b: 0.458823529411765},
+		{name: '578',					r: 0.776470588235294, g: 0.83921568627451, b: 0.627450980392157},
+		{name: '5783',					r: 0.709803921568627, g: 0.709803921568627, b: 0.556862745098039},
+		{name: '5787',					r: 0.776470588235294, g: 0.776470588235294, b: 0.6},
+		{name: '579',					r: 0.788235294117647, g: 0.83921568627451, b: 0.63921568627451},
+		{name: '5793',					r: 0.776470588235294, g: 0.776470588235294, b: 0.647058823529412},
+		{name: '5797',					r: 0.827450980392157, g: 0.819607843137255, b: 0.666666666666667},
+		{name: '580',					r: 0.847058823529412, g: 0.866666666666667, b: 0.709803921568627},
+		{name: '5803',					r: 0.847058823529412, g: 0.83921568627451, b: 0.717647058823529},
+		{name: '5807',					r: 0.87843137254902, g: 0.866666666666667, b: 0.737254901960784},
+		{name: '581',					r: 0.376470588235294, g: 0.368627450980392, b: 0.0666666666666667},
+		{name: '5815',					r: 0.286274509803922, g: 0.266666666666667, b: 0.0666666666666667},
+		{name: '582',					r: 0.529411764705882, g: 0.537254901960784, b: 0.0196078431372549},
+		{name: '5825',					r: 0.458823529411765, g: 0.43921568627451, b: 0.168627450980392},
+		{name: '583',					r: 0.666666666666667, g: 0.729411764705882, b: 0.0392156862745098},
+		{name: '5835',					r: 0.619607843137255, g: 0.6, b: 0.349019607843137},
+		{name: '584',					r: 0.807843137254902, g: 0.83921568627451, b: 0.286274509803922},
+		{name: '5845',					r: 0.698039215686274, g: 0.666666666666667, b: 0.43921568627451},
+		{name: '585',					r: 0.858823529411765, g: 0.87843137254902, b: 0.419607843137255},
+		{name: '5855',					r: 0.8, g: 0.776470588235294, b: 0.576470588235294},
+		{name: '586',					r: 0.886274509803922, g: 0.898039215686275, b: 0.517647058823529},
+		{name: '5865',					r: 0.83921568627451, g: 0.807843137254902, b: 0.63921568627451},
+		{name: '587',					r: 0.909803921568627, g: 0.909803921568627, b: 0.607843137254902},
+		{name: '5875',					r: 0.87843137254902, g: 0.858823529411765, b: 0.709803921568627},
+		{name: '600',					r: 0.956862745098039, g: 0.929411764705882, b: 0.686274509803922},
+		{name: '601',					r: 0.949019607843137, g: 0.929411764705882, b: 0.619607843137255},
+		{name: '602',					r: 0.949019607843137, g: 0.917647058823529, b: 0.529411764705882},
+		{name: '603',					r: 0.929411764705882, g: 0.909803921568627, b: 0.356862745098039},
+		{name: '604',					r: 0.909803921568627, g: 0.866666666666667, b: 0.129411764705882},
+		{name: '605',					r: 0.866666666666667, g: 0.807843137254902, b: 0.0666666666666667},
+		{name: '606',					r: 0.827450980392157, g: 0.749019607843137, b: 0.0666666666666667},
+		{name: '607',					r: 0.949019607843137, g: 0.917647058823529, b: 0.737254901960784},
+		{name: '608',					r: 0.937254901960784, g: 0.909803921568627, b: 0.67843137254902},
+		{name: '609',					r: 0.917647058823529, g: 0.898039215686275, b: 0.588235294117647},
+		{name: '610',					r: 0.886274509803922, g: 0.858823529411765, b: 0.447058823529412},
+		{name: '611',					r: 0.83921568627451, g: 0.807843137254902, b: 0.286274509803922},
+		{name: '612',					r: 0.768627450980392, g: 0.729411764705882, b: 0},
+		{name: '613',					r: 0.686274509803922, g: 0.627450980392157, b: 0.0470588235294118},
+		{name: '614',					r: 0.917647058823529, g: 0.886274509803922, b: 0.717647058823529},
+		{name: '615',					r: 0.886274509803922, g: 0.858823529411765, b: 0.666666666666667},
+		{name: '616',					r: 0.866666666666667, g: 0.83921568627451, b: 0.607843137254902},
+		{name: '617',					r: 0.8, g: 0.768627450980392, b: 0.486274509803922},
+		{name: '618',					r: 0.709803921568627, g: 0.666666666666667, b: 0.349019607843137},
+		{name: '619',					r: 0.588235294117647, g: 0.549019607843137, b: 0.156862745098039},
+		{name: '620',					r: 0.517647058823529, g: 0.466666666666667, b: 0.0666666666666667},
+		{name: '621',					r: 0.847058823529412, g: 0.866666666666667, b: 0.807843137254902},
+		{name: '622',					r: 0.756862745098039, g: 0.819607843137255, b: 0.749019607843137},
+		{name: '623',					r: 0.647058823529412, g: 0.749019607843137, b: 0.666666666666667},
+		{name: '624',					r: 0.498039215686275, g: 0.627450980392157, b: 0.549019607843137},
+		{name: '625',					r: 0.356862745098039, g: 0.529411764705882, b: 0.447058823529412},
+		{name: '626',					r: 0.129411764705882, g: 0.329411764705882, b: 0.247058823529412},
+		{name: '627',					r: 0.0470588235294118, g: 0.188235294117647, b: 0.149019607843137},
+		{name: '628',					r: 0.8, g: 0.886274509803922, b: 0.866666666666667},
+		{name: '629',					r: 0.698039215686274, g: 0.847058823529412, b: 0.847058823529412},
+		{name: '630',					r: 0.549019607843137, g: 0.8, b: 0.827450980392157},
+		{name: '631',					r: 0.329411764705882, g: 0.717647058823529, b: 0.776470588235294},
+		{name: '632',					r: 0, g: 0.627450980392157, b: 0.729411764705882},
+		{name: '633',					r: 0, g: 0.498039215686275, b: 0.6},
+		{name: '634',					r: 0, g: 0.4, b: 0.498039215686275},
+		{name: '635',					r: 0.729411764705882, g: 0.87843137254902, b: 0.87843137254902},
+		{name: '636',					r: 0.6, g: 0.83921568627451, b: 0.866666666666667},
+		{name: '637',					r: 0.419607843137255, g: 0.788235294117647, b: 0.858823529411765},
+		{name: '638',					r: 0, g: 0.709803921568627, b: 0.83921568627451},
+		{name: '639',					r: 0, g: 0.627450980392157, b: 0.768627450980392},
+		{name: '640',					r: 0, g: 0.549019607843137, b: 0.698039215686274},
+		{name: '641',					r: 0, g: 0.47843137254902, b: 0.647058823529412},
+		{name: '642',					r: 0.819607843137255, g: 0.847058823529412, b: 0.847058823529412},
+		{name: '643',					r: 0.776470588235294, g: 0.819607843137255, b: 0.83921568627451},
+		{name: '644',					r: 0.607843137254902, g: 0.686274509803922, b: 0.768627450980392},
+		{name: '645',					r: 0.466666666666667, g: 0.588235294117647, b: 0.698039215686274},
+		{name: '646',					r: 0.368627450980392, g: 0.509803921568627, b: 0.63921568627451},
+		{name: '647',					r: 0.149019607843137, g: 0.329411764705882, b: 0.486274509803922},
+		{name: '648',					r: 0, g: 0.188235294117647, b: 0.368627450980392},
+		{name: '649',					r: 0.83921568627451, g: 0.83921568627451, b: 0.847058823529412},
+		{name: '650',					r: 0.749019607843137, g: 0.776470588235294, b: 0.819607843137255},
+		{name: '651',					r: 0.607843137254902, g: 0.666666666666667, b: 0.749019607843137},
+		{name: '652',					r: 0.427450980392157, g: 0.529411764705882, b: 0.658823529411765},
+		{name: '653',					r: 0.2, g: 0.337254901960784, b: 0.529411764705882},
+		{name: '654',					r: 0.0588235294117647, g: 0.168627450980392, b: 0.356862745098039},
+		{name: '655',					r: 0.0470588235294118, g: 0.109803921568627, b: 0.27843137254902},
+		{name: '656',					r: 0.83921568627451, g: 0.858823529411765, b: 0.87843137254902},
+		{name: '657',					r: 0.756862745098039, g: 0.788235294117647, b: 0.866666666666667},
+		{name: '658',					r: 0.647058823529412, g: 0.686274509803922, b: 0.83921568627451},
+		{name: '659',					r: 0.498039215686275, g: 0.549019607843137, b: 0.749019607843137},
+		{name: '660',					r: 0.349019607843137, g: 0.376470588235294, b: 0.658823529411765},
+		{name: '661',					r: 0.176470588235294, g: 0.2, b: 0.556862745098039},
+		{name: '662',					r: 0.0470588235294118, g: 0.0980392156862745, b: 0.458823529411765},
+		{name: '663',					r: 0.886274509803922, g: 0.827450980392157, b: 0.83921568627451},
+		{name: '664',					r: 0.847058823529412, g: 0.8, b: 0.819607843137255},
+		{name: '665',					r: 0.776470588235294, g: 0.709803921568627, b: 0.768627450980392},
+		{name: '666',					r: 0.658823529411765, g: 0.576470588235294, b: 0.67843137254902},
+		{name: '667',					r: 0.498039215686275, g: 0.4, b: 0.537254901960784},
+		{name: '668',					r: 0.4, g: 0.286274509803922, b: 0.458823529411765},
+		{name: '669',					r: 0.27843137254902, g: 0.168627450980392, b: 0.349019607843137},
+		{name: '670',					r: 0.949019607843137, g: 0.83921568627451, b: 0.847058823529412},
+		{name: '671',					r: 0.937254901960784, g: 0.776470588235294, b: 0.827450980392157},
+		{name: '672',					r: 0.917647058823529, g: 0.666666666666667, b: 0.768627450980392},
+		{name: '673',					r: 0.87843137254902, g: 0.549019607843137, b: 0.698039215686274},
+		{name: '674',					r: 0.827450980392157, g: 0.419607843137255, b: 0.619607843137255},
+		{name: '675',					r: 0.737254901960784, g: 0.219607843137255, b: 0.466666666666667},
+		{name: '676',					r: 0.627450980392157, g: 0, b: 0.329411764705882},
+		{name: '677',					r: 0.929411764705882, g: 0.83921568627451, b: 0.83921568627451},
+		{name: '678',					r: 0.917647058823529, g: 0.8, b: 0.807843137254902},
+		{name: '679',					r: 0.898039215686275, g: 0.749019607843137, b: 0.776470588235294},
+		{name: '680',					r: 0.827450980392157, g: 0.619607843137255, b: 0.686274509803922},
+		{name: '681',					r: 0.717647058823529, g: 0.447058823529412, b: 0.556862745098039},
+		{name: '682',					r: 0.627450980392157, g: 0.317647058823529, b: 0.458823529411765},
+		{name: '683',					r: 0.498039215686275, g: 0.156862745098039, b: 0.309803921568627},
+		{name: '684',					r: 0.937254901960784, g: 0.8, b: 0.807843137254902},
+		{name: '685',					r: 0.917647058823529, g: 0.749019607843137, b: 0.768627450980392},
+		{name: '686',					r: 0.87843137254902, g: 0.666666666666667, b: 0.729411764705882},
+		{name: '687',					r: 0.788235294117647, g: 0.537254901960784, b: 0.619607843137255},
+		{name: '688',					r: 0.698039215686274, g: 0.4, b: 0.517647058823529},
+		{name: '689',					r: 0.576470588235294, g: 0.258823529411765, b: 0.4},
+		{name: '690',					r: 0.43921568627451, g: 0.137254901960784, b: 0.258823529411765},
+		{name: '691',					r: 0.937254901960784, g: 0.819607843137255, b: 0.788235294117647},
+		{name: '692',					r: 0.909803921568627, g: 0.749019607843137, b: 0.729411764705882},
+		{name: '693',					r: 0.858823529411765, g: 0.658823529411765, b: 0.647058823529412},
+		{name: '694',					r: 0.788235294117647, g: 0.549019607843137, b: 0.549019607843137},
+		{name: '695',					r: 0.698039215686274, g: 0.419607843137255, b: 0.43921568627451},
+		{name: '696',					r: 0.556862745098039, g: 0.27843137254902, b: 0.286274509803922},
+		{name: '697',					r: 0.498039215686275, g: 0.219607843137255, b: 0.227450980392157},
+		{name: '698',					r: 0.968627450980392, g: 0.819607843137255, b: 0.8},
+		{name: '699',					r: 0.968627450980392, g: 0.749019607843137, b: 0.749019607843137},
+		{name: '700',					r: 0.949019607843137, g: 0.647058823529412, b: 0.666666666666667},
+		{name: '701',					r: 0.909803921568627, g: 0.529411764705882, b: 0.556862745098039},
+		{name: '702',					r: 0.83921568627451, g: 0.376470588235294, b: 0.427450980392157},
+		{name: '703',					r: 0.717647058823529, g: 0.219607843137255, b: 0.266666666666667},
+		{name: '704',					r: 0.619607843137255, g: 0.156862745098039, b: 0.156862745098039},
+		{name: '705',					r: 0.976470588235294, g: 0.866666666666667, b: 0.83921568627451},
+		{name: '706',					r: 0.988235294117647, g: 0.788235294117647, b: 0.776470588235294},
+		{name: '707',					r: 0.988235294117647, g: 0.67843137254902, b: 0.686274509803922},
+		{name: '708',					r: 0.976470588235294, g: 0.556862745098039, b: 0.6},
+		{name: '709',					r: 0.949019607843137, g: 0.407843137254902, b: 0.466666666666667},
+		{name: '710',					r: 0.87843137254902, g: 0.258823529411765, b: 0.317647058823529},
+		{name: '711',					r: 0.819607843137255, g: 0.176470588235294, b: 0.2},
+		{name: '712',					r: 1, g: 0.827450980392157, b: 0.666666666666667},
+		{name: '713',					r: 0.976470588235294, g: 0.788235294117647, b: 0.63921568627451},
+		{name: '714',					r: 0.976470588235294, g: 0.729411764705882, b: 0.509803921568627},
+		{name: '715',					r: 0.988235294117647, g: 0.619607843137255, b: 0.286274509803922},
+		{name: '716',					r: 0.949019607843137, g: 0.517647058823529, b: 0.0666666666666667},
+		{name: '717',					r: 0.827450980392157, g: 0.427450980392157, b: 0},
+		{name: '718',					r: 0.749019607843137, g: 0.356862745098039, b: 0},
+		{name: '719',					r: 0.956862745098039, g: 0.819607843137255, b: 0.686274509803922},
+		{name: '720',					r: 0.937254901960784, g: 0.768627450980392, b: 0.619607843137255},
+		{name: '721',					r: 0.909803921568627, g: 0.698039215686274, b: 0.509803921568627},
+		{name: '722',					r: 0.819607843137255, g: 0.556862745098039, b: 0.329411764705882},
+		{name: '723',					r: 0.729411764705882, g: 0.458823529411765, b: 0.188235294117647},
+		{name: '724',					r: 0.556862745098039, g: 0.286274509803922, b: 0.0196078431372549},
+		{name: '725',					r: 0.458823529411765, g: 0.219607843137255, b: 0.00784313725490196},
+		{name: '726',					r: 0.929411764705882, g: 0.827450980392157, b: 0.709803921568627},
+		{name: '727',					r: 0.886274509803922, g: 0.749019607843137, b: 0.607843137254902},
+		{name: '728',					r: 0.827450980392157, g: 0.658823529411765, b: 0.486274509803922},
+		{name: '729',					r: 0.756862745098039, g: 0.556862745098039, b: 0.376470588235294},
+		{name: '730',					r: 0.666666666666667, g: 0.458823529411765, b: 0.247058823529412},
+		{name: '731',					r: 0.447058823529412, g: 0.247058823529412, b: 0.0392156862745098},
+		{name: '732',					r: 0.376470588235294, g: 0.2, b: 0.0392156862745098},
+		{name: '801',					r: 0, g: 0.666666666666667, b: 0.8},
+		{name: '801 2X',				r: 0, g: 0.537254901960784, b: 0.686274509803922},
+		{name: '802',					r: 0.376470588235294, g: 0.866666666666667, b: 0.286274509803922},
+		{name: '802 2X',				r: 0.109803921568627, g: 0.807843137254902, b: 0.156862745098039},
+		{name: '803',					r: 1, g: 0.929411764705882, b: 0.219607843137255},
+		{name: '803 2X',				r: 1, g: 0.847058823529412, b: 0.0862745098039216},
+		{name: '804',					r: 1, g: 0.576470588235294, b: 0.219607843137255},
+		{name: '804 2X',				r: 1, g: 0.498039215686275, b: 0.117647058823529},
+		{name: '805',					r: 0.976470588235294, g: 0.349019607843137, b: 0.317647058823529},
+		{name: '805 2X',				r: 0.976470588235294, g: 0.227450980392157, b: 0.168627450980392},
+		{name: '806',					r: 1, g: 0, b: 0.576470588235294},
+		{name: '806 2X',				r: 0.968627450980392, g: 0.00784313725490196, b: 0.486274509803922},
+		{name: '807',					r: 0.83921568627451, g: 0, b: 0.619607843137255},
+		{name: '807 2X',				r: 0.749019607843137, g: 0, b: 0.549019607843137},
+		{name: '808',					r: 0, g: 0.709803921568627, b: 0.607843137254902},
+		{name: '808 2X',				r: 0, g: 0.627450980392157, b: 0.529411764705882},
+		{name: '809',					r: 0.866666666666667, g: 0.87843137254902, b: 0.0588235294117647},
+		{name: '809 2X',				r: 0.83921568627451, g: 0.83921568627451, b: 0.0470588235294118},
+		{name: '810',					r: 1, g: 0.8, b: 0.117647058823529},
+		{name: '810 2X',				r: 1, g: 0.737254901960784, b: 0.129411764705882},
+		{name: '811',					r: 1, g: 0.447058823529412, b: 0.27843137254902},
+		{name: '811 2X',				r: 1, g: 0.329411764705882, b: 0.0862745098039216},
+		{name: '812',					r: 0.988235294117647, g: 0.137254901960784, b: 0.4},
+		{name: '812 2X',				r: 0.988235294117647, g: 0.0274509803921569, b: 0.309803921568627},
+		{name: '813',					r: 0.898039215686275, g: 0, b: 0.6},
+		{name: '813 2X',				r: 0.819607843137255, g: 0, b: 0.517647058823529},
+		{name: '814',					r: 0.549019607843137, g: 0.376470588235294, b: 0.756862745098039},
+		{name: '814 2X',				r: 0.43921568627451, g: 0.247058823529412, b: 0.686274509803922}
+	];
+	
+	jQuery.colorpicker.swatches.default_array_width				= 56;
+	jQuery.colorpicker.swatches.default_array_columns			= 12;
+	
+	jQuery.colorpicker.swatches.default_array = [
+		{name: 'red',									r: 208 / 255, g:   0 / 255, b:   0 / 255},
+		{name: 'sunrise',								r: 182 / 255, g:  28 / 255, b:   0 / 255},
+		{name: 'orange',								r: 156 / 255, g:  56 / 255, b:   0 / 255},
+		{name: 'gold',									r: 130 / 255, g:  84 / 255, b:   0 / 255},
+		{name: 'yellow',								r: 104 / 255, g: 112 / 255, b:   0 / 255},
+		{name: 'lemon',									r:  78 / 255, g: 140 / 255, b:   0 / 255},
+		{name: 'lime',									r:  52 / 255, g: 168 / 255, b:   0 / 255},
+		{name: 'virus',									r:  26 / 255, g: 196 / 255, b:   0 / 255},
+
+		{name: 'green',									r:   0 / 255, g: 224 / 255, b:   0 / 255},
+		{name: 'sea',									r:   0 / 255, g: 196 / 255, b:  30 / 255},
+		{name: 'aqua',									r:   0 / 255, g: 168 / 255, b:  60 / 255},
+		{name: 'turqoise',								r:   0 / 255, g: 140 / 255, b:  90 / 255},
+		{name: 'cyan',									r:   0 / 255, g: 112 / 255, b: 120 / 255},
+		{name: 'baby blue',								r:   0 / 255, g:  84 / 255, b: 150 / 255},
+		{name: 'sky',									r:   0 / 255, g:  56 / 255, b: 180 / 255},
+		{name: 'royal blue',							r:   0 / 255, g:  28 / 255, b: 210 / 255},
+
+		{name: 'blue',									r:   0 / 255, g:   0 / 255, b: 240 / 255},
+		{name: 'indigo',								r:  26 / 255, g:   0 / 255, b: 210 / 255},
+		{name: 'purple',								r:  52 / 255, g:   0 / 255, b: 180 / 255},
+		{name: 'violet',								r:  78 / 255, g:   0 / 255, b: 150 / 255},
+		{name: 'magenta',								r: 104 / 255, g:   0 / 255, b: 120 / 255},
+		{name: 'blush',									r: 130 / 255, g:   0 / 255, b:  90 / 255},
+		{name: 'pink',									r: 156 / 255, g:   0 / 255, b:  60 / 255},
+		{name: 'sunset',								r: 182 / 255, g:   0 / 255, b:  30 / 255},
+
+		{name: 'black',									r:   0 / 255, g:   0 / 255, b:   0 / 255},
+		{name: 'white',									r:  65 / 255, g:  70 / 255, b:  75 / 255},
+		{name: 'dim red',								r:   4 / 255, g:   0 / 255, b:   0 / 255},
+		{name: 'dim yellow',							r:   2 / 255, g:   2 / 255, b:   0 / 255},
+		{name: 'dim green',								r:   0 / 255, g:   4 / 255, b:   0 / 255},
+		{name: 'dim cyan',								r:   0 / 255, g:   2 / 255, b:   2 / 255},
+		{name: 'dim blue',								r:   0 / 255, g:   0 / 255, b:   4 / 255},
+		{name: 'dim purple',							r:   2 / 255, g:   0 / 255, b:   2 / 255},
+
+		{name: '0',										r: 195 / 255, g:   0 / 255, b:   0 / 255},
+		{name: '20',									r: 162 / 255, g:  35 / 255, b:   0 / 255},
+		{name: '40',									r: 130 / 255, g:  70 / 255, b:   0 / 255},
+		{name: '60',									r:  97 / 255, g: 105 / 255, b:   0 / 255},
+		{name: '80',									r:  65 / 255, g: 140 / 255, b:   0 / 255},
+		{name: '100',									r:  32 / 255, g: 175 / 255, b:   0 / 255},
+		{name: '120',									r:   0 / 255, g: 210 / 255, b:   0 / 255},
+		{name: '140',									r:   0 / 255, g: 175 / 255, b:  37 / 255},
+		{name: '160',									r:   0 / 255, g: 140 / 255, b:  75 / 255},
+		{name: '180',									r:   0 / 255, g: 105 / 255, b: 112 / 255},
+		{name: '200',									r:   0 / 255, g:  70 / 255, b: 150 / 255},
+		{name: '220',									r:   0 / 255, g:  35 / 255, b: 188 / 255},
+		{name: '240',									r:   0 / 255, g:   0 / 255, b: 225 / 255},
+		{name: '260',									r:  32 / 255, g:   0 / 255, b: 188 / 255},
+		{name: '280',									r:  65 / 255, g:   0 / 255, b: 150 / 255},
+		{name: '300',									r:  97 / 255, g:   0 / 255, b: 112 / 255},
+		{name: '320',									r: 130 / 255, g:   0 / 255, b:  75 / 255},
+		{name: '340',									r: 162 / 255, g:   0 / 255, b:  37 / 255}
+	];
+	
+	jQuery.colorpicker.swatches.pantone_100_width				= 78;
+	jQuery.colorpicker.swatches.pantone_100_columns				= 6;
+	
+	jQuery.colorpicker.swatches.pantone_100 = [
+		{name: 'Mahogany',								r: 205 / 255, g: 74 / 255, b: 74 / 255},
+		{name: 'Fuzzy Wuzzy Brown',						r: 204 / 255, g: 102 / 255, b: 102 / 255},
+		{name: 'Chestnut',								r: 188 / 255, g: 93 / 255, b: 88 / 255},
+		{name: 'Red Orange',							r: 255 / 255, g: 83 / 255, b: 73 / 255},
+		{name: 'Sunset Orange',							r: 253 / 255, g: 94 / 255, b: 83 / 255},
+		{name: 'Bittersweet',							r: 253 / 255, g: 124 / 255, b: 110 / 255},
+		{name: 'Melon',									r: 253 / 255, g: 188 / 255, b: 180 / 255},
+		{name: 'Outrageous Orange',						r: 255 / 255, g: 110 / 255, b: 74 / 255},
+		{name: 'Vivid Tangerine',						r: 255 / 255, g: 160 / 255, b: 137 / 255},
+		{name: 'Burnt Sienna',							r: 234 / 255, g: 126 / 255, b: 93 / 255},
+		{name: 'Brown',									r: 180 / 255, g: 103 / 255, b: 77 / 255},
+		{name: 'Sepia',									r: 165 / 255, g: 105 / 255, b: 79 / 255},
+		{name: 'Orange',								r: 255 / 255, g: 117 / 255, b: 56 / 255},
+		{name: 'Burnt Orange',							r: 255 / 255, g: 127 / 255, b: 73 / 255},
+		{name: 'Copper',								r: 221 / 255, g: 148 / 255, b: 117 / 255},
+		{name: 'Mango Tango',							r: 255 / 255, g: 130 / 255, b: 67 / 255},
+		{name: 'Atomic Tangerine',						r: 255 / 255, g: 164 / 255, b: 116 / 255},
+		{name: 'Beaver',								r: 159 / 255, g: 129 / 255, b: 112 / 255},
+		{name: 'Antique Brass',							r: 205 / 255, g: 149 / 255, b: 117 / 255},
+		{name: 'Desert Sand',							r: 239 / 255, g: 205 / 255, b: 184 / 255},
+		{name: 'Raw Sienna',							r: 214 / 255, g: 138 / 255, b: 89 / 255},
+		{name: 'Tumbleweed',							r: 222 / 255, g: 170 / 255, b: 136 / 255},
+		{name: 'Tan',									r: 250 / 255, g: 167 / 255, b: 108 / 255},
+		{name: 'Peach',									r: 255 / 255, g: 207 / 255, b: 171 / 255},
+		{name: 'Macaroni and Cheese',					r: 255 / 255, g: 189 / 255, b: 136 / 255},
+		{name: 'Apricot',								r: 253 / 255, g: 217 / 255, b: 181 / 255},
+		{name: 'Neon Carrot', 							r: 255 / 255, g: 163 / 255, b: 67 / 255},
+		{name: 'Almond',								r: 239 / 255, g: 219 / 255, b: 197 / 255},
+		{name: 'Yellow Orange',							r: 255 / 255, g: 182 / 255, b: 83 / 255},
+		{name: 'Gold',									r: 231 / 255, g: 198 / 255, b: 151 / 255},
+		{name: 'Shadow',								r: 138 / 255, g: 121 / 255, b: 93 / 255},
+		{name: 'Banana Mania',							r: 250 / 255, g: 231 / 255, b: 181 / 255},
+		{name: 'Sunglow',								r: 255 / 255, g: 207 / 255, b: 72 / 255},
+		{name: 'Goldenrod',								r: 252 / 255, g: 217 / 255, b: 117 / 255},
+		{name: 'Dandelion',								r: 253 / 255, g: 219 / 255, b: 109 / 255},
+		{name: 'Yellow',								r: 252 / 255, g: 232 / 255, b: 131 / 255},
+		{name: 'Green Yellow',							r: 240 / 255, g: 232 / 255, b: 145 / 255},
+		{name: 'Spring Green',							r: 236 / 255, g: 234 / 255, b: 190 / 255},
+		{name: 'Olive Green',							r: 186 / 255, g: 184 / 255, b: 108 / 255},
+		{name: 'Laser Lemon',							r: 253 / 255, g: 252 / 255, b: 116 / 255},
+		{name: 'Unmellow Yellow',						r: 253 / 255, g: 252 / 255, b: 116 / 255},
+		{name: 'Canary',								r: 255 / 255, g: 255 / 255, b: 153 / 255},
+		{name: 'Yellow Green',							r: 197 / 255, g: 227 / 255, b: 132 / 255},
+		{name: 'Inch Worm',								r: 178 / 255, g: 236 / 255, b: 93 / 255},
+		{name: 'Asparagus',								r: 135 / 255, g: 169 / 255, b: 107 / 255},
+		{name: 'Granny Smith Apple',					r: 168 / 255, g: 228 / 255, b: 160 / 255},
+		{name: 'Electric Lime',							r: 29 / 255, g: 249 / 255, b: 20 / 255},
+		{name: 'Screamin Green',						r: 118 / 255, g: 255 / 255, b: 122 / 255},
+		{name: 'Fern',									r: 113 / 255, g: 188 / 255, b: 120 / 255},
+		{name: 'Forest Green',							r: 109 / 255, g: 174 / 255, b: 129 / 255},
+		{name: 'Sea Green',								r: 159 / 255, g: 226 / 255, b: 191 / 255},
+		{name: 'Green',									r: 28 / 255, g: 172 / 255, b: 120 / 255},
+		{name: 'Mountain Meadow',						r: 48 / 255, g: 186 / 255, b: 143 / 255},
+		{name: 'Shamrock',								r: 69 / 255, g: 206 / 255, b: 162 / 255},
+		{name: 'Jungle Green',							r: 59 / 255, g: 176 / 255, b: 143 / 255},
+		{name: 'Caribbean Green',						r: 28 / 255, g: 211 / 255, b: 162 / 255},
+		{name: 'Tropical Rain Forest',					r: 23 / 255, g: 128 / 255, b: 109 / 255},
+		{name: 'Pine Green',							r: 21 / 255, g: 128 / 255, b: 120 / 255},
+		{name: 'Robin Egg Blue',						r: 31 / 255, g: 206 / 255, b: 203 / 255},
+		{name: 'Aquamarine',							r: 120 / 255, g: 219 / 255, b: 226 / 255},
+		{name: 'Turquoise Blue',						r: 119 / 255, g: 221 / 255, b: 231 / 255},
+		{name: 'Sky Blue',								r: 128 / 255, g: 218 / 255, b: 235 / 255},
+		{name: 'Outer Space',							r: 65 / 255, g: 74 / 255, b: 76 / 255},
+		{name: 'Blue Green',							r: 25 / 255, g: 158 / 255, b: 189 / 255},
+		{name: 'Pacific Blue',							r: 28 / 255, g: 169 / 255, b: 201 / 255},
+		{name: 'Cerulean',								r: 29 / 255, g: 172 / 255, b: 214 / 255},
+		{name: 'Cornflower',							r: 154 / 255, g: 206 / 255, b: 235 / 255},
+		{name: 'Midnight Blue',							r: 26 / 255, g: 72 / 255, b: 118 / 255},
+		{name: 'Navy Blue',								r: 25 / 255, g: 116 / 255, b: 210 / 255},
+		{name: 'Denim',									r: 43 / 255, g: 108 / 255, b: 196 / 255},
+		{name: 'Blue',									r: 31 / 255, g: 117 / 255, b: 254 / 255},
+		{name: 'Periwinkle',							r: 197 / 255, g: 208 / 255, b: 230 / 255},
+		{name: 'Cadet Blue',							r: 176 / 255, g: 183 / 255, b: 198 / 255},
+		{name: 'Indigo',								r: 93 / 255, g: 118 / 255, b: 203 / 255},
+		{name: 'Wild Blue Yonder',						r: 162 / 255, g: 173 / 255, b: 208 / 255},
+		{name: 'Manatee',								r: 151 / 255, g: 154 / 255, b: 170 / 255},
+		{name: 'Blue Bell',								r: 173 / 255, g: 173 / 255, b: 214 / 255},
+		{name: 'Blue Violet',							r: 115 / 255, g: 102 / 255, b: 189 / 255},
+		{name: 'Purple Heart',							r: 116 / 255, g: 66 / 255, b: 200 / 255},
+		{name: 'Royal Purple',							r: 120 / 255, g: 81 / 255, b: 169 / 255},
+		{name: 'Purple Mountains Majesty',				r: 157 /255, g:129 / 255, b: 186 / 255},
+		{name: 'Violet (Purple)',						r:146 / 255, g: 110 / 255, b: 174 / 255},
+		{name: 'Wisteria',								r: 205 / 255, g: 164 / 255, b: 222 / 255},
+		{name: 'Vivid Violet',							r: 143 / 255, g: 80 / 255, b: 157 / 255},
+		{name: 'Fuchsia',								r: 195 / 255, g: 100 / 255, b: 197 / 255},
+		{name: 'Shocking Pink',							r: 251 / 255, g: 126 / 255, b: 253 / 255},
+		{name: 'Pink Flamingo',							r: 252 / 255, g: 116 / 255, b: 253 / 255},
+		{name: 'Plum',									r: 142 / 255, g: 69 / 255, b: 133 / 255},
+		{name: 'Hot Magenta',							r: 255 / 255, g: 29 / 255, b: 206 / 255},
+		{name: 'Purple Pizzazz',						r: 255 / 255, g: 29 / 255, b: 206 / 255},
+		{name: 'Razzle Dazzle Rose',					r: 255 / 255, g: 72 / 255, b: 208 / 255},
+		{name: 'Orchid',								r: 230 / 255, g: 168 / 255, b: 215 / 255},
+		{name: 'Red Violet',							r: 192 / 255, g: 68 / 255, b: 143 / 255},
+		{name: 'Eggplant',								r: 110 / 255, g: 81 / 255, b: 96 / 255},
+		{name: 'Cerise',								r: 221 / 255, g: 68 / 255, b: 146 / 255},
+		{name: 'Wild Strawberry',						r: 255 / 255, g: 67 / 255, b: 164 / 255},
+		{name: 'Magenta',								r: 246 / 255, g: 100 / 255, b: 175 / 255},
+		{name: 'Lavender',								r: 252 / 255, g: 180 / 255, b: 213 / 255},
+		{name: 'Cotton Candy',							r: 255 / 255, g: 188 / 255, b: 217 / 255},
+		{name: 'Violet Red',							r: 247 / 255, g: 83 / 255, b: 148 / 255},
+		{name: 'Carnation Pink',						r: 255 / 255, g: 170 / 255, b: 204 / 255},
+		{name: 'Razzmatazz',							r: 227 / 255, g: 37 / 255, b: 107 / 255},
+		{name: 'Piggy Pink',							r: 253 / 255, g: 215 / 255, b: 228 / 255},
+		{name: 'Jazzberry Jam',							r: 202 / 255, g: 55 / 255, b: 103 / 255},
+		{name: 'Blush',									r: 222 / 255, g: 93 / 255, b: 131 / 255},
+		{name: 'Tickle Me Pink',						r: 252 / 255, g: 137 / 255, b: 172 / 255},
+		{name: 'Pink Sherbet',							r: 247 / 255, g: 128 / 255, b: 161 / 255},
+		{name: 'Maroon',								r: 200 / 255, g: 56 / 255, b: 90 / 255},
+		{name: 'Red',									r: 238 / 255, g: 32 / 255, b: 77 / 255},
+		{name: 'Radical Red',							r: 255 / 255, g: 73 / 255, b: 108 / 255},
+		{name: 'Mauvelous',								r: 239 / 255, g: 152 / 255, b: 170 / 255},
+		{name: 'Wild Watermelon',						r: 252 / 255, g: 108 / 255, b: 133 / 255},
+		{name: 'Scarlet',								r: 252 / 255, g: 40 / 255, b: 71 / 255},
+		{name: 'Salmon',								r: 255 / 255, g: 155 / 255, b: 170 / 255},
+		{name: 'Brick Red',								r: 203 / 255, g: 65 / 255, b: 84 / 255},
+		{name: 'White',									r: 237 / 255, g: 237 / 255, b: 237 / 255},
+		{name: 'Timberwolf',							r: 219 / 255, g: 215 / 255, b: 210 / 255},
+		{name: 'Silver',								r: 205 / 255, g: 197 / 255, b: 194 / 255},
+		{name: 'Gray',									r: 149 / 255, g: 145 / 255, b: 140 / 255},
+		{name: 'Black',									r: 35 / 255, g: 35 / 255, b: 35 / 255}
+	];
+	
+	dragula([modes, bundle0, bundle1], {
+		copy: true,
+		removeOnSpill: true,
+		accepts: function(el, target, source, sibling) {
+			if (target === modes) {
+				return false;
+			} else if (target.childElementCount > MAX_MODES) {
+				return false;
+			}
+			return true;
+		}
+	}).on("drop", function(el, target, source, sibling) {
+		el.data													= {};
+		el.data.id												= el.id;
+		el.setAttribute("id", "mode-item-" + Math.floor(Math.random() * Math.pow(2, 16)));
+		}).on("cancel", function(el, container, source) {
+			if (source === bundle0 || source === bundle1) {
+				$(source).find("#" + el.getAttribute('id')).remove()
+			}
+	});
+	
+	var data = [
+		0,										// mode type
+		1, 0,									// pattern
+		1, 1, 5, 0,								// args1
+		0, 0, 0, 0,								// args2
+		5, 5, 5, 5, 5, 0, 0, 0,					// timings1
+		6, 6, 6, 6, 6, 0, 0, 0,					// timings2
+		7, 7, 7, 7, 7, 0, 0, 0,					// timings3
+		1, 3, 1,								// numc
+		
+		255, 0, 0, 0, 0, 0, 0, 0, 0,			// colors1
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		
+		255, 0, 0, 0, 255, 0, 0, 0, 255,		// colors2
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		
+		0, 0, 255, 0, 0, 0, 0, 0, 0,			// colors3
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		
+		4, 14, 18, 28,							// pattern thresh
+		8, 8, 20, 20,							// color thresh
+		0
+	];
+	
+	for (var i = 0; i < 191; i++) {
+		readListeners[i]										= [];
+		updateListeners[i]										= [];
+	}
+	
+	function sendCommand(cmd, force) {
+		if (connected || force) {
+			console.log("sent: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
+			
+			var buf												= new ArrayBuffer(4);
+			var view											= new DataView(buf);
+			view.setInt8(0, cmd[0]);
+			view.setInt8(1, cmd[1]);
+			view.setInt8(2, cmd[2]);
+			view.setInt8(3, cmd[3]);
+			chrome.serial.send(connection_id, buf, function() {});
+		}
+	};
+	
+	var delay_send												= false;
+	
+	function handleCommand(cmd) {
+		console.log("got: " + cmd[0] + " " + cmd[1] + " " + cmd[2] + " " + cmd[3]);
+		if (cmd[0] == SER_HANDSHAKE && cmd[1] == SER_VERSION && cmd[2] == cmd[3] && !connected) {
+			connected											= true;
+			sendCommand([SER_HANDSHAKE, SER_VERSION, 42, 42], true);
+			var now												= new Date().getTime();
+			
+			while (new Date().getTime() < now + 500) {}
+			delay_send											= true;
+		}
+		// If on windows, or rebooting, you'll get the handshake first
+		if (cmd[0] == SER_HANDSHAKE && cmd[1] == SER_VERSION && cmd[2] == cmd[3] && delay_send) {
+			var now												= new Date().getTime();
+			
+			while (new Date().getTime() < now + 500) {}
+			for (var i = 0; i < 191; i++) {
+				sendData(i, data[i]);
+			}
+			sendCommand([SER_INIT, 0, 0, 0]);
+			delay_send											= false;
+		}
+	};
+	
+	function sendData(addr, val) {
+		// Updates in-memory array and sends value to light
+		data[addr]												= val;
+		sendCommand([SER_WRITE, addr, val, 0]);
+	};
+	
+	function updateData(addr, val) {
+		// UX changed value
+		sendData(addr, val);
+		for (var i = 0; i < updateListeners[addr].length; i++) {
+			updateListeners[addr][i](val);
+		}
+	};
+	
+	function readData(addr, val) {
+		// Read in new value
+		sendData(addr, val);
+		for (var i = 0; i < readListeners[addr].length; i++) {
+			readListeners[addr][i](val);
+		}
+	};
+	
+	function arrayToMode(arr) {
+		// array to json mode
+		return {
+			type: arr[0],
+			pattern: [arr[1], arr[2]],
+			args: [
+				[arr[3], arr[4], arr[5], arr[6]],
+				[arr[7], arr[8], arr[9], arr[10]]
+			],
+			timings: [
+				[arr[11], arr[12], arr[13], arr[14], arr[15], arr[16], arr[17], arr[18]],
+				[arr[19], arr[20], arr[21], arr[22], arr[23], arr[24], arr[25], arr[26]],
+				[arr[27], arr[28], arr[29], arr[30], arr[31], arr[32], arr[33], arr[34]]
+			],
+			numc: [arr[35], arr[36], arr[37]],
+			thresh0: [arr[38], arr[39], arr[40], arr[41]],
+			thresh1: [arr[42], arr[43], arr[44], arr[45]],
+			trigger: arr[46],
+			colors: [
+				[
+					[arr[47], arr[48], arr[49]],
+					[arr[50], arr[51], arr[52]],
+					[arr[53], arr[54], arr[55]],
+					[arr[56], arr[57], arr[58]],
+					[arr[59], arr[60], arr[61]],
+					[arr[62], arr[63], arr[64]],
+					[arr[65], arr[66], arr[67]],
+					[arr[68], arr[69], arr[70]],
+					[arr[71], arr[72], arr[73]],
+					[arr[74], arr[75], arr[76]],
+					[arr[77], arr[78], arr[79]],
+					[arr[80], arr[81], arr[82]],
+					[arr[83], arr[84], arr[85]],
+					[arr[86], arr[87], arr[88]],
+					[arr[89], arr[90], arr[91]],
+					[arr[92], arr[93], arr[94]]
+				],
+				[
+					[arr[95], arr[96], arr[97]],
+					[arr[98], arr[99], arr[100]],
+					[arr[101], arr[102], arr[103]],
+					[arr[104], arr[105], arr[106]],
+					[arr[107], arr[108], arr[109]],
+					[arr[110], arr[111], arr[112]],
+					[arr[113], arr[114], arr[115]],
+					[arr[116], arr[117], arr[118]],
+					[arr[119], arr[120], arr[121]],
+					[arr[122], arr[123], arr[124]],
+					[arr[125], arr[126], arr[127]],
+					[arr[128], arr[129], arr[130]],
+					[arr[131], arr[132], arr[133]],
+					[arr[134], arr[135], arr[136]],
+					[arr[137], arr[138], arr[139]],
+					[arr[140], arr[141], arr[142]]
+				],
+				[
+					[arr[143], arr[144], arr[145]],
+					[arr[146], arr[147], arr[148]],
+					[arr[149], arr[150], arr[151]],
+					[arr[152], arr[153], arr[154]],
+					[arr[155], arr[156], arr[157]],
+					[arr[158], arr[159], arr[160]],
+					[arr[161], arr[162], arr[163]],
+					[arr[164], arr[165], arr[166]],
+					[arr[167], arr[168], arr[169]],
+					[arr[170], arr[171], arr[172]],
+					[arr[173], arr[174], arr[175]],
+					[arr[176], arr[177], arr[178]],
+					[arr[179], arr[180], arr[181]],
+					[arr[182], arr[183], arr[184]],
+					[arr[185], arr[186], arr[187]],
+					[arr[188], arr[189], arr[190]]
+				]
+			]
+		};
+	};
+	
+	function modeToArray(m) {
+		// json mode to array
+		return [
+			m.type,
+			m.pattern[0], m.pattern[1],
+			
+			m.args[0][0], m.args[0][1], m.args[0][2], m.args[0][3],
+			m.args[1][0], m.args[1][1], m.args[1][2], m.args[1][3],
+			
+			m.timings[0][0], m.timings[0][1], m.timings[0][2], m.timings[0][3], m.timings[0][4], m.timings[0][5], m.timings[0][6], m.timings[0][7],
+			m.timings[1][0], m.timings[1][1], m.timings[1][2], m.timings[1][3], m.timings[1][4], m.timings[1][5], m.timings[1][6], m.timings[1][7],
+			m.timings[2][0], m.timings[2][1], m.timings[2][2], m.timings[2][3], m.timings[2][4], m.timings[2][5], m.timings[2][6], m.timings[2][7],
+			
+			m.numc[0], m.numc[1], m.numc[2],
+			
+			m.thresh0[0], m.thresh0[1], m.thresh0[2], m.thresh0[3],
+			m.thresh1[0], m.thresh1[1], m.thresh1[2], m.thresh1[3],
+			m.trigger,
+			
+			m.colors[0][0][0],  m.colors[0][0][1],  m.colors[0][0][2],
+			m.colors[0][1][0],  m.colors[0][1][1],  m.colors[0][1][2],
+			m.colors[0][2][0],  m.colors[0][2][1],  m.colors[0][2][2],
+			m.colors[0][3][0],  m.colors[0][3][1],  m.colors[0][3][2],
+			m.colors[0][4][0],  m.colors[0][4][1],  m.colors[0][4][2],
+			m.colors[0][5][0],  m.colors[0][5][1],  m.colors[0][5][2],
+			m.colors[0][6][0],  m.colors[0][6][1],  m.colors[0][6][2],
+			m.colors[0][7][0],  m.colors[0][7][1],  m.colors[0][7][2],
+			m.colors[0][8][0],  m.colors[0][8][1],  m.colors[0][8][2],
+			m.colors[0][9][0],  m.colors[0][9][1],  m.colors[0][9][2],
+			m.colors[0][10][0], m.colors[0][10][1], m.colors[0][10][2],
+			m.colors[0][11][0], m.colors[0][11][1], m.colors[0][11][2],
+			m.colors[0][12][0], m.colors[0][12][1], m.colors[0][12][2],
+			m.colors[0][13][0], m.colors[0][13][1], m.colors[0][13][2],
+			m.colors[0][14][0], m.colors[0][14][1], m.colors[0][14][2],
+			m.colors[0][15][0], m.colors[0][15][1], m.colors[0][15][2],
+			
+			m.colors[1][0][0],  m.colors[1][0][1],  m.colors[1][0][2],
+			m.colors[1][1][0],  m.colors[1][1][1],  m.colors[1][1][2],
+			m.colors[1][2][0],  m.colors[1][2][1],  m.colors[1][2][2],
+			m.colors[1][3][0],  m.colors[1][3][1],  m.colors[1][3][2],
+			m.colors[1][4][0],  m.colors[1][4][1],  m.colors[1][4][2],
+			m.colors[1][5][0],  m.colors[1][5][1],  m.colors[1][5][2],
+			m.colors[1][6][0],  m.colors[1][6][1],  m.colors[1][6][2],
+			m.colors[1][7][0],  m.colors[1][7][1],  m.colors[1][7][2],
+			m.colors[1][8][0],  m.colors[1][8][1],  m.colors[1][8][2],
+			m.colors[1][9][0],  m.colors[1][9][1],  m.colors[1][9][2],
+			m.colors[1][10][0], m.colors[1][10][1], m.colors[1][10][2],
+			m.colors[1][11][0], m.colors[1][11][1], m.colors[1][11][2],
+			m.colors[1][12][0], m.colors[1][12][1], m.colors[1][12][2],
+			m.colors[1][13][0], m.colors[1][13][1], m.colors[1][13][2],
+			m.colors[1][14][0], m.colors[1][14][1], m.colors[1][14][2],
+			m.colors[1][15][0], m.colors[1][15][1], m.colors[1][15][2],
+			
+			m.colors[2][0][0],  m.colors[2][0][1],  m.colors[2][0][2],
+			m.colors[2][1][0],  m.colors[2][1][1],  m.colors[2][1][2],
+			m.colors[2][2][0],  m.colors[2][2][1],  m.colors[2][2][2],
+			m.colors[2][3][0],  m.colors[2][3][1],  m.colors[2][3][2],
+			m.colors[2][4][0],  m.colors[2][4][1],  m.colors[2][4][2],
+			m.colors[2][5][0],  m.colors[2][5][1],  m.colors[2][5][2],
+			m.colors[2][6][0],  m.colors[2][6][1],  m.colors[2][6][2],
+			m.colors[2][7][0],  m.colors[2][7][1],  m.colors[2][7][2],
+			m.colors[2][8][0],  m.colors[2][8][1],  m.colors[2][8][2],
+			m.colors[2][9][0],  m.colors[2][9][1],  m.colors[2][9][2],
+			m.colors[2][10][0], m.colors[2][10][1], m.colors[2][10][2],
+			m.colors[2][11][0], m.colors[2][11][1], m.colors[2][11][2],
+			m.colors[2][12][0], m.colors[2][12][1], m.colors[2][12][2],
+			m.colors[2][13][0], m.colors[2][13][1], m.colors[2][13][2],
+			m.colors[2][14][0], m.colors[2][14][1], m.colors[2][14][2],
+			m.colors[2][15][0], m.colors[2][15][1], m.colors[2][15][2]
+		];
+	};
+	
+	function rgb2hex(rgb) {
+		var r = ("0" + rgb.r.toString(16)).slice(-2);
+		var g = ("0" + rgb.g.toString(16)).slice(-2);
+		var b = ("0" + rgb.b.toString(16)).slice(-2);
+		return "#" + r + g + b;
+	};
+	
+	function hex2rgb(hex) {
+		return {
+			r: parseInt(hex.substr(0, 2), 16),
+			g: parseInt(hex.substr(2, 2), 16),
+			b: parseInt(hex.substr(4, 2), 16)
+		};
+	};
+	
+	function getColorHex(set, slot) {
+		var red = data[(48 * set) + (3 * slot) + 47];
+		if (red === null || red === undefined) {
+			red													= 0;
+		}
+		
+		var green = data[(48 * set) + (3 * slot) + 48];
+		if (green === null || green === undefined) {
+			green												= 0;
+		}
+		
+		var blue = data[(48 * set) + (3 * slot) + 49];
+		if (blue === null || blue === undefined) {
+			blue												= 0;
+		}
+	
+		var rgb = {
+			r: red,
+			g: green,
+			b: blue
+		};
+		
+		return rgb2hex(rgb);
+	};
+	
+	function normColor(hex) {
+		var rgb = hex2rgb(hex);
+		if (rgb.r > 0) {
+			rgb.r												= Math.round(64 + ((rgb.r * 3) / 4));
+		}
+		if (rgb.g > 0) {
+			rgb.g												= Math.round(64 + ((rgb.g * 3) / 4));
+		}
+		if (rgb.b > 0) {
+			rgb.b												= Math.round(64 + ((rgb.b * 3) / 4));
+		}
+		return rgb2hex(rgb);
+	};
+	
+	function SliderField(parent, opts) {
+		var opts												= opts || {};
+		if (opts.min === void 0) { opts.min = 0; }
+		if (opts.max === void 0) { opts.max = 100; }
+		if (opts.value === void 0) { opts.value = opts.min; }
+		if (opts.step === void 0) { opts.step = 1; }
+		if (opts.addr === void 0) { opts.addr = 0; }
+		if (opts.multiplier === void 0) { opts.multiplier = 1; }
+		if (opts.width === void 0) { opts.size = 200; }
+		
+		var sliderChange = function () {
+			return function(event, ui) {
+				field.value										= ui.value;
+				if (event.originalEvent) {
+					updateData(opts.addr, ui.value * opts.multiplier);
+					sendCommand([SER_INIT, 0, 0, 0]);
+				}
+			}
+		}();
+		
+		var fieldChange = function() {
+			return function(event) {
+				if (event.target.value < $(slider).slider("option", "min")) {
+					event.target.value							= slider.slider("option", "min");
+				
+				} else if (event.target.value > $(slider).slider("option", "max")) {
+					event.target.value							= slider.slider("option", "max");
+				}
+				
+				$(slider).slider("value", event.target.value);
+				updateData(opts.addr, event.target.value * opts.multiplier);
+				sendCommand([SER_INIT, 0, 0, 0]);
+			};
+		}();
+		
+		var listener = function() {
+			return function(val) {
+				val												= Number(val);
+				field.value										= val / opts.multiplier;
+				
+				$(slider).slider("value", field.value);
+			}
+		}();
+		
+		var elem												= document.createElement("div");
+		
+		elem.style.display										= "inline-block";
+		elem.style.width										= opts.width + "px";
+		parent.appendChild(elem);
+		
+		var field												= document.createElement("input");
+		field.type												= "text";
+		field.value												= opts.value;
+		field.onchange											= fieldChange;
+		field.style.width										= "30px";
+		field.style.float										= "left";
+		elem.appendChild(field);
+		
+		var slider												= document.createElement("div");
+		
+		slider.style.width										= (opts.width - 60) + "px";
+		slider.style.float										= "right";
+		$(slider).slider({
+			min: opts.min,
+			max: opts.max,
+			step: opts.step,
+			value: opts.value,
+			slide: sliderChange,
+			change: sliderChange
+		});
+		elem.appendChild(slider);
+		
+		readListeners[opts.addr].push(listener);
+		
+		this.setMin = function(val) {
+			$(slider).slider("option", "min", val);
+			if (field.value < val) {
+				field.value										= val;
+			}
+		};
+		
+		this.setMax = function(val) {
+			$(slider).slider("option", "max", val);
+			if (field.value > val) {
+				field.value										= val;
+			}
+		};
+		
+		this.setValue = function(val) {
+			$(slider).slider("value", val);
+		};
+	};
+	
+	
+	function PatternRow(parent, pattern_idx) {
+		// Pattern dropdown + arg sliderfields
+		
+		function ArgElement(parent, arg_idx) {
+			// Arg label + sliderfield
+			var addr											= 3 + (4 * pattern_idx) + arg_idx;
+			var elem											= document.createElement("div");
+			elem.title											= "Defines the pattern.";
+			elem.style.width									= "175px";
+			elem.style.display									= "inline-block";
+			elem.style.marginLeft								= "20px";
+			parent.appendChild(elem);
+			
+			var label											= document.createElement("span");
+			label.textContent									= "Arg " + pattern_idx + " " +  arg_idx;
+			label.style.width									= "100%";
+			elem.appendChild(label);
+			
+			var slider = new SliderField(elem, {
+				addr: addr,
+				width: 175
+			});
+			
+			var listener = function(send_data) {
+				return function(val) {
+					var pattern									= Patterns.getPattern(val);
+					if (arg_idx >= pattern.args.length) {
+						elem.style.display						= 'none';
+					} else {
+						elem.style.display						= 'inline-block';
+						elem.title								= pattern.args[arg_idx].tooltip;
+						label.textContent						= pattern.args[arg_idx].name;
+						slider.setMin(pattern.args[arg_idx].min);
+						slider.setMax(pattern.args[arg_idx].max);
+						if (send_data) {
+						slider.setValue(pattern.args[arg_idx].default);
+						sendData(addr, pattern.args[arg_idx].default);
+						}
+					}
+				};
+			};
+			
+			readListeners[1 + pattern_idx].push(listener(false));
+			updateListeners[1 + pattern_idx].push(listener(true));
+		};
+		
+		function PatternElement(parent) {
+			// Pattern label + dropdown
+			var elem											= document.createElement("div");
+			elem.title											= "Base pattern.";
+			elem.style.width									= "115px";
+			elem.style.display									= "inline-block";
+			elem.style.verticalAlign							= "top";
+			parent.appendChild(elem);
+			
+			var label											= document.createElement("span");
+			label.textContent									= "Base Pattern";
+			label.style.width									= "100%";
+			elem.appendChild(label);
+			
+			var dropdown										= document.createElement("select");
+			dropdown.style.width								= "100%";
+			dropdown.style.display								= "inline-block";
+			dropdown.onchange = function() {
+				return function(event) {
+					updateData(1 + pattern_idx, Number(this.value));
+					sendCommand([SER_INIT, 0, 0, 0]);
+				};
+			}();
+			
+			elem.appendChild(dropdown);
+			
+			var patterns										= Patterns.getPatterns();
+			
+			for (var i = 0; i < patterns.length; i++) {
+				var pattern										= document.createElement("option");
+				pattern.value									= i;
+				pattern.textContent								= patterns[i].name;
+				dropdown.appendChild(pattern);
+			}
+			
+			var listener = function() {
+				return function(val) {
+					dropdown.value								= val;
+				};
+			}();
+			
+			readListeners[1 + pattern_idx].push(listener);
+		};
+		
+		var elem												= document.createElement("div");
+		elem.style.margin										= "10px";
+		parent.appendChild(elem);
+		
+		var pattern = new PatternElement(elem);
+		for (var i = 0; i < 4; i++) {
+			var arg												= new ArgElement(elem, i);
+		}
+	};
+	
+	function TimingColumn(parent, pattern_idx, timing_group, show_label) {
+		// Column of 8 timing sliderfields with optional label
+		function TimingElement(parent, timing_idx) {
+			// Timing sliderfield with optional label
+			var addr											= 11 + (8 * pattern_idx) + (8 * timing_group) + timing_idx;
+			var width											= (show_label) ? 460 : 230;
+			var elem											= document.createElement("div");
+			elem.title											= "Timing for the pattern.";
+			elem.style.width									= width + "px";
+			elem.setAttribute("timing_group", timing_group);
+			elem.setAttribute("timing_idx", timing_idx);
+			parent.appendChild(elem);
+			
+			if (show_label) {
+				var label										= document.createElement("span");
+				label.textContent								= "Timing " + pattern_idx + " " + timing_idx;
+				label.style.width								= "210px";
+				label.style.margin								= "0px 10px 0px 10px";
+				label.style.float								= "left";
+				label.style.verticalAlign						= "top";
+				elem.appendChild(label);
+			}
+			
+			var slider = new SliderField(elem, {
+				min: 0,
+				max: 125,
+				step: 0.5,
+				multiplier: 2,
+				width: 210,
+				addr: addr
+			});
+			
+			var listener = function(send_data) {
+				return function(val) {
+					var pattern									= Patterns.getPattern(val);
+					if (timing_idx >= pattern.timings.length) {
+						// elem.style.display					= 'none';
+						elem.style.visibility					= 'hidden';
+					} else {
+						// elem.style.display					= null;
+						elem.style.visibility					= 'visible';
+						elem.title								= pattern.timings[timing_idx].tooltip;
+						if (show_label) {
+							label.textContent					= pattern.timings[timing_idx].name;
+						}
+						
+						if (send_data) {
+							slider.setValue(pattern.timings[timing_idx].default);
+							sendData(addr, pattern.timings[timing_idx].default);
+						}
+					}
+				};
+			};
+			
+			readListeners[1 + pattern_idx].push(listener(false));
+			updateListeners[1 + pattern_idx].push(listener(true));
+		};
+		
+		var elem												= document.createElement("div");
+		elem.style.verticalAlign								= "text-top";
+		parent.appendChild(elem);
+		
+		for (var i = 0; i < 8; i++) {
+			var timing											= new TimingElement(elem, i);
+		};
+	};
+	
+	function VectrEditor(parent) {
+		var elem												= document.createElement("div");
+		parent.appendChild(elem);
+		
+		new PatternRow(elem, 0);
+		new ThreshRow(elem, 1, 4);
+		
+				var spacer										= document.createElement("div");
+				spacer.style.minHeight							= "15px";
+				elem.appendChild(spacer);
+		
+		var colors												= document.createElement("div");
+		elem.appendChild(colors);
+		
+		new ColorSetRow(colors, 0, "vectr");
+		new ColorSetRow(colors, 1, "vectr");
+		new ColorSetRow(colors, 2, "vectr");
+		
+				var spacer										= document.createElement("div");
+				spacer.style.minHeight							= "15px";
+				elem.appendChild(spacer);
+		
+		var timingThresh										= ThreshRow(elem, 0, 4);
+		
+				var spacer										= document.createElement("div");
+				spacer.style.minHeight							= "15px";
+				elem.appendChild(spacer);
+		
+		
+		var timings												= document.createElement("div");
+		timings.style.display									= "inline-block";
+		elem.appendChild(timings);
+		
+		var timing0												= document.createElement("div");
+		timing0.style.display									= "inline-block";
+		timings.appendChild(timing0);
+		
+		var timing1												= document.createElement("div");
+		timing1.style.display									= "inline-block";
+		timings.appendChild(timing1);
+		
+		var timing2												= document.createElement("div");
+		timing2.style.display									= "inline-block";
+		timings.appendChild(timing2);
+		
+		new TimingColumn(timing0, 0, 0, true);
+		new TimingColumn(timing1, 0, 1, false);
+		new TimingColumn(timing2, 0, 2, false);
+		
+		
+		var typeListener = function(send_data) {
+			return function(val) {
+				if (val == 0) {
+					elem.style.display							= null;
+					if (send_data) {
+						readData(1, 0);
+					}
+				} else {
+					elem.style.display							= 'none';
+				}
+			};
+		};
+		
+		readListeners[0].push(typeListener(false));
+		updateListeners[0].push(typeListener(true));
+	};
+	
+	function PrimerEditor(parent) {
+		var elem												= document.createElement("div");
+		parent.appendChild(elem);
+		
+		new ThreshRow(elem, 0, 2);
+		
+		var container0											= document.createElement("div");
+		elem.appendChild(container0);
+		var pattern0											= new PatternRow(container0, 0);
+		var colors0												= new ColorSetRow(container0, 0, "primer");
+		
+				var spacer										= document.createElement("div");
+				spacer.style.minHeight							= "10px";
+				elem.appendChild(spacer);
+		
+		var container1											= document.createElement("div");
+		elem.appendChild(container1);
+		var pattern1											= new PatternRow(container1, 1);
+		var colors1												= new ColorSetRow(container1, 1, "primer");
+		
+				var spacer										= document.createElement("div");
+				spacer.style.minHeight							= "20px";
+				elem.appendChild(spacer);
+		
+		
+		var timings												= document.createElement("div");
+		timings.style.display									= "inline-block";
+		elem.appendChild(timings);
+		
+		var timing0												= document.createElement("div");
+		timing0.style.display									= "inline-block";
+		timings.appendChild(timing0);
+		
+		var timing1												= document.createElement("div");
+		timing1.style.display									= "inline-block";
+		timings.appendChild(timing1);
+		
+		new TimingColumn(timing0, 0, 0, true);
+		new TimingColumn(timing1, 1, 0, true);
+		
+		
+		var typeListener = function(send_data) {
+		return function(val) {
+			if (val == 1) {
+				elem.style.display								= null;
+				if (send_data) {
+					updateData(1, 0);
+					updateData(2, 0);
+					updateData(46, 0);
+					sendCommand([SER_INIT, 0, 0, 0]);
+				}
+				} else {
+					elem.style.display							= 'none';
+				}
+			};
+		};
+		
+		var triggerListener = function(send_data) {
+			return function(val) {
+				if (val == 0) {
+					container1.style.visibility					= 'hidden';
+					timing1.style.display						= 'none';
+				} else {
+					container1.style.visibility					= 'visible';
+					timing1.style.display						= 'inline-block';
+				}
+			};
+		};
+		
+		readListeners[46].push(triggerListener(false));
+		updateListeners[46].push(triggerListener(false));
+		
+		readListeners[0].push(typeListener(false));
+		updateListeners[0].push(typeListener(true));
+	};
+	
+	function ColorSetRow(parent, set_idx, prefix) {
+		// Numc sliderfield + colorpickers
+		function ColorSlot(parent, slot_idx) {
+			// Color picker
+			var addr											= 47 + (48 * set_idx) + (3 * slot_idx);
+			var id												= prefix + "-color-" + set_idx + "-" + slot_idx;
+			
+			var color_elem										= document.createElement("div");
+			color_elem.style.display							= "inline-block";
+			parent.appendChild(color_elem);
+			
+			var color_input										= document.createElement("input");
+			color_input.id										= id;
+			color_input.type									= "text";
+			color_input.setAttribute("set", set_idx);
+			color_input.setAttribute("slot", slot_idx);
+			color_input.style.display							= 'none';
+			color_elem.appendChild(color_input);
+			
+			var color_target									= document.createElement("div");
+			color_target.id										= id + "-target";
+			color_target.className								= "color";
+			color_elem.appendChild(color_target);
+			
+			var sendColor = function() {
+				return function(event, color) {
+					if (color.formatted && color.colorPicker.generated) {
+						var rgb									= hex2rgb(color.formatted);
+						sendData(addr + 0, rgb.r);
+						sendData(addr + 1, rgb.g);
+						sendData(addr + 2, rgb.b);
+						color_target.style.background			= normColor(color.formatted);
+					}
+				};
+			}();
+			
+			var viewColor = function() {
+				return function(event, ui) {
+					sendCommand([SER_VIEW_COLOR, set_idx, slot_idx, 0]);
+				};
+			}();
+			
+			var viewMode = function() {
+				return function(event, ui) {
+					sendCommand([SER_VIEW_MODE, 0, 0, 0]);
+				};
+			}();
+			
+			var picker = $(color_input).colorpicker({
+				alpha: false,
+				closeOnOutside: false,
+				swatches: 'pantone_100', //[default_array, spectra, pantone_100, pantone_1000]
+				swatchesWidth: jQuery.colorpicker.swatches.pantone_100_width, //[default_array_width, spectra_width,pantone_100_width, pantone_1000_width] 
+				colorFormat: 'HEX',
+				altField: color_target.id,
+				altProperties: "background-color",
+				parts: ['header', 'preview', 'map', 'bar', 'rgb', 'hsv', 'swatches', 'footer'],
+				layout: {
+					map: [0, 0, 1, 3],
+					bar: [1, 0, 1, 3],
+					preview: [2, 0, 1, 1],
+					rgb: [2, 1, 1, 1],
+					hsv: [2, 2, 1, 1],
+					swatches: [3, 0, 1, 3]
+				},
+				select: sendColor,
+				open: viewColor,
+				close: viewMode
+			});
+			
+			var onclick = function() {
+				return function() {
+					$(color_input).colorpicker("open");
+				};
+			}();
+			
+			color_target.onclick								= onclick;
+			
+			var updateColor = function(channel) {
+				return function(val) {
+					var hex										= getColorHex(set_idx, slot_idx);
+					color_target.style.background				= hex;
+					$(color_input).val(hex);
+				};
+			};
+			
+			var showOrHide = function() {
+				return function(val) {
+					if (slot_idx >= val) {
+						color_target.style.display				= 'none';
+					} else {
+						color_target.style.display				= null;
+					}
+				}
+			}();
+			
+			// listeners for RGB changes
+			readListeners[addr + 0].push(updateColor(0));
+			readListeners[addr + 1].push(updateColor(1));
+			readListeners[addr + 2].push(updateColor(2));
+			
+			// listener on numc change
+			readListeners[35 + set_idx].push(showOrHide);
+			updateListeners[35 + set_idx].push(showOrHide);
+		};
+		
+		
+		var elem												= document.createElement("div");
+		elem.style.margin										= "0 auto";
+		elem.style.width										= "785px";
+		parent.appendChild(elem);
+		
+		var slider = new SliderField(elem, {
+			min: 1,
+			max: 16,
+			width: 200,
+			addr: 35 + set_idx
+		});
+		
+		var slots												= [];
+		var color_container										= document.createElement("div");
+		color_container.style.marginLeft						= "20px";
+		color_container.style.display							= "inline-block";
+		elem.appendChild(color_container);
+		
+		for (var i = 0; i < 16; i++) {
+			var color_slot										= new ColorSlot(color_container, i);
+			slots.push(color_slot);
+		}
+		
+		var listener = function() {
+			return function(val) {
+				slider.setValue(val);
+			}
+		}();
+		
+		readListeners[35 + set_idx].push(listener);
+	};
+	
+	
+	function ThreshRow(parent, thresh_idx, thresh_vals) {
+		var elem												= document.createElement("div");
+		elem.style.margin										= "10px";
+		parent.appendChild(elem);
+		
+		var value_elems											= [];
+		
+		var slider												= document.createElement("div");
+		var ranges;
+		var def_values;
+		
+		if (thresh_vals == 2) {
+			ranges = [
+				{styleClass: 'trigger-0'},
+				{styleClass: 'trigger-01'},
+				{styleClass: 'trigger-1'}
+			];
+			def_values											= [4, 28];
+			
+			var dropdown_container								= document.createElement("div");
+			elem.appendChild(dropdown_container);
+			
+			var label											= document.createElement("span");
+			label.textContent									= "Trigger Type";
+			label.style.display									= "inline-block";
+			label.style.margin									= "5px";
+			dropdown_container.appendChild(label);
+			
+			var dropdown										= document.createElement("select");
+			dropdown.style.display								= "inline-block";
+			
+			dropdown.onchange = function() {
+				return function(event) {
+					if (this.value == 0) {
+						$(slider).limitslider("disable");
+					} else {
+						$(slider).limitslider("enable");
+					}
+					updateData(46, this.value);
+					sendCommand([SER_INIT, 0, 0, 0]);
+				};
+			}();
+			dropdown_container.appendChild(dropdown);
+			
+			for (var i = 0; i < triggers.length; i++) {
+				var trigger										= document.createElement("option");
+				trigger.value									= i;
+				trigger.textContent								= triggers[i];
+				dropdown.appendChild(trigger);
+			}
+			
+			var listener = function() {
+				return function(val) {
+					dropdown.value								= val;
+					if (val == 0) {
+						$(slider).limitslider("disable");
+					} else {
+						$(slider).limitslider("enable");
+					}
+				};
+			}();
+			
+			readListeners[46].push(listener);
+		} else {
+			ranges = [
+				{styleClass: 'range-0'},
+				{styleClass: 'range-01'},
+				{styleClass: 'range-1'},
+				{styleClass: 'range-12'},
+				{styleClass: 'range-2'}
+			];
+			def_values											= [4, 12, 20, 28];
+		}
+		
+		elem.appendChild(slider);
+		
+		var addr												= 38 + (4 * thresh_idx);
+		var values_container									= document.createElement("div");
+		values_container.style.display							= "flex";
+		values_container.style.justifyContent					= "space-between";
+		values_container.style.listStyleType					= "none";
+		elem.appendChild(values_container);
+		
+		for (var i = 0; i < thresh_vals; i++) {
+			var value_addr										= 38;
+			if (thresh_vals == 2) {
+				value_addr										+= 1 - i;
+			} else {
+				value_addr										+= (4 * thresh_idx) + i;
+			}
+			var valueChange = function(idx) {
+				return function(event) {
+					var val										= Number(event.target.value);
+					
+					var values									= $(slider).limitslider("values");
+					var checks									= [$(slider).limitslider("option", "min")]
+																.concat(values)
+																.concat([$(slider).limitslider("option", "max")]);
+					
+					if (val < checks[idx]) {
+						val										= checks[idx];
+					
+					} else if (val > checks[idx + 2]) {
+						val										= checks[idx + 2];
+					}
+					
+					event.target.value							= val;
+					values[idx]									= val;
+					
+					$(slider).limitslider("values", values);
+					
+					if (thresh_vals == 2) {
+						sendData(39 - idx, val);
+					
+					} else {
+						sendData(38 + (4 * thresh_idx) + idx, val);
+					}
+				}
+			}(i);
+			
+			
+			var value											= document.createElement("input");
+			value.type											= "text";
+			value.value											= def_values[i];
+			value.style.width									= "30px";
+			value.style.margin									= "5px 50px";
+			value.onchange										= valueChange;
+			value_elems.push(value);
+			values_container.appendChild(value);
+			
+			var valueListener = function(idx) {
+				return function(val) {
+					var values									= $(slider).limitslider("values");
+					values[idx]									= val;
+					value_elems[idx].value						= val;
+					$(slider).limitslider("values", values);
+				}
+			}(i);
+			
+			readListeners[value_addr].push(valueListener);
+		}
+		
+		var threshChange = function() {
+			return function(event, ui) {
+				if (event.originalEvent) {
+					var idx										= $(ui.handle).data("ui-slider-handle-index");
+					value_elems[idx].value						= ui.values[idx];
+					sendData(addr + idx, ui.values[idx]);
+				}
+			};
+		}();
+		
+		$(slider).limitslider({
+			min: 0, max: 64, gap: 0,
+			values: def_values,
+			ranges: ranges,
+			slide: threshChange,
+			change: threshChange
+		});
+	};
+	
+	
+	function writeFile(dir, filename, content) {
+		dir.getFile(filename, {create: true}, function(entry) {
+			entry.createWriter(function(writer) {
+				writer.onwriteend = function(e) {
+					if (writer.length === 0) {
+						writer.write(blob);
+						// console.log("Write success!");
+					}
+				};
+				
+				writer.onerror = function(e) {
+					console.log("Write failed: " + e.toString());
+				};
+				
+				writer.truncate(0);
+				var blob										= new Blob([content], {type: 'text/plain'});
+				writer.write(blob);
+			});
+		});
+	};
+	
+	
+	function writeMode(mode) {
+		var modecopy											= JSON.parse(JSON.stringify(mode));
+		delete modecopy.id;
+		modecopy.version										= version;
+		var content												= JSON.stringify(modecopy, null, 2);
+		writeFile(dir_modes, modecopy.name + ".mode", content);
+	};
+	
+	
+	function writeSource(name, num_modes, bundle_a, bundle_b) {		
+		var content = getSource(num_modes, bundle_a, bundle_b, SER_VERSION);
+		
+		dir_firmwares.getDirectory(name, {create: true}, function(entry) {
+			writeFile(entry, name + ".ino", content);
+		});
+	};
+	
+	
+	function makeModeItem(modeobj) {
+		var modeitem											= document.createElement("div");
+		modeitem.className										= "mode";
+		modeitem.id												= modeobj.id;
+		modeitem.textContent									= modeobj.name;
+		modeitem.data											= modeobj;
+		modeitem.data.filename									= modeobj.name;
+		modeitem.onclick = function(e) {
+			var field											= document.querySelector("#mode-save");
+			field.value											= this.data.filename;
+			
+			var arr												= modeToArray(this.data);
+			for (var i = 0; i < 191; i++) {
+				readData(i, arr[i]);
+			}
+			sendCommand([SER_INIT, 0, 0, 0]);
+		};
+		modes.appendChild(modeitem);
+	};
+	
+	
+	function translateMode(modeobj) {
+		if (modeobj.version != version) {
+			console.log("version mismatch: " + modeobj.version);
+		}
+		
+		// < 0.2.5, tracer only had one gap
+		if (modeobj.version === null || modeobj.version === undefined) {
+			if (modeobj.type == 0) {
+				if (modeobj.pattern[0] == 1) {
+					modeobj.timings[0][5]						= modeobj.timings[0][4];
+				}
+				
+				if (modeobj.pattern[1] == 1) {
+					modeobj.timings[1][5]						= modeobj.timings[1][4];
+				}
+			} else {
+				if (modeobj.pattern[0] == 1) {
+					modeobj.timings[0][5] 						= modeobj.timings[0][4];
+					modeobj.timings[1][5] 						= modeobj.timings[1][4];
+					modeobj.timings[2][5] 						= modeobj.timings[2][4];
+				}
+			}
+		}
+		
+		for (var s = 0; s < 3; s++) {
+			if (modeobj.colors[s].length < 16) {
+				for (var i = modeobj.colors[s].length - 1; i < 16; i++) {
+					modeobj.colors[s].push([0, 0, 0]);
+				}
+			}
+		}
+		
+		writeMode(modeobj);
+		return modeobj;
+	};
+	
+	
+	function readModeFile(i, file) {
+		file.file(function(file) {
+			var reader											= new FileReader();
+			reader.onload = function(e) {
+				var contents									= e.target.result;
+				var modeobj										= JSON.parse(contents);
+				modeobj											= translateMode(modeobj);
+				modeobj.name									= file.name.replace(".mode", "");
+				modeobj.id										= modeobj.name.replace(/\s/g, "-").toLowerCase();
+				modelib[modeobj.id]								= modeobj;
+				makeModeItem(modeobj);
+				
+				if (i == 0) document.getElementById(modeobj.id).click();
+			};
+			reader.readAsText(file);
+		});
+	};
+	
+	function initUI() {
+		var serialElement										= new SerialElement(editor);
+		var typeDropdown										= new TypeDropdown(editor);
+		var vectrUi												= new VectrEditor(editor);
+		var primerUi											= new PrimerEditor(editor);
+		
+		var modeControls										= new ModeControls(document.querySelector("#mode-controls"));
+		var bundleControls										= new BundleControls(document.querySelector("#bundle-controls"));
+		serialElement.updatePorts();
+	};
+	
+	function initSettings() {
+		chrome.storage.local.get("vectr", function(data) {
+			if (!data.vectr) {
+				data.vectr										= {};
+			}
+			if (data.vectr.version != version) {
+				data.vectr										= {};
+				data.vectr.version								= version;
+				chrome.storage.local.set(data);
+			}
+			if (!data.vectr.dir_id) {
+				chrome.fileSystem.chooseEntry({type: "openDirectory"}, function(entry) {
+					
+					data.vectr.dir_id							= chrome.fileSystem.retainEntry(entry);
+					dir_root									= entry;
+					chrome.storage.local.set(data);
+				
+					var default_modes = DefaultModes.getModes();
+					dir_root.getDirectory("modes",     {create: true}, function(entry) {
+						dir_modes								= entry;
+						
+						for (var i = 0; i < default_modes.length; i++) {
+							var default_mode					= default_modes[i];
+							
+							for (var b = 0; b < default_mode.bundles.length; b++) {
+								mode_bundles[default_mode.bundles[b]][default_mode.slot] = modeToArray(default_mode);
+								mode_bundle_ids[default_mode.bundles[b]][default_mode.slot] = default_mode.id;
+							}
+					
+							modelib[default_mode.id]			= default_mode;
+							makeModeItem(default_mode);
+							writeMode(default_mode);
+							if (i == 0) {
+								document.getElementById(default_mode.id).click();
+							}
+						}
+					});
+					
+					dir_root.getDirectory("firmwares", {create: true}, function(entry) {
+						dir_firmwares							= entry;
+						var num_modes							= [8, 8];
+						
+						for (var i = 0; i < 8; i++) {
+							var child0							= document.getElementById(mode_bundle_ids[0][i]);
+							var el0								= child0.cloneNode();
+							el0.data							= {id: child0.id};
+							el0.textContent						= child0.textContent;
+							el0.setAttribute("id", "mode-item-" + Math.floor(Math.random() * Math.pow(2, 16)));
+							bundle0.appendChild(el0);
+							
+							var child1							= document.getElementById(mode_bundle_ids[1][i]);
+							var el1								= child1.cloneNode();
+							el1.data							= {id: child1.id};
+							el1.textContent						= child1.textContent;
+							el1.setAttribute("id", "mode-item-" + Math.floor(Math.random() * Math.pow(2, 16)));
+							bundle1.appendChild(el1);
+						}
+						document.getElementById("firmware-save").value = "default";
+						
+						writeSource("default", num_modes, mode_bundles[0], mode_bundles[1], SER_VERSION);
+					});
+				});
+			} else {
+				chrome.fileSystem.restoreEntry(data.vectr.dir_id, function(entry) {
+					dir_root									= entry;
+					
+					dir_root.getDirectory("firmwares", {create: false}, function(entry) { dir_firmwares = entry; });
+					
+					dir_root.getDirectory("modes",     {create: false}, function(entry) {
+						dir_modes								= entry;
+						var reader								= entry.createReader();
+						reader.readEntries(function(entries) {
+							var c = 0;
+							for (var i = 0; i < entries.length; i++) {
+								if (entries[i].name.endsWith(".mode")) {
+								readModeFile(c, entries[i]);
+								c++;
+								}
+							}
+						},
+						
+						function(e) {
+							console.log(e);
+						});
+					});
+				});
+			}
+		});
+	};
+	
+	function TypeDropdown(parent) {
+		var elem												= document.createElement("div");
+		elem.style.margin										= "5px";
+		parent.appendChild(elem);
+		
+		var dropdown											= document.createElement("select");
+		dropdown.onchange = function() {
+			return function(event) {
+				updateData(0, Number(this.value));
+				sendCommand([SER_INIT, 0, 0, 0]);
+			};
+		}();
+		elem.appendChild(dropdown);
+		
+		for (var i = 0; i < modetypes.length; i++) {
+			var modetype										= document.createElement("option");
+			modetype.value										= i;
+			modetype.textContent								= modetypes[i];
+			dropdown.appendChild(modetype);
+		}
+		
+		var listener = function() {
+			return function(val) {
+				dropdown.value									= val;
+			};
+		}();
+		
+		readListeners[0].push(listener);
+	};
+	
+	function SerialElement(parent) {
+		var elem												= document.createElement("div");
+		elem.style.margin										= "5px";
+		parent.appendChild(elem);
+		
+		var dropdown = document.createElement("select");
+		elem.appendChild(dropdown);
+		
+		function onReceiveCallback(info) {
+			if (info.connectionId == connection_id && info.data) {
+			var view = new Uint8Array(info.data);
+			for (var i = 0; i < view.length; i++) {
+				input_buffer.push(view[i]);
+			}
+		
+			while (input_buffer.length >= 4) {
+				handleCommand(input_buffer.splice(0, 4));
+			}
+			}
+		};
+		
+		var connect_button										= document.createElement("input");
+		connect_button.type										= "button";
+		connect_button.value									= "Connect";
+		connect_button.style.width								= "120px";
+		connect_button.onclick = function() {
+			return function(event) {
+			if (this.value === "Connect") {
+				var port = dropdown.childNodes[dropdown.value].textContent;
+				
+				chrome.serial.connect(port, {bitrate: 115200}, function(info) {
+					connection_id = info.connectionId;
+					chrome.serial.onReceive.addListener(onReceiveCallback);
+					sendCommand([SER_HANDSHAKE, SER_VERSION, 42, 42], true);
+				});
+				this.value = "Disconnect";
+			} else {
+				sendCommand([SER_DISCONNECT, 0, 0, 0]);
+				connected										= false;
+				chrome.serial.disconnect(connection_id, function(result) {});
+				
+				connection_id									= null;
+				this.value										= "Connect";
+			}
+			};
+		}();
+		elem.appendChild(connect_button);
+		
+		var refresh_button										= document.createElement("input");
+		refresh_button.type										= "button";
+		refresh_button.value									= "Refresh Ports";
+		refresh_button.style.width								= "120px";
+		refresh_button.onclick = function() {
+			return function(event) {
+				this.updatePorts();
+			};
+		}().bind(this);
+		elem.appendChild(refresh_button);
+		
+		this.updatePorts = function() {
+			return function() {
+				dropdown.innerHTML								= "";
+				chrome.serial.getDevices(function(devices) {
+					for (var i = 0; i < devices.length; i++) {
+						var port = document.createElement("option");
+						port.value = i;
+						port.textContent = devices[i].path;
+						dropdown.appendChild(port);
+					}
+				});
+			};
+		}();
+	};
+	
+	
+	function ModeControls(parent) {
+		var elem												= document.createElement("div");
+		elem.style.margin										= "5px";
+		elem.style.textAlign									= "center";
+		parent.appendChild(elem);
+		
+		var field												= document.createElement("input");
+		field.id												= "mode-save";
+		field.type												= "text";
+		field.style.display										= "block";
+		field.style.width										=  "170px";
+		elem.appendChild(field);
+		
+		var button												= document.createElement("button");
+		button.type												= "button";
+		button.textContent										= "Save Mode";
+		button.style.width										=  "100px";
+		button.style.display									= "block";
+		button.style.margin										= "0 auto";
+		elem.appendChild(button);
+		
+		button.onclick = function(e) {
+			// Save mode
+			var name											= field.value.replace(/\s/g, "-").toLowerCase();
+			var modeobj											= arrayToMode(data);
+			modeobj.name										= field.value;
+			modeobj.id											= name;
+		
+			// Update modelib with new mode data
+			modelib[modeobj.id]									= modeobj;
+		
+			// If no existing modeitem, create a new one!
+			var elem											= document.querySelector("#" + name);
+			if (elem === null) {
+				makeModeItem(modeobj);
+			}
+		
+			var modeitem										= document.getElementById(modeobj.id);
+			modeitem.data										= modeobj;
+		
+			// Write the file
+			writeMode(modeobj);
+		};
+	};
+	
+	
+	function BundleControls(parent) {
+		var elem												= document.createElement("div");
+		elem.style.margin										= "5px";
+		elem.style.textAlign									= "center";
+		parent.appendChild(elem);
+		
+		var field												= document.createElement("input");
+		field.id												= "firmware-save";
+		field.type												= "text";
+		field.style.display										= "block";
+		field.style.width										=  "150px";
+		elem.appendChild(field);
+		
+		var button												= document.createElement("button");
+		button.type												= "button";
+		button.textContent										= "Save Firmware";
+		button.style.width										=  "100px";
+		button.style.display									= "block";
+		button.style.margin										= "0 auto";
+		elem.appendChild(button);
+		
+		button.onclick = function(e) {
+			var num_modes										= [bundle0.children.length, bundle1.children.length];
+			
+			var bundle_a										= [];
+			for (var i = 0; i < bundle0.children.length; i++) {
+				var modeitem									= bundle0.children[i];
+				var modeobj										= modelib[modeitem.data.id];
+				
+				bundle_a.push(modeToArray(modeobj));
+			}
+			
+			var bundle_b										= [];
+			for (var i = 0; i < bundle1.children.length; i++) {
+				var modeitem									= bundle1.children[i];
+				var modeobj										= modelib[modeitem.data.id];
+				bundle_b.push(modeToArray(modeobj));
+			}
+			
+			if (field.value == "") {
+				dialog.children[0].textContent					= "Firmware must have a name.";
+			
+			} else if (field.value.includes(" ")) {
+				dialog.children[0].textContent					= "Firmware name must not have spaces.";
+			
+			} else {
+				writeSource(field.value, num_modes, bundle_a, bundle_b);
+				dialog.children[0].textContent 					= "Firmware saved.";
+			}
+			dialog.show();
+		};
+	};
+	
+	function initDragDrop() {
+		var dnd = new DnDFileController('body', function(data) {
+			var fileEntry										= data.items[0].webkitGetAsEntry();
+			
+			fileEntry.file(function(file) {
+				var reader										= new FileReader();
+				reader.onload = function(e) {
+					var contents								= e.target.result;
+					var modeobj									= JSON.parse(contents);
+					
+					modeobj										= translateMode(modeobj);
+					modeobj.name								= file.name.replace(".mode", "");
+					modeobj.id									= modeobj.name.replace(/\s/g, "-").toLowerCase();
+					
+					if (modelib[modeobj.id]) {
+						modelib[modeobj.id]						= modeobj;
+						writeMode(modeobj);
+					} else {
+						modelib[modeobj.id]						= modeobj;
+						makeModeItem(modeobj);
+						writeMode(modeobj);
+					}
+				}
+				reader.readAsText(file);
+			});
+		});
+	};
+	
+	header.textContent											= "Vectr (" + version + ")";
+	initSettings();
+	initUI();
+	initDragDrop();
+	
+	close.onclick = function () { dialog.close(); }
+	
+	return {
+		writeMode: writeMode,
+		writeSource: writeSource,
+		modelib: modelib,
+		data: data
+	};
 }();
